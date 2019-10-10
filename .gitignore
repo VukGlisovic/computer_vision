@@ -68,5 +68,8 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+# pycharm
+.idea
+
 # project folders
 data/
