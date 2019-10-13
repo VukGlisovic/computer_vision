@@ -19,8 +19,10 @@ def preprocess_image(image):
     return image
 
 
-def input_fn(Xtrain, ytrain, batch_size=32, shuffle_buffer=300):
+def input_fn(Xtrain, ytrain, epochs=None, batch_size=32, shuffle_buffer=None):
     dataset = tf.data.Dataset.from_tensor_slices((Xtrain, ytrain))
-    dataset = dataset.map(preprocess_image)
-    dataset = dataset.shuffle(shuffle_buffer).batch(batch_size)
+    dataset = dataset.map(preprocess_image) \
+        .repeat(epochs) \
+        .shuffle(shuffle_buffer) \
+        .batch(batch_size)
     return dataset
