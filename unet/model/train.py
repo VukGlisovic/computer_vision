@@ -1,6 +1,5 @@
 from unet.model.architecture import *
-
-IMAGE_SHAPE = [101, 101, 3]
+from unet.model.constants import *
 
 
 def get_model():
