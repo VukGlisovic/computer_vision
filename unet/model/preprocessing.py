@@ -23,8 +23,9 @@ def preprocess_image(image, mask):
 
 def input_fn(Xtrain, ytrain, epochs=None, batch_size=32, shuffle_buffer=None):
     dataset = tf.data.Dataset.from_tensor_slices((Xtrain, ytrain))
-    dataset = dataset.map(preprocess_image) \
-        .repeat(epochs) \
-        .shuffle(shuffle_buffer) \
-        .batch(batch_size)
+    dataset = dataset.map(preprocess_image)
+    dataset = dataset.repeat(epochs)
+    if shuffle_buffer:
+        dataset = dataset.shuffle(shuffle_buffer)
+    dataset = dataset.batch(batch_size)
     return dataset

@@ -42,8 +42,7 @@ def train_and_validate(model):
               steps_per_epoch=steps_per_epoch,
               validation_data=valid_dataset,
               validation_steps=4,  # 4 steps of 200 samples covers the entire validation set
-              callbacks=[model_checkpoint],
-              verbose=2)
+              callbacks=[model_checkpoint])
     logging.info("Finished training!")
 
 
