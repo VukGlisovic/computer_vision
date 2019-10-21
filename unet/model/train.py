@@ -1,7 +1,6 @@
 from unet.model.constants import *
 from unet.model.preprocessing import input_fn, load_data
 from unet.model.architecture import *
-from unet.model.metrics import iou
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
 import sys
@@ -16,7 +15,7 @@ def get_model():
     unet_model = create_unet_model(input_image, batchnorm=False)
 
     optimizer = keras.optimizers.Adam(lr=0.01)
-    unet_model.compile(loss="binary_crossentropy", optimizer=optimizer, metrics=[iou])
+    unet_model.compile(loss="binary_crossentropy", optimizer=optimizer, metrics={'mean_io_u', keras.metrics.MeanIoU(num_classes=2)})
     return unet_model
 
 
@@ -34,7 +33,7 @@ def train_and_validate(model):
     valid_dataset = input_fn(Xvalid, yvalid, epochs=None, batch_size=valid_batch_size, shuffle_buffer=None)
 
     logging.info("Creating keras callbacks.")
-    model_checkpoint = keras.callbacks.ModelCheckpoint('unet_saved_model', monitor='iou', mode='max', save_best_only=True, verbose=1)
+    model_checkpoint = keras.callbacks.ModelCheckpoint('unet_saved_model', monitor='mean_io_u', mode='max', save_best_only=True, verbose=1)
 
     logging.info("Start training...")
     steps_per_epoch = train_size // train_batch_size
