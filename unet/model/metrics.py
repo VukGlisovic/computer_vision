@@ -21,3 +21,12 @@ def get_iou_vector(A, B):
 
 def iou(label, pred):
     return tf.compat.v1.py_func(get_iou_vector, [label, pred > 0.5], tf.dtypes.float64)
+
+
+class IOU(tf.keras.metrics.MeanIoU):
+
+    def __init__(self, name):
+        super().__init__(num_classes=2, name=name)
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        super().update_state(y_true, y_pred > 0.5, sample_weight)
