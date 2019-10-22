@@ -1,6 +1,7 @@
 from unet.model.constants import *
 from unet.model.preprocessing import input_fn, load_data
 from unet.model.architecture import *
+from unet.model.metrics import IOU
 import tensorflow as tf
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
@@ -16,11 +17,12 @@ def get_model():
     unet_model = create_unet_model(input_image, batchnorm=False)
 
     optimizer = keras.optimizers.Adam(lr=0.01)
-    unet_model.compile(loss="binary_crossentropy", optimizer=optimizer, metrics=[keras.metrics.MeanIoU(num_classes=2, name='mean_io_u')])
+    unet_model.compile(loss="binary_crossentropy", optimizer=optimizer, metrics=[IOU(name='mean_io_u')])
     return unet_model
 
 
 def train_and_validate(model):
+    epochs = 3
     logging.info("Loading the data.")
     Xdata, ydata = load_data()  # expecting 4000 samples
     logging.info("Splitting the data into train and validation set.")
@@ -28,7 +30,7 @@ def train_and_validate(model):
     Xtrain, Xvalid, ytrain, yvalid = train_test_split(Xdata, ydata, train_size=train_size)
     logging.info("Creating train data input_fn.")
     train_batch_size = 32
-    train_dataset = input_fn(Xtrain, ytrain, epochs=3, batch_size=train_batch_size, shuffle_buffer=300)
+    train_dataset = input_fn(Xtrain, ytrain, epochs=epochs, batch_size=train_batch_size, shuffle_buffer=300)
     logging.info("Creating validation data input_fn.")
     valid_batch_size = 200
     valid_dataset = input_fn(Xvalid, yvalid, epochs=None, batch_size=valid_batch_size, shuffle_buffer=None)
@@ -48,6 +50,7 @@ def train_and_validate(model):
     logging.info("Start training...")
     steps_per_epoch = train_size // train_batch_size
     model.fit(train_dataset,
+              epochs=epochs,
               steps_per_epoch=steps_per_epoch,
               validation_data=valid_dataset,
               validation_steps=4,  # 4 steps of 200 samples covers the entire validation set
