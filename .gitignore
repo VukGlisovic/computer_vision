@@ -74,3 +74,4 @@ venv.bak/
 # project folders
 data/
 *_saved_model/
+logs/
