@@ -1,6 +1,7 @@
 from unet.model.constants import *
 from unet.model.preprocessing import input_fn, load_data
 from unet.model.architecture import *
+import tensorflow as tf
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
 import sys
@@ -15,7 +16,7 @@ def get_model():
     unet_model = create_unet_model(input_image, batchnorm=False)
 
     optimizer = keras.optimizers.Adam(lr=0.01)
-    unet_model.compile(loss="binary_crossentropy", optimizer=optimizer, metrics={'mean_io_u', keras.metrics.MeanIoU(num_classes=2)})
+    unet_model.compile(loss="binary_crossentropy", optimizer=optimizer, metrics=[keras.metrics.MeanIoU(num_classes=2, name='mean_io_u')])
     return unet_model
 
 
@@ -27,13 +28,22 @@ def train_and_validate(model):
     Xtrain, Xvalid, ytrain, yvalid = train_test_split(Xdata, ydata, train_size=train_size)
     logging.info("Creating train data input_fn.")
     train_batch_size = 32
-    train_dataset = input_fn(Xtrain, ytrain, epochs=2, batch_size=train_batch_size, shuffle_buffer=300)
+    train_dataset = input_fn(Xtrain, ytrain, epochs=3, batch_size=train_batch_size, shuffle_buffer=300)
     logging.info("Creating validation data input_fn.")
     valid_batch_size = 200
     valid_dataset = input_fn(Xvalid, yvalid, epochs=None, batch_size=valid_batch_size, shuffle_buffer=None)
 
     logging.info("Creating keras callbacks.")
     model_checkpoint = keras.callbacks.ModelCheckpoint('unet_saved_model', monitor='mean_io_u', mode='max', save_best_only=True, verbose=1)
+    tensorboard = keras.callbacks.TensorBoard(log_dir='./logs')
+
+    def scheduler(epoch):
+        if epoch < 10:
+            return 0.001
+        else:
+            return 0.001 * tf.math.exp(0.1 * (10 - epoch))
+
+    learning_rate_decay = tf.keras.callbacks.LearningRateScheduler(scheduler)
 
     logging.info("Start training...")
     steps_per_epoch = train_size // train_batch_size
@@ -41,7 +51,7 @@ def train_and_validate(model):
               steps_per_epoch=steps_per_epoch,
               validation_data=valid_dataset,
               validation_steps=4,  # 4 steps of 200 samples covers the entire validation set
-              callbacks=[model_checkpoint])
+              callbacks=[model_checkpoint, tensorboard, learning_rate_decay])
     logging.info("Finished training!")
 
 
