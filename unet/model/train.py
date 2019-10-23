@@ -7,9 +7,19 @@ from tensorflow import keras
 from sklearn.model_selection import train_test_split
 import sys
 import logging
+import argparse
 
 logformat = '%(asctime)s | %(levelname)s | [%(filename)s:%(lineno)s - %(funcName)s] %(message)s'
 logging.basicConfig(format=logformat, level=logging.INFO, stream=sys.stdout)
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--nr_epochs',
+                    default=3,
+                    type=int,
+                    help="Number of passes over the entire data set for training.")
+known_args, _ = parser.parse_known_args()
+logging.info("Number of epochs: %s", known_args.nr_epochs)
 
 
 def get_model():
@@ -21,8 +31,7 @@ def get_model():
     return unet_model
 
 
-def train_and_validate(model):
-    epochs = 3
+def train_and_validate(model, epochs):
     logging.info("Loading the data.")
     Xdata, ydata = load_data()  # expecting 4000 samples
     logging.info("Splitting the data into train and validation set.")
@@ -60,4 +69,4 @@ def train_and_validate(model):
 
 if __name__ == '__main__':
     model = get_model()
-    train_and_validate(model)
+    train_and_validate(model, known_args.nr_epochs)
