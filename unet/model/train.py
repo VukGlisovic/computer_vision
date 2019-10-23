@@ -23,6 +23,11 @@ logging.info("Number of epochs: %s", known_args.nr_epochs)
 
 
 def get_model():
+    """Create and compile the model.
+
+    Returns:
+        keras.models.Model
+    """
     unet_model = get_unet_model(batchnorm=False)
 
     optimizer = keras.optimizers.Adam(lr=0.01)
@@ -45,7 +50,8 @@ def train_and_validate(model, epochs):
 
     logging.info("Creating keras callbacks.")
     checkpoint_path = "unet_saved_model/cp-{epoch:04d}.ckpt"
-    model_checkpoint = keras.callbacks.ModelCheckpoint(checkpoint_path, monitor='mean_io_u', mode='max', save_best_only=True, save_weights_only=True, verbose=1)
+    # optional, add following parameters: monitor='mean_io_u', mode='max', save_best_only=True,
+    model_checkpoint = keras.callbacks.ModelCheckpoint(checkpoint_path, save_weights_only=True, verbose=1)
     tensorboard = keras.callbacks.TensorBoard(log_dir='./logs')
 
     def scheduler(epoch):
@@ -55,6 +61,9 @@ def train_and_validate(model, epochs):
             return 0.001 * tf.math.exp(0.1 * (10 - epoch))
 
     learning_rate_decay = tf.keras.callbacks.LearningRateScheduler(scheduler)
+
+    # Save the initialized weights using the `checkpoint_path` format
+    model.save_weights(checkpoint_path.format(epoch=0))
 
     logging.info("Start training...")
     steps_per_epoch = train_size // train_batch_size
