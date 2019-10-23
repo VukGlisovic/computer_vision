@@ -23,8 +23,7 @@ logging.info("Number of epochs: %s", known_args.nr_epochs)
 
 
 def get_model():
-    input_image = keras.layers.Input(IMAGE_SHAPE, name='image')
-    unet_model = create_unet_model(input_image, batchnorm=False)
+    unet_model = get_unet_model(batchnorm=False)
 
     optimizer = keras.optimizers.Adam(lr=0.01)
     unet_model.compile(loss="binary_crossentropy", optimizer=optimizer, metrics=[IOU(name='mean_io_u')])
@@ -45,7 +44,8 @@ def train_and_validate(model, epochs):
     valid_dataset = input_fn(Xvalid, yvalid, epochs=None, batch_size=valid_batch_size, shuffle_buffer=None)
 
     logging.info("Creating keras callbacks.")
-    model_checkpoint = keras.callbacks.ModelCheckpoint('unet_saved_model', monitor='mean_io_u', mode='max', save_best_only=True, verbose=1)
+    checkpoint_path = "unet_saved_model/cp-{epoch:04d}.ckpt"
+    model_checkpoint = keras.callbacks.ModelCheckpoint(checkpoint_path, monitor='mean_io_u', mode='max', save_best_only=True, save_weights_only=True, verbose=1)
     tensorboard = keras.callbacks.TensorBoard(log_dir='./logs')
 
     def scheduler(epoch):

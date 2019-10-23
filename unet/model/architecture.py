@@ -1,3 +1,4 @@
+from unet.model.constants import *
 from tensorflow import keras
 
 
@@ -100,4 +101,20 @@ def create_unet_model(input_img, n_filters=16, dropout_rate=0.5, batchnorm=True)
 
     outputs = keras.layers.Conv2D(1, (1, 1), activation='sigmoid')(c9)
     model = keras.models.Model(inputs=[input_img], outputs=[outputs])
+    return model
+
+
+def get_unet_model(n_filters=16, dropout_rate=0.5, batchnorm=True):
+    """Adds the input tensor to the keras U-net model.
+
+    Args:
+        n_filters (int):
+        dropout_rate (float):
+        batchnorm (bool):
+
+    Returns:
+        keras.models.Model
+    """
+    input_image = keras.layers.Input(IMAGE_SHAPE, name='image')
+    model = create_unet_model(input_image, n_filters=n_filters, dropout_rate=dropout_rate, batchnorm=batchnorm)
     return model
