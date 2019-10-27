@@ -6,6 +6,7 @@ import tensorflow as tf
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
 import sys
+import shutil
 import logging
 import argparse
 
@@ -18,6 +19,10 @@ parser.add_argument('--nr_epochs',
                     default=10,
                     type=int,
                     help="Number of passes over the entire data set for training.")
+parser.add_argument('--clean_up_previous_runs',
+                    default=True,
+                    type=bool,
+                    help="Whether to remove old runs.")
 known_args, _ = parser.parse_known_args()
 logging.info("Number of epochs: %s", known_args.nr_epochs)
 
@@ -61,7 +66,7 @@ def get_callbacks():
             return 0.001 * tf.math.exp(0.1 * (10 - epoch))
 
     learning_rate_decay = tf.keras.callbacks.LearningRateScheduler(scheduler)
-    return model_checkpoint, tensorboard, learning_rate_decay
+    return [model_checkpoint, tensorboard, learning_rate_decay]
 
 
 def get_model():
@@ -84,6 +89,10 @@ def train_and_validate(model, epochs):
         model (keras.models.Model):
         epochs (int):
     """
+    if known_args.clean_up_previous_runs:
+        logging.info("Removing older runs.")
+        shutil.rmtree('./logs', ignore_errors=True)
+        shutil.rmtree(CHECKPOINT_DIR)
     logging.info("Loading the data.")
     train_batch_size = 32
     train_dataset, valid_dataset, train_size = get_train_validation_sets(epochs, train_batch_size)
