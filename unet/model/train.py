@@ -15,7 +15,7 @@ logging.basicConfig(format=logformat, level=logging.INFO, stream=sys.stdout)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--nr_epochs',
-                    default=3,
+                    default=10,
                     type=int,
                     help="Number of passes over the entire data set for training.")
 known_args, _ = parser.parse_known_args()
@@ -49,9 +49,8 @@ def train_and_validate(model, epochs):
     valid_dataset = input_fn(Xvalid, yvalid, epochs=None, batch_size=valid_batch_size, shuffle_buffer=None)
 
     logging.info("Creating keras callbacks.")
-    checkpoint_path = "unet_saved_model/cp-{epoch:04d}.ckpt"
     # optional, add following parameters: monitor='mean_io_u', mode='max', save_best_only=True,
-    model_checkpoint = keras.callbacks.ModelCheckpoint(checkpoint_path, save_weights_only=True, verbose=1)
+    model_checkpoint = keras.callbacks.ModelCheckpoint(CHECKPOINT_PATH, save_weights_only=True, verbose=1)
     tensorboard = keras.callbacks.TensorBoard(log_dir='./logs')
 
     def scheduler(epoch):
@@ -63,10 +62,10 @@ def train_and_validate(model, epochs):
     learning_rate_decay = tf.keras.callbacks.LearningRateScheduler(scheduler)
 
     # Save the initialized weights using the `checkpoint_path` format
-    model.save_weights(checkpoint_path.format(epoch=0))
+    model.save_weights(CHECKPOINT_PATH.format(epoch=0))
 
     logging.info("Start training...")
-    steps_per_epoch = train_size // train_batch_size
+    steps_per_epoch = (train_size // train_batch_size) // 2  # halve it to have more evaluation points
     model.fit(train_dataset,
               epochs=epochs,
               steps_per_epoch=steps_per_epoch,
