@@ -24,6 +24,9 @@ def iou(label, pred):
 
 
 class IOU(tf.keras.metrics.MeanIoU):
+    """Extends the original MeanIoU metrics from keras by transforming
+    the predicted mask with a threshold.
+    """
 
     def __init__(self, name):
         super().__init__(num_classes=2, name=name)
