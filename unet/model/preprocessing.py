@@ -1,4 +1,5 @@
 from unet.model.constants import *
+from unet.model.augmentations import *
 from glob import glob
 import numpy as np
 import cv2
@@ -39,7 +40,7 @@ def preprocess_image(image, mask):
     return image, mask
 
 
-def input_fn(Xtrain, ytrain, epochs=None, batch_size=32, shuffle_buffer=None):
+def input_fn(Xtrain, ytrain, epochs=None, batch_size=32, shuffle_buffer=None, augment=False):
     """Creates an input tensorflow dataset iterator.
 
     Args:
@@ -48,12 +49,16 @@ def input_fn(Xtrain, ytrain, epochs=None, batch_size=32, shuffle_buffer=None):
         epochs (int):
         batch_size (int):
         shuffle_buffer (int):
+        augment (bool):
 
     Returns:
         tf.dataset.Dataset
     """
     dataset = tf.data.Dataset.from_tensor_slices((Xtrain, ytrain))
     dataset = dataset.map(preprocess_image)
+    if augment:
+        dataset = dataset.map(rotate)
+        dataset = dataset.map(flip)
     dataset = dataset.repeat(epochs)
     if shuffle_buffer:
         dataset = dataset.shuffle(shuffle_buffer)

@@ -42,10 +42,10 @@ def get_train_validation_sets(epochs, train_batch_size=32):
     train_size = 3200
     Xtrain, Xvalid, ytrain, yvalid = train_test_split(Xdata, ydata, train_size=train_size)
     logging.info("Creating train data input_fn.")
-    train_dataset = input_fn(Xtrain, ytrain, epochs=epochs, batch_size=train_batch_size, shuffle_buffer=300)
+    train_dataset = input_fn(Xtrain, ytrain, epochs=epochs, batch_size=train_batch_size, shuffle_buffer=300, augment=True)
     logging.info("Creating validation data input_fn.")
     valid_batch_size = 200
-    valid_dataset = input_fn(Xvalid, yvalid, epochs=None, batch_size=valid_batch_size, shuffle_buffer=None)
+    valid_dataset = input_fn(Xvalid, yvalid, epochs=None, batch_size=valid_batch_size, shuffle_buffer=None, augment=False)
     return train_dataset, valid_dataset, train_size
 
 
@@ -92,7 +92,7 @@ def train_and_validate(model, epochs):
     if known_args.clean_up_previous_runs:
         logging.info("Removing older runs.")
         shutil.rmtree('./logs', ignore_errors=True)
-        shutil.rmtree(CHECKPOINT_DIR)
+        shutil.rmtree(CHECKPOINT_DIR, ignore_errors=True)
     logging.info("Loading the data.")
     train_batch_size = 32
     train_dataset, valid_dataset, train_size = get_train_validation_sets(epochs, train_batch_size)
