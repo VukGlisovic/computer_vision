@@ -9,7 +9,6 @@ from unet.model.metrics import IOU
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
 import sys
-import shutil
 import logging
 import argparse
 import json
@@ -87,9 +86,9 @@ def train_and_validate(model, nr_epochs, batch_size, shuffle_buffer, checkpoints
     train_size = 3200
     Xtrain, Xvalid, ytrain, yvalid = train_test_split(Xdata, ydata, train_size=train_size, random_state=42)
     logging.info("Creating train data input_fn.")
-    train_dataset = input_fn(Xtrain, ytrain, epochs=nr_epochs, batch_size=batch_size, shuffle_buffer=shuffle_buffer)
+    train_dataset = input_fn(Xtrain, ytrain, epochs=nr_epochs, batch_size=batch_size, shuffle_buffer=shuffle_buffer, augment=True)
     logging.info("Creating validation data input_fn.")
-    valid_dataset = input_fn(Xvalid, yvalid, epochs=None, batch_size=200, shuffle_buffer=None)
+    valid_dataset = input_fn(Xvalid, yvalid, epochs=None, batch_size=200, shuffle_buffer=None, augment=False)
 
     logging.info("Creating keras callbacks.")
     checkpoint_file_template = "cp-{epoch:04d}.ckpt"
@@ -103,7 +102,7 @@ def train_and_validate(model, nr_epochs, batch_size, shuffle_buffer, checkpoints
     model.save_weights(checkpoint_path.format(epoch=0))
 
     logging.info("Start training...")
-    steps_per_epoch = train_size // batch_size
+    steps_per_epoch = train_size // batch_size // 2  # halve it to have more evaluation points
     model.fit(train_dataset,
               epochs=nr_epochs,
               steps_per_epoch=steps_per_epoch,

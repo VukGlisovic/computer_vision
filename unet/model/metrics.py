@@ -25,8 +25,8 @@ def iou(label, pred):
 
 class IOU(tf.keras.metrics.MeanIoU):
     """A metric to calculate mean intersection over union. This metric
-    first rounds the predicted values first to zero or one and then compares
-    it to the true mask.
+    first rounds the predicted values to zero or one and then compares
+    them to the true mask.
 
     Args:
         name (str):

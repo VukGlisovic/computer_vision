@@ -1,4 +1,5 @@
 from glob import glob
+from unet.model.augmentations import *
 import numpy as np
 import cv2
 import tensorflow as tf
@@ -40,7 +41,7 @@ def preprocess_image(image, mask):
     return image, mask
 
 
-def input_fn(Xtrain, ytrain, epochs=None, batch_size=32, shuffle_buffer=None):
+def input_fn(Xtrain, ytrain, epochs=None, batch_size=32, shuffle_buffer=None, augment=False):
     """Creates a tensorflow data set iterator as a preprocessing input pipeline.
     Steps:
     1. creates a tf.data.Dataset
@@ -53,12 +54,16 @@ def input_fn(Xtrain, ytrain, epochs=None, batch_size=32, shuffle_buffer=None):
         epochs (int):
         batch_size (int):
         shuffle_buffer (int):
+        augment (bool):
 
     Returns:
         tf.data.Dataset
     """
     dataset = tf.data.Dataset.from_tensor_slices((Xtrain, ytrain))
     dataset = dataset.map(preprocess_image)
+    if augment:
+        dataset = dataset.map(rotate)
+        dataset = dataset.map(flip)
     dataset = dataset.repeat(epochs)
     if shuffle_buffer:
         dataset = dataset.shuffle(shuffle_buffer)
