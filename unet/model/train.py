@@ -1,3 +1,8 @@
+"""
+In order to train a Unet model with this script, you need to provide
+a configuration json file. This file should contain all parameters
+that are required by the train_and_validate method except for 'model'.
+"""
 from unet.model.preprocessing import input_fn, load_data
 from unet.model.architecture import *
 from unet.model.metrics import IOU
@@ -68,12 +73,13 @@ def train_and_validate(model, nr_epochs, batch_size, shuffle_buffer, checkpoints
     the model.
 
     Args:
-        model (keras.models.Model):
-        nr_epochs (int):
-        batch_size (int):
-        shuffle_buffer (int):
-        checkpoints_dir (str):
-        tensorboard_logdir (str):
+        model (keras.models.Model): the Unet model.
+        nr_epochs (int): the number of times to iterate through the entire
+            training data set.
+        batch_size (int): the number of samples in a mini-batch.
+        shuffle_buffer (int): number of samples to shuffle in a shuffle buffer.
+        checkpoints_dir (str): where to store the checkpoint files.
+        tensorboard_logdir (str): where to store the Tensorboard logs.
     """
     logging.info("Loading the data.")
     Xdata, ydata = load_data()  # expecting 4000 samples in a numpy array
