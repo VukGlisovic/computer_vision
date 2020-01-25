@@ -7,6 +7,7 @@ import sys
 import shutil
 import logging
 import argparse
+import json
 from distutils.dist import strtobool
 
 logformat = '%(asctime)s | %(levelname)s | [%(filename)s:%(lineno)s - %(funcName)s] %(message)s'
@@ -14,39 +15,37 @@ logging.basicConfig(format=logformat, level=logging.INFO, stream=sys.stdout)
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--nr_epochs',
-                    default=3,
-                    type=int,
-                    help="Number of passes over the entire data set for training.")
-parser.add_argument('--checkpoints_dir',
-                    default='./unet_saved_model',
+parser.add_argument('--configuration_file',
+                    default='./config.json',
                     type=str,
-                    help="Where to store the checkpoint files.")
-parser.add_argument('--tensorboard_logdir',
-                    default='./logs',
-                    type=str,
-                    help="Where to store the log files for Tensorboard.")
+                    help="JSON file containing all the configurations required for training. For instance "
+                         "number of epochs, batch size, etc.")
 parser.add_argument('--remove_old_results',
                     default=True,
                     type=strtobool,
                     help="Whether to drop previous checkpoints and logs.")
 known_args, _ = parser.parse_known_args()
-logging.info("Number of epochs: %s", known_args.nr_epochs)
-logging.info("Checkpoint dir: %s", known_args.checkpoints_dir)
-logging.info("Tensorboard logs dir: %s", known_args.tensorboard_logdir)
+logging.info("Configuration file: %s", known_args.configuration_file)
 logging.info("Remove old results: %s", known_args.remove_old_results)
 
+with open(known_args.configuration_file, 'r') as f:
+    config = json.load(f)
+logging.info("Number of epochs: %s", config['nr_epochs'])
+logging.info("Batch size: %s", config['batch_size'])
+logging.info("Checkpoint dir: %s", config['checkpoints_dir'])
+logging.info("Tensorboard logs dir: %s", config['tensorboard_logdir'])
 
-def remove_old_results(checkpoints_dir, log_dir):
-    """Deletes the directories in checkpoints_dir and log_dir if they
+
+def remove_old_results(checkpoints_dir, tensorboard_logdir, **kwargs):
+    """Deletes the directories in checkpoints_dir and tensorboard_logdir if they
     exist. Otherwise does nothing.
 
     Args:
         checkpoints_dir (str):
-        log_dir (str):
+        tensorboard_logdir (str):
     """
     shutil.rmtree(checkpoints_dir, ignore_errors=True)
-    shutil.rmtree(log_dir, ignore_errors=True)
+    shutil.rmtree(tensorboard_logdir, ignore_errors=True)
 
 
 def get_model():
@@ -62,7 +61,7 @@ def get_model():
     return unet_model
 
 
-def train_and_validate(model, epochs, checkpoints_dir, log_dir):
+def train_and_validate(model, nr_epochs, batch_size, shuffle_buffer, checkpoints_dir, tensorboard_logdir):
     """Trains a Unet model on the TGS Salt Identification Challenge data set.
     First loads the data into a numpy array, creates a train/test split and
     creates tensorflow Dataset objects that can be fed to the fit method of
@@ -70,9 +69,11 @@ def train_and_validate(model, epochs, checkpoints_dir, log_dir):
 
     Args:
         model (keras.models.Model):
-        epochs (int):
+        nr_epochs (int):
+        batch_size (int):
+        shuffle_buffer (int):
         checkpoints_dir (str):
-        log_dir (str):
+        tensorboard_logdir (str):
     """
     logging.info("Loading the data.")
     Xdata, ydata = load_data()  # expecting 4000 samples in a numpy array
@@ -80,27 +81,25 @@ def train_and_validate(model, epochs, checkpoints_dir, log_dir):
     train_size = 3200
     Xtrain, Xvalid, ytrain, yvalid = train_test_split(Xdata, ydata, train_size=train_size, random_state=42)
     logging.info("Creating train data input_fn.")
-    train_batch_size = 32
-    train_dataset = input_fn(Xtrain, ytrain, epochs=epochs, batch_size=train_batch_size, shuffle_buffer=300)
+    train_dataset = input_fn(Xtrain, ytrain, epochs=nr_epochs, batch_size=batch_size, shuffle_buffer=shuffle_buffer)
     logging.info("Creating validation data input_fn.")
-    valid_batch_size = 200
-    valid_dataset = input_fn(Xvalid, yvalid, epochs=None, batch_size=valid_batch_size, shuffle_buffer=None)
+    valid_dataset = input_fn(Xvalid, yvalid, epochs=None, batch_size=200, shuffle_buffer=None)
 
     logging.info("Creating keras callbacks.")
     checkpoint_file_template = "cp-{epoch:04d}.ckpt"
     checkpoint_path = os.path.join(checkpoints_dir, checkpoint_file_template)
     # optional, add following parameters: monitor='mean_io_u', mode='max', save_best_only=True,
     callback_model_checkpoint = keras.callbacks.ModelCheckpoint(checkpoint_path, monitor='val_loss', save_weights_only=True, verbose=1)
-    callback_tensorboard = keras.callbacks.TensorBoard(log_dir=log_dir)
+    callback_tensorboard = keras.callbacks.TensorBoard(log_dir=tensorboard_logdir)
     callback_reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=0, mode='auto', min_delta=0.0001, cooldown=0, min_lr=1e-8)
 
     # Save the initialized weights using the `checkpoint_path` format
     model.save_weights(checkpoint_path.format(epoch=0))
 
     logging.info("Start training...")
-    steps_per_epoch = train_size // train_batch_size
+    steps_per_epoch = train_size // batch_size
     model.fit(train_dataset,
-              epochs=epochs,
+              epochs=nr_epochs,
               steps_per_epoch=steps_per_epoch,
               validation_data=valid_dataset,
               validation_steps=4,  # 4 steps of 200 samples covers the entire validation set
@@ -112,9 +111,9 @@ def main():
     """Combines all functionality into one function.
     """
     if known_args.remove_old_results:
-        remove_old_results(known_args.checkpoints_dir, known_args.tensorboard_logdir)
+        remove_old_results(**config)
     model = get_model()
-    train_and_validate(model, known_args.nr_epochs, known_args.checkpoints_dir, known_args.tensorboard_logdir)
+    train_and_validate(model, **config)
 
 
 if __name__ == '__main__':
