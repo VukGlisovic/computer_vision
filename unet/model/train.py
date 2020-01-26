@@ -98,6 +98,7 @@ def train_and_validate(model, nr_epochs, batch_size, shuffle_buffer, checkpoints
     callback_model_checkpoint = keras.callbacks.ModelCheckpoint(checkpoint_path, monitor='val_loss', save_weights_only=True, verbose=1)
     callback_tensorboard = keras.callbacks.TensorBoard(log_dir=tensorboard_logdir)
     callback_reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=0, mode='auto', min_delta=0.0001, cooldown=0, min_lr=1e-8)
+    callback_early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=3, verbose=0, mode='auto', restore_best_weights=False)
 
     # Save the initialized weights using the `checkpoint_path` format
     model.save_weights(checkpoint_path.format(epoch=0))
@@ -109,7 +110,7 @@ def train_and_validate(model, nr_epochs, batch_size, shuffle_buffer, checkpoints
               steps_per_epoch=steps_per_epoch,
               validation_data=valid_dataset,
               validation_steps=4,  # 4 steps of 200 samples covers the entire validation set
-              callbacks=[callback_model_checkpoint, callback_tensorboard, callback_reduce_lr])
+              callbacks=[callback_model_checkpoint, callback_tensorboard, callback_reduce_lr, callback_early_stop])
     logging.info("Finished training!")
 
 
