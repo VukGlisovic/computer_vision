@@ -27,12 +27,14 @@ class IOU(tf.keras.metrics.MeanIoU):
     """A metric to calculate mean intersection over union. This metric
     first rounds the predicted values to zero or one and then compares
     them to the true mask.
+    Note! This also calculates how many of the zeros are correct! Whereas
+    you might only be interested (which is the case for TGS) in the ones.
 
     Args:
         name (str):
     """
 
-    def __init__(self, name):
+    def __init__(self, name=None):
         super().__init__(num_classes=2, name=name)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
