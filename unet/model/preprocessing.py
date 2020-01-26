@@ -5,7 +5,7 @@ import cv2
 import tensorflow as tf
 
 
-def load_data(image_path_glob='../data/images/*', mask_path_glob='../data/masks/*'):
+def load_data(image_path_glob='../data/train/images/*', mask_path_glob='../data/train/masks/*'):
     """Loads the data from disk. It returns the loaded images with their
     corresponding masks for segmentation. Note that the output size of
     Xtrain and ytrain will be [nr_samples, 101, 101, 1].
