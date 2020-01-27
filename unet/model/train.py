@@ -62,7 +62,7 @@ def get_model():
     unet_model = get_unet_model(batchnorm=False)
 
     optimizer = keras.optimizers.Adam(lr=0.01)
-    unet_model.compile(loss="binary_crossentropy", optimizer=optimizer, metrics=[IOU(name='mean_io_u')])
+    unet_model.compile(loss="binary_crossentropy", optimizer=optimizer, metrics=[IOU(name='mean_iou')])
     return unet_model
 
 
@@ -94,7 +94,7 @@ def train_and_validate(model, nr_epochs, batch_size, shuffle_buffer, checkpoints
     logging.info("Creating keras callbacks.")
     checkpoint_file_template = "cp-{epoch:04d}.ckpt"
     checkpoint_path = os.path.join(checkpoints_dir, checkpoint_file_template)
-    # optional, add following parameters: monitor='mean_io_u', mode='max', save_best_only=True,
+    # optional, add following parameters: monitor='mean_iou', mode='max', save_best_only=True,
     callback_model_checkpoint = keras.callbacks.ModelCheckpoint(checkpoint_path, monitor='val_loss', save_weights_only=True, verbose=1)
     callback_tensorboard = keras.callbacks.TensorBoard(log_dir=tensorboard_logdir)
     callback_reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=0, mode='auto', min_delta=0.0001, cooldown=0, min_lr=1e-8)
