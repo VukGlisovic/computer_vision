@@ -97,8 +97,8 @@ def train_and_validate(model, nr_epochs, batch_size, shuffle_buffer, checkpoints
     # optional, add following parameters: monitor='mean_iou', mode='max', save_best_only=True,
     callback_model_checkpoint = keras.callbacks.ModelCheckpoint(checkpoint_path, monitor='val_loss', save_weights_only=True, verbose=1)
     callback_tensorboard = keras.callbacks.TensorBoard(log_dir=tensorboard_logdir)
-    callback_reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=0, mode='auto', min_delta=0.0001, cooldown=0, min_lr=1e-8)
-    callback_early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=3, verbose=0, mode='auto', restore_best_weights=False)
+    callback_reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=0, mode='min', min_delta=0.0001, cooldown=0, min_lr=1e-6)
+    callback_early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=15, verbose=0, mode='min', restore_best_weights=False)
 
     # Save the initialized weights using the `checkpoint_path` format
     model.save_weights(checkpoint_path.format(epoch=0))
