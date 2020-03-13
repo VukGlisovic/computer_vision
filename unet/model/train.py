@@ -11,9 +11,8 @@ import json
 from distutils.dist import strtobool
 
 from tensorflow import keras
-from sklearn.model_selection import train_test_split
 
-from unet.model.preprocessing import input_fn, load_data
+from unet.model.preprocessing import create_data_generators
 from unet.model.architecture import *
 from unet.model.metrics import iou_thr_05
 
@@ -83,30 +82,23 @@ def train_and_validate(model, nr_epochs, batch_size, shuffle_buffer, checkpoints
         checkpoints_dir (str): where to store the checkpoint files.
         tensorboard_logdir (str): where to store the Tensorboard logs.
     """
-    logging.info("Loading the data.")
-    Xdata, ydata = load_data()  # expecting 4000 samples in a numpy array
-    logging.info("Splitting the data into train and validation set.")
-    train_size = 3200
-    Xtrain, Xvalid, ytrain, yvalid = train_test_split(Xdata, ydata, train_size=train_size, random_state=42)
-    logging.info("Creating train data input_fn.")
-    train_dataset = input_fn(Xtrain, ytrain, epochs=nr_epochs, batch_size=batch_size, shuffle_buffer=shuffle_buffer, augment=True)
-    logging.info("Creating validation data input_fn.")
-    valid_dataset = input_fn(Xvalid, yvalid, epochs=None, batch_size=200, shuffle_buffer=None, augment=False)
+    train_dataset, valid_dataset = create_data_generators(nr_epochs, batch_size, shuffle_buffer)
 
     logging.info("Creating keras callbacks.")
     checkpoint_file_template = "cp-{epoch:04d}.ckpt"
     checkpoint_path = os.path.join(checkpoints_dir, checkpoint_file_template)
     # optional, add following parameters: monitor='mean_iou', mode='max', save_best_only=True,
-    callback_model_checkpoint = keras.callbacks.ModelCheckpoint(checkpoint_path, monitor='val_loss', save_weights_only=True, verbose=1)
+    monitor = 'val_iou_thr_05'
+    callback_model_checkpoint = keras.callbacks.ModelCheckpoint(checkpoint_path, monitor=monitor, save_weights_only=True, verbose=1)
     callback_tensorboard = keras.callbacks.TensorBoard(log_dir=tensorboard_logdir)
-    callback_reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=0, mode='min', min_delta=0.0001, cooldown=0, min_lr=1e-6)
-    callback_early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=15, verbose=0, mode='min', restore_best_weights=False)
+    callback_reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor=monitor, factor=0.5, patience=5, verbose=0, mode='min', min_delta=0.0001, cooldown=0, min_lr=1e-6)
+    callback_early_stop = keras.callbacks.EarlyStopping(monitor=monitor, min_delta=0, patience=15, verbose=0, mode='min', restore_best_weights=False)
 
     # Save the initialized weights using the `checkpoint_path` format
     model.save_weights(checkpoint_path.format(epoch=0))
 
     logging.info("Start training...")
-    steps_per_epoch = train_size // batch_size // 2  # halve it to have more evaluation points
+    steps_per_epoch = 3200 // batch_size
     model.fit(train_dataset,
               epochs=nr_epochs,
               steps_per_epoch=steps_per_epoch,
