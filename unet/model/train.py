@@ -22,7 +22,7 @@ logging.basicConfig(format=logformat, level=logging.INFO, stream=sys.stdout)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--configuration_file',
-                    default='./config.json',
+                    default='configs/config.json',
                     type=str,
                     help="JSON file containing all the configurations required for training. For instance "
                          "number of epochs, batch size, etc.")
