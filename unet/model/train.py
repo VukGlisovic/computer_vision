@@ -15,6 +15,7 @@ from tensorflow import keras
 from unet.model.preprocessing import create_data_generators
 from unet.model.architecture import *
 from unet.model.metrics import iou_thr_05
+from unet.model.callbacks import get_default_callbacks
 
 logformat = '%(asctime)s | %(levelname)s | [%(filename)s:%(lineno)s - %(funcName)s] %(message)s'
 logging.basicConfig(format=logformat, level=logging.INFO, stream=sys.stdout)
@@ -84,18 +85,7 @@ def train_and_validate(model, nr_epochs, batch_size, shuffle_buffer, checkpoints
     """
     train_dataset, valid_dataset = create_data_generators(nr_epochs, batch_size, shuffle_buffer)
 
-    logging.info("Creating keras callbacks.")
-    checkpoint_file_template = "cp-{epoch:04d}.ckpt"
-    checkpoint_path = os.path.join(checkpoints_dir, checkpoint_file_template)
-    # optional, add following parameters: monitor='mean_iou', mode='max', save_best_only=True,
-    monitor = 'val_iou_thr_05'
-    callback_model_checkpoint = keras.callbacks.ModelCheckpoint(checkpoint_path, monitor=monitor, save_weights_only=True, verbose=1)
-    callback_tensorboard = keras.callbacks.TensorBoard(log_dir=tensorboard_logdir)
-    callback_reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor=monitor, factor=0.5, patience=5, verbose=0, mode='min', min_delta=0.0001, cooldown=0, min_lr=1e-6)
-    callback_early_stop = keras.callbacks.EarlyStopping(monitor=monitor, min_delta=0, patience=15, verbose=0, mode='min', restore_best_weights=False)
-
-    # Save the initialized weights using the `checkpoint_path` format
-    model.save_weights(checkpoint_path.format(epoch=0))
+    callback_list = get_default_callbacks('val_iou_thr_05', checkpoints_dir, tensorboard_logdir)
 
     logging.info("Start training...")
     steps_per_epoch = 3200 // batch_size
@@ -104,7 +94,7 @@ def train_and_validate(model, nr_epochs, batch_size, shuffle_buffer, checkpoints
               steps_per_epoch=steps_per_epoch,
               validation_data=valid_dataset,
               validation_steps=4,  # 4 steps of 200 samples covers the entire validation set
-              callbacks=[callback_model_checkpoint, callback_tensorboard, callback_reduce_lr, callback_early_stop])
+              callbacks=callback_list)
     logging.info("Finished training!")
 
 
