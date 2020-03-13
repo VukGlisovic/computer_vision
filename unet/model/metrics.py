@@ -3,14 +3,25 @@ import numpy as np
 
 
 def get_iou_vector(A, B):
+    """Calculates the intersection over union (iou) and then checks for different
+    thresholds whether the iou is high enough. Finally it computes the mean over
+    all the thresholds.
+
+    Args:
+        A (np.ndarray):
+        B (np.ndarray):
+
+    Returns:
+        float
+    """
     batch_size = A.shape[0]
+    thresholds = np.arange(0.5, 1, 0.05)
     metric = []
     for i in range(batch_size):
         t, p = A[i] > 0, B[i] > 0
         intersection = np.logical_and(t, p)
         union = np.logical_or(t, p)
         iou = (np.sum(intersection > 0) + 1e-10) / (np.sum(union > 0) + 1e-10)
-        thresholds = np.arange(0.5, 1, 0.05)
         s = []
         for thresh in thresholds:
             s.append(iou > thresh)
@@ -19,23 +30,29 @@ def get_iou_vector(A, B):
     return np.mean(metric)
 
 
-def iou(label, pred):
-    return tf.compat.v1.py_func(get_iou_vector, [label, pred > 0.5], tf.dtypes.float64)
-
-
-class IOU(tf.keras.metrics.MeanIoU):
-    """A metric to calculate mean intersection over union. This metric
-    first rounds the predicted values to zero or one and then compares
-    them to the true mask.
-    Note! This also calculates how many of the zeros are correct! Whereas
-    you might only be interested (which is the case for TGS) in the ones.
+def iou_thr_05(label, pred):
+    """calculates the intersection over union by applying a threshold
+    of 0.5 to the predicted logits.
 
     Args:
-        name (str):
+        label (np.ndarray):
+        pred (np.ndarray):
+
+    Returns:
+        float
     """
+    return tf.compat.v1.py_func(get_iou_vector, [label, pred > 0.5], tf.float64)
 
-    def __init__(self, name=None):
-        super().__init__(num_classes=2, name=name)
 
-    def update_state(self, y_true, y_pred, sample_weight=None):
-        super().update_state(y_true, y_pred > 0.5, sample_weight)
+def iou_thr_00(label, pred):
+    """calculates the intersection over union by applying a threshold
+    of zero to the predicted logits.
+
+    Args:
+        label (np.ndarray):
+        pred (np.ndarray):
+
+    Returns:
+        float
+    """
+    return tf.compat.v1.py_func(get_iou_vector, [label, pred > 0], tf.float64)

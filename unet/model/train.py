@@ -3,17 +3,19 @@ In order to train a Unet model with this script, you need to provide
 a configuration json file. This file should contain all parameters
 that are required by the train_and_validate method except for 'model'.
 """
-from unet.model.preprocessing import input_fn, load_data
-from unet.model.architecture import *
-from unet.model.metrics import IOU
-from tensorflow import keras
-from sklearn.model_selection import train_test_split
 import sys
 import logging
 import argparse
 import shutil
 import json
 from distutils.dist import strtobool
+
+from tensorflow import keras
+from sklearn.model_selection import train_test_split
+
+from unet.model.preprocessing import input_fn, load_data
+from unet.model.architecture import *
+from unet.model.metrics import iou_thr_05
 
 logformat = '%(asctime)s | %(levelname)s | [%(filename)s:%(lineno)s - %(funcName)s] %(message)s'
 logging.basicConfig(format=logformat, level=logging.INFO, stream=sys.stdout)
@@ -62,7 +64,7 @@ def get_model():
     unet_model = get_unet_model(batchnorm=False)
 
     optimizer = keras.optimizers.Adam(lr=0.01)
-    unet_model.compile(loss="binary_crossentropy", optimizer=optimizer, metrics=[IOU(name='mean_iou')])
+    unet_model.compile(loss="binary_crossentropy", optimizer=optimizer, metrics=[iou_thr_05])
     return unet_model
 
 
