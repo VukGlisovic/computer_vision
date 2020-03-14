@@ -27,7 +27,7 @@ parser.add_argument('--configuration_file',
                     help="JSON file containing all the configurations required for training. For instance "
                          "number of epochs, batch size, etc.")
 parser.add_argument('--remove_old_results',
-                    default=True,
+                    default=False,
                     type=strtobool,
                     help="Whether to drop previous checkpoints and logs.")
 known_args, _ = parser.parse_known_args()
