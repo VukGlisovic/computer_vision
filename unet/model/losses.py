@@ -1,3 +1,4 @@
+import logging
 import tensorflow as tf
 import tensorflow.keras.backend as K
 
@@ -114,3 +115,26 @@ def lovasz_loss(y_true, y_pred):
     logits = y_pred  # Jiaxin
     loss = lovasz_hinge(logits, y_true, per_image=True, ignore=None)
     return loss
+
+
+def get_loss_function(loss):
+    """Tries to retrieve the requested loss function. Raises an error
+    if it cannot find it.
+
+    Args:
+        loss (str):
+
+    Returns:
+        Callable
+    """
+    try:
+        loss_fnc = globals()[loss]
+        return loss_fnc
+    except KeyError:
+        logging.info("No loss named '%s' in custom losses module.")
+    try:
+        loss_fnc = getattr(tf.keras.losses, loss)
+        return loss_fnc
+    except AttributeError:
+        logging.info("No loss named '%s' in keras.losses module.")
+    raise ImportError("Could not find loss function '{}'.".format(loss))
