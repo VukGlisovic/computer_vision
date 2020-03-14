@@ -3,9 +3,9 @@
   "metric": "iou_thr_05",
   "learning_rate": 0.01,
   "batchnorm": true,
-  "nr_epochs": 3,
-  "batch_size": 32,
-  "shuffle_buffer": 500,
-  "checkpoints_dir": "./unet_checkpoints_bce",
+  "nr_epochs": 10,
+  "batch_size": 64,
+  "shuffle_buffer": 1500,
+  "checkpoints_dir": "./unet_bce_checkpoints",
   "tensorboard_logdir": "./logs"
 }
