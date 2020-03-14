@@ -17,3 +17,10 @@ location; create a `data/train` directory under the `computer_vision/unet` folde
 unzip the `train.zip` here. After unzipping, you should have two folders:
 * `data/train/images/`
 * `data/train/masks/`
+
+
+# Training
+To start a training, select and optionally configure a configurations
+file from the `unet/model/configs/` directory and execute the 
+`unet/model/train.py` script with `unet/model/` as the working 
+directory.
