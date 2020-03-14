@@ -7,6 +7,7 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
 from unet.model.augmentations import *
+from unet.model.constants import N_TRAINING_SAMPLES
 
 
 def load_data(image_path_glob='../data/train/images/*', mask_path_glob='../data/train/masks/*'):
@@ -77,9 +78,9 @@ def input_fn(Xtrain, ytrain, epochs=None, batch_size=32, shuffle_buffer=None, au
 
 def create_data_generators(nr_epochs, batch_size, shuffle_buffer):
     """This method creates two data generators; one for training and one for
-    validation (during training). It already fixes the number of training
-    examples to be 3200 and therefore the number of testing examples to be
-    800.
+    validation (during training). It uses N_TRAINING_SAMPLES as the number of
+    trianing examples and therefore the rest of the images will be used for
+    the validation set.
 
     Args:
         nr_epochs (int):
@@ -92,8 +93,7 @@ def create_data_generators(nr_epochs, batch_size, shuffle_buffer):
     logging.info("Loading the data.")
     Xdata, ydata = load_data()  # expecting 4000 samples in a numpy array
     logging.info("Splitting the data into train and validation set.")
-    train_size = 3200
-    Xtrain, Xvalid, ytrain, yvalid = train_test_split(Xdata, ydata, train_size=train_size, random_state=42)
+    Xtrain, Xvalid, ytrain, yvalid = train_test_split(Xdata, ydata, train_size=N_TRAINING_SAMPLES, random_state=42)
     logging.info("Creating train data input_fn.")
     train_dataset = input_fn(Xtrain, ytrain, epochs=nr_epochs, batch_size=batch_size, shuffle_buffer=shuffle_buffer, augment=True)
     logging.info("Creating validation data input_fn.")

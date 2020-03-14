@@ -71,7 +71,7 @@ def train_and_validate(model, metric, nr_epochs, batch_size, shuffle_buffer, che
     callback_list = get_default_callbacks('val_{}'.format(metric), checkpoints_dir, tensorboard_logdir)
 
     logging.info("Start training...")
-    steps_per_epoch = 3200 // batch_size
+    steps_per_epoch = N_TRAINING_SAMPLES // batch_size
     model.fit(train_dataset,
               epochs=nr_epochs,
               steps_per_epoch=steps_per_epoch,
