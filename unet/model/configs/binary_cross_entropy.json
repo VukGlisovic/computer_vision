@@ -4,6 +4,6 @@
   "nr_epochs": 3,
   "batch_size": 32,
   "shuffle_buffer": 500,
-  "checkpoints_dir": "./unet_saved_model",
+  "checkpoints_dir": "./unet_saved_model_bce",
   "tensorboard_logdir": "./logs"
 }
