@@ -13,6 +13,8 @@ from distutils.dist import strtobool
 from unet.model.preprocessing import create_data_generators
 from unet.model.architecture import *
 from unet.model.callbacks import get_default_callbacks
+from unet.model.constants import N_TRAINING_SAMPLES
+
 
 logformat = '%(asctime)s | %(levelname)s | [%(filename)s:%(lineno)s - %(funcName)s] %(message)s'
 logging.basicConfig(format=logformat, level=logging.INFO, stream=sys.stdout)
