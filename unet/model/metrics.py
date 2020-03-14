@@ -1,3 +1,4 @@
+import logging
 import tensorflow as tf
 import numpy as np
 
@@ -56,3 +57,26 @@ def iou_thr_00(label, pred):
         float
     """
     return tf.compat.v1.py_func(get_iou_vector, [label, pred > 0], tf.float64)
+
+
+def get_metric_function(metric):
+    """Tries to retrieve the requested metric function. Raises an error
+    if it cannot find it.
+
+    Args:
+        metric (str):
+
+    Returns:
+        Callable
+    """
+    try:
+        metric_fnc = globals()[metric]  # globals gets attributes from current module
+        return metric_fnc
+    except KeyError:
+        logging.info("No metric named '%s' in custom losses module.")
+    try:
+        metric_fnc = getattr(tf.keras.metrics, metric)
+        return metric_fnc
+    except AttributeError:
+        logging.info("No metric named '%s' in keras.losses module.")
+    raise ImportError("Could not find metric function '{}'.".format(metric))
