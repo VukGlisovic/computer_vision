@@ -10,11 +10,8 @@ import shutil
 import json
 from distutils.dist import strtobool
 
-from tensorflow import keras
-
 from unet.model.preprocessing import create_data_generators
 from unet.model.architecture import *
-from unet.model.metrics import iou_thr_05
 from unet.model.callbacks import get_default_callbacks
 
 logformat = '%(asctime)s | %(levelname)s | [%(filename)s:%(lineno)s - %(funcName)s] %(message)s'
@@ -23,7 +20,7 @@ logging.basicConfig(format=logformat, level=logging.INFO, stream=sys.stdout)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--configuration_file',
-                    default='configs/config.json',
+                    default='configs/binary_cross_entropy.json',
                     type=str,
                     help="JSON file containing all the configurations required for training. For instance "
                          "number of epochs, batch size, etc.")
@@ -37,10 +34,8 @@ logging.info("Remove old results: %s", known_args.remove_old_results)
 
 with open(known_args.configuration_file, 'r') as f:
     config = json.load(f)
-logging.info("Number of epochs: %s", config['nr_epochs'])
-logging.info("Batch size: %s", config['batch_size'])
-logging.info("Checkpoint dir: %s", config['checkpoints_dir'])
-logging.info("Tensorboard logs dir: %s", config['tensorboard_logdir'])
+for k,v in config.items():
+    logging.info("%s: %s", k, v)
 
 
 def remove_old_results(checkpoints_dir, tensorboard_logdir, **kwargs):
@@ -55,20 +50,7 @@ def remove_old_results(checkpoints_dir, tensorboard_logdir, **kwargs):
     shutil.rmtree(tensorboard_logdir, ignore_errors=True)
 
 
-def get_model():
-    """Create and compile the model.
-
-    Returns:
-        keras.models.Model
-    """
-    unet_model = get_unet_model(batchnorm=False)
-
-    optimizer = keras.optimizers.Adam(lr=0.01)
-    unet_model.compile(loss="binary_crossentropy", optimizer=optimizer, metrics=[iou_thr_05])
-    return unet_model
-
-
-def train_and_validate(model, nr_epochs, batch_size, shuffle_buffer, checkpoints_dir, tensorboard_logdir):
+def train_and_validate(model, metric, nr_epochs, batch_size, shuffle_buffer, checkpoints_dir, tensorboard_logdir, **kwargs):
     """Trains a Unet model on the TGS Salt Identification Challenge data set.
     First loads the data into a numpy array, creates a train/test split and
     creates tensorflow Dataset objects that can be fed to the fit method of
@@ -76,6 +58,7 @@ def train_and_validate(model, nr_epochs, batch_size, shuffle_buffer, checkpoints
 
     Args:
         model (keras.models.Model): the Unet model.
+        metric (str): the metric to optimize during training.
         nr_epochs (int): the number of times to iterate through the entire
             training data set.
         batch_size (int): the number of samples in a mini-batch.
@@ -85,7 +68,7 @@ def train_and_validate(model, nr_epochs, batch_size, shuffle_buffer, checkpoints
     """
     train_dataset, valid_dataset = create_data_generators(nr_epochs, batch_size, shuffle_buffer)
 
-    callback_list = get_default_callbacks('val_iou_thr_05', checkpoints_dir, tensorboard_logdir)
+    callback_list = get_default_callbacks('val_{}'.format(metric), checkpoints_dir, tensorboard_logdir)
 
     logging.info("Start training...")
     steps_per_epoch = 3200 // batch_size
@@ -103,7 +86,7 @@ def main():
     """
     if known_args.remove_old_results:
         remove_old_results(**config)
-    model = get_model()
+    model = get_unet_model(**config)
     train_and_validate(model, **config)
 
 

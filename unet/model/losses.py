@@ -128,7 +128,7 @@ def get_loss_function(loss):
         Callable
     """
     try:
-        loss_fnc = globals()[loss]
+        loss_fnc = globals()[loss]  # globals gets attributes from current module
         return loss_fnc
     except KeyError:
         logging.info("No loss named '%s' in custom losses module.")

@@ -1,4 +1,6 @@
 {
+  "loss": "binary_crossentropy",
+  "metric": "iou_thr_05",
   "nr_epochs": 3,
   "batch_size": 32,
   "shuffle_buffer": 500,

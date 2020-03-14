@@ -1,5 +1,7 @@
 from unet.model.constants import *
 from tensorflow import keras
+from unet.model.losses import get_loss_function
+from unet.model.metrics import get_metric_function
 
 
 def conv2d_block(input_tensor, n_filters, kernel_size=3, batchnorm=True):
@@ -96,10 +98,12 @@ def create_unet_model(input_img, n_filters=16, batchnorm=True):
     return model
 
 
-def get_unet_model(n_filters=16, batchnorm=True):
+def get_unet_model(loss, metric, n_filters=16, batchnorm=True, compile=True, **kwargs):
     """Adds the input tensor to the keras U-net model.
 
     Args:
+        loss (str):
+        metric (str):
         n_filters (int):
         batchnorm (bool):
 
@@ -108,4 +112,10 @@ def get_unet_model(n_filters=16, batchnorm=True):
     """
     input_image = keras.layers.Input(IMAGE_SHAPE, name='image')
     model = create_unet_model(input_image, n_filters=n_filters, batchnorm=batchnorm)
+
+    if compile:
+        optimizer = keras.optimizers.Adam(lr=0.01)
+        loss_fnc = get_loss_function(loss)
+        metric_fnc = get_metric_function(metric)
+        model.compile(loss=loss_fnc, optimizer=optimizer, metrics=[metric_fnc])
     return model
