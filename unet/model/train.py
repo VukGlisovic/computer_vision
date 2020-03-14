@@ -70,7 +70,7 @@ def train_and_validate(model, metric, nr_epochs, batch_size, shuffle_buffer, che
     """
     train_dataset, valid_dataset = create_data_generators(nr_epochs, batch_size, shuffle_buffer)
 
-    callback_list = get_default_callbacks('val_{}'.format(metric), checkpoints_dir, tensorboard_logdir)
+    callback_list = get_default_callbacks('val_{}'.format(metric), 'max', checkpoints_dir, tensorboard_logdir)
 
     logging.info("Start training...")
     steps_per_epoch = N_TRAINING_SAMPLES // batch_size

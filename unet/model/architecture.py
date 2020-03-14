@@ -1,4 +1,5 @@
 from unet.model.constants import *
+import tensorflow as tf
 from tensorflow import keras
 from unet.model.losses import get_loss_function
 from unet.model.metrics import get_metric_function
@@ -98,7 +99,7 @@ def create_unet_model(input_img, n_filters=16, batchnorm=True):
     return model
 
 
-def get_unet_model(loss, metric, learning_rate=0.01, n_filters=16, batchnorm=True, compile=True, **kwargs):
+def get_unet_model(loss, metric, learning_rate=0.01, n_filters=16, batchnorm=True, compile=True, weights_path=None, **kwargs):
     """Adds the input tensor to the keras U-net model.
 
     Args:
@@ -107,6 +108,7 @@ def get_unet_model(loss, metric, learning_rate=0.01, n_filters=16, batchnorm=Tru
         learning_rate (float):
         n_filters (int):
         batchnorm (bool):
+        weights_path (Union[str, None]):
 
     Returns:
         keras.models.Model
@@ -119,4 +121,12 @@ def get_unet_model(loss, metric, learning_rate=0.01, n_filters=16, batchnorm=Tru
         loss_fnc = get_loss_function(loss)
         metric_fnc = get_metric_function(metric)
         model.compile(loss=loss_fnc, optimizer=optimizer, metrics=[metric_fnc])
+
+    if weights_path is not None:
+        if os.path.isfile(weights_path):
+            model.load_weights(weights_path)
+        elif os.path.isdir(weights_path):
+            model.load_weights(tf.train.latest_checkpoint(weights_path))
+        else:
+            raise FileNotFoundError("Could not load model from path %s", weights_path)
     return model

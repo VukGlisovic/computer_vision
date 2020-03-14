@@ -2,9 +2,10 @@
   "loss": "binary_crossentropy",
   "metric": "iou_thr_05",
   "learning_rate": 0.01,
+  "batchnorm": true,
   "nr_epochs": 3,
   "batch_size": 32,
   "shuffle_buffer": 500,
-  "checkpoints_dir": "./unet_saved_model_bce",
+  "checkpoints_dir": "./unet_checkpoints_bce",
   "tensorboard_logdir": "./logs"
 }

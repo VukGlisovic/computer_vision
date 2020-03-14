@@ -1,10 +1,12 @@
 {
   "loss": "lovasz_loss",
   "metric": "iou_thr_00",
+  "weights_path": "salt_checkpoints/",
   "learning_rate": 0.005,
+  "batchnorm": true,
   "nr_epochs": 3,
   "batch_size": 32,
   "shuffle_buffer": 500,
-  "checkpoints_dir": "./unet_saved_model_lovasz",
+  "checkpoints_dir": "./unet_checkpoints_lovasz",
   "tensorboard_logdir": "./logs"
 }
