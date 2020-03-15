@@ -3,7 +3,7 @@
   "metric": "iou_thr_05",
   "learning_rate": 0.01,
   "batchnorm": true,
-  "nr_epochs": 10,
+  "nr_epochs": 5,
   "batch_size": 64,
   "shuffle_buffer": 1500,
   "checkpoints_dir": "./unet_bce_checkpoints",
