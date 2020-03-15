@@ -2,6 +2,7 @@
   "loss": "lovasz_loss",
   "metric": "iou_thr_00",
   "weights_path": "unet_bce_checkpoints/",
+  "apply_final_activation": false,
   "learning_rate": 0.005,
   "batchnorm": true,
   "nr_epochs": 5,

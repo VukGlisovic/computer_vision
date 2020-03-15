@@ -37,7 +37,7 @@ def conv2d_block(input_tensor, n_filters, kernel_size=3, batchnorm=True):
     return x
 
 
-def create_unet_model(input_img, n_filters=16, batchnorm=True):
+def create_unet_model(input_img, n_filters=16, batchnorm=True, apply_final_activation=True):
     """This method generates the full architecture of the model. The
     comments show the down- and up-sampling changes if an input image
     with size (101, 101, ?) is given.
@@ -46,6 +46,7 @@ def create_unet_model(input_img, n_filters=16, batchnorm=True):
         input_img (tf.Tensor):
         n_filters (int):
         batchnorm (bool):
+        apply_final_activation (bool):
 
     Returns:
         keras.models.Model
@@ -93,13 +94,14 @@ def create_unet_model(input_img, n_filters=16, batchnorm=True):
     deconv1 = keras.layers.concatenate([deconv1, conv1], axis=3)
     deconv1 = conv2d_block(deconv1, n_filters=n_filters * 1, kernel_size=3, batchnorm=batchnorm)
 
-    outputs_no_activation = keras.layers.Conv2D(1, (1, 1), padding="same", activation=None)(deconv1)
-    outputs = keras.layers.Activation('sigmoid')(outputs_no_activation)
+    outputs = keras.layers.Conv2D(1, (1, 1), padding="same", activation=None)(deconv1)
+    if apply_final_activation:
+        outputs = keras.layers.Activation('sigmoid')(outputs)
     model = keras.models.Model(inputs=[input_img], outputs=[outputs])
     return model
 
 
-def get_unet_model(loss, metric, learning_rate=0.01, n_filters=16, batchnorm=True, compile=True, weights_path=None, **kwargs):
+def get_unet_model(loss, metric, learning_rate=0.01, n_filters=16, batchnorm=True, apply_final_activation=True, compile=True, weights_path=None, **kwargs):
     """Adds the input tensor to the keras U-net model.
 
     Args:
@@ -108,13 +110,17 @@ def get_unet_model(loss, metric, learning_rate=0.01, n_filters=16, batchnorm=Tru
         learning_rate (float):
         n_filters (int):
         batchnorm (bool):
+        apply_final_activation (bool):
         weights_path (Union[str, None]):
 
     Returns:
         keras.models.Model
     """
     input_image = keras.layers.Input(IMAGE_SHAPE, name='image')
-    model = create_unet_model(input_image, n_filters=n_filters, batchnorm=batchnorm)
+    model = create_unet_model(input_img=input_image,
+                              n_filters=n_filters,
+                              batchnorm=batchnorm,
+                              apply_final_activation=apply_final_activation)
 
     if compile:
         optimizer = keras.optimizers.Adam(lr=learning_rate)
