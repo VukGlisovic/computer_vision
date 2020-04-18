@@ -118,7 +118,7 @@ def res_net_50(input_shape, n_classes):
     x = identity_block(x, 3, [512, 512, 2048], stage='5', block='b')
     x = identity_block(x, 3, [512, 512, 2048], stage='5', block='c')
 
-    x = keras.layers.AveragePooling2D((7, 7), name='avg_pool')(x)
+    x = keras.layers.AveragePooling2D((2, 2), name='avg_pool')(x)  # original pool size is 7x7
 
     x = keras.layers.Flatten()(x)
     x = keras.layers.Dense(n_classes, activation='softmax', name='output')(x)
