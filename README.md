@@ -5,10 +5,17 @@
 This repository is for experimenting with different computer vision 
 models and in particular using tensorflow 2.x for it. The 
 `environment.yaml` contains all the packages to run any of the 
-scripts/notebooks in this repo.
+scripts/notebooks in this repo. Use this environment unless stated
+otherwise.
+
+In order to run code, you have to add the repository to your `PYTHONPATH` 
+(in your `.bashrc`):
+```bash
+export PYTHONPATH="${PYTHONPATH}:<PATH_TO_REPOSITORY>/computer_vision"
+```
 
 
-## Models
+## Classification Models
 
 #### LeNet-5
 This was the first in a series of convolutional neural network architectures.
@@ -46,3 +53,14 @@ channels and therefore reduce the number of trainable weights. This 1x1
 convolution is called the bottleneck layer. Here's the 
 <a href="https://static.googleusercontent.com/media/research.google.com/nl//pubs/archive/43022.pdf">paper</a>
 from 2014.
+
+
+## Detection Models
+
+#### YOLO
+You Only Look Once (YOLO) is a object detection network from this
+<a href="https://arxiv.org/pdf/1506.02640.pdf">paper</a>. In this
+network, the approach is to divide the input image in a (for example 
+19x19) grid, and then for each grid try to detect an object. The reason 
+why this network is popular, is because of its performance; inference
+time is very low.

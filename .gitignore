@@ -73,6 +73,10 @@ venv.bak/
 
 # project folders
 data/
+models/
 *_saved_model/
 *_checkpoints/
 logs/
+
+# vendor folders
+yolo/vendor
