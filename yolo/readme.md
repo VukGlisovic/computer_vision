@@ -43,7 +43,7 @@ Next, we need to define a keras model that has the correct architecture:
 thus the right number and type of layers to match the downloaded 
 model weights.
 
-You can run `yolo/scripts/create_keras_model.py` to create the keras model.
+To create the keras model, run `yolo/scripts/create_keras_model.py`
 
 You might get an error from `np.set_printoptions(threshold=np.nan)`; you can
 replace `np.nan` by a large number (e.g. `sys.maxsize`) to fix this.

@@ -31,7 +31,7 @@ def plot_model_graph(model):
     Args:
         model (keras.models.Model):
     """
-    data_dir = '../data'
+    data_dir = '../data/visualizations'
     os.makedirs(data_dir, exist_ok=True)
     plot_model(model,
                to_file=os.path.join(data_dir, 'model_yolov3.png'),
