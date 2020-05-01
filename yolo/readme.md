@@ -26,6 +26,8 @@ packages may take some time.
 conda create -n yolo python=3.6
 conda activate yolo
 pip install -r requirements.txt
+sudo apt-get install graphviz  # for keras model visualizations
+pip install pydot==1.4.1 graphviz==0.14  # for keras model visualizations
 conda install ipykernel  # to be able to use the environment in jupyter
 ```
 Use this environment to run any code in the `yolo` folder.
@@ -42,3 +44,6 @@ thus the right number and type of layers to match the downloaded
 model weights.
 
 You can run `yolo/scripts/create_keras_model.py` to create the keras model.
+
+You might get an error from `np.set_printoptions(threshold=np.nan)`; you can
+replace `np.nan` by a large number (e.g. `sys.maxsize`) to fix this.
