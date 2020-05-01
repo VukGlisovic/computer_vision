@@ -8,6 +8,12 @@ keras_yolo = importlib.import_module('yolo.vendor.keras-yolo3.yolo3_one_file_to_
 
 
 def create_keras_model():
+    """Creates the a proper keras architecture for the pretrained
+    weights. Afterwards saves the model to an h5 file.
+
+    Returns:
+        keras.models.Model
+    """
     # define the model
     model = keras_yolo.make_yolov3_model()
     # load the model weights
@@ -20,6 +26,11 @@ def create_keras_model():
 
 
 def plot_model_graph(model):
+    """Create a png image of the model architecture.
+
+    Args:
+        model (keras.models.Model):
+    """
     data_dir = '../data'
     os.makedirs(data_dir, exist_ok=True)
     plot_model(model,
@@ -29,6 +40,8 @@ def plot_model_graph(model):
 
 
 def main():
+    """Combines functionality.
+    """
     model = create_keras_model()
     plot_model_graph(model)
 
