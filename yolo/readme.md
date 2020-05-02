@@ -27,8 +27,9 @@ conda create -n yolo python=3.6
 conda activate yolo
 pip install -r requirements.txt
 sudo apt-get install graphviz  # for keras model visualizations
-pip install pydot==1.4.1 graphviz==0.14  # for keras model visualizations
-conda install ipykernel  # to be able to use the environment in jupyter
+pip install pydot==1.4.1 graphviz==0.14 pillow==7.1.2  # for keras model visualizations
+conda install ipykernel matplotlib  # to be able to use the environment in jupyter
+python -m ipykernel install --user --name yolo
 ```
 Use this environment to run any code in the `yolo` folder.
 
