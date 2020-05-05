@@ -3,11 +3,8 @@ import logging
 import argparse
 import tensorflow as tf
 import tensorflow_hub as hub
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 from neural_style_transfer.src.utils import image as img_utils
 
-mpl.rcParams['axes.grid'] = False
 logformat = '%(asctime)s | %(levelname)s | [%(filename)s:%(lineno)s - %(funcName)s] %(message)s'
 logging.basicConfig(format=logformat, level=logging.INFO, stream=sys.stdout)
 
