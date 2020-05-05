@@ -29,21 +29,43 @@ logging.info('Image output path: %s', known_args.output_path)
 
 
 def load_images(content_path, style_path):
+    """Loads a content and a style image.
+
+    Args:
+        content_path (str):
+        style_path (str):
+
+    Returns:
+        tuple[tf.Tensor, tf.Tensor]
+    """
     content_image = img_utils.load_img(content_path)
     style_image = img_utils.load_img(style_path)
     return content_image, style_image
 
 
 def tf_hub_style_transfer(content_image, style_image):
+    """Loads an module from tensorflow hub that is already
+    specialized for merging a content and style image into
+    a stylized image.
+
+    Args:
+        content_image (tf.Tensor):
+        style_image (tf.Tensor):
+
+    Returns:
+        tf.Tensor
+    """
     hub_module = hub.load('https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/1')
     stylized_image = hub_module(tf.constant(content_image), tf.constant(style_image))[0]
     return stylized_image
 
 
 def main():
+    """Combines functionality.
+    """
     c_img, s_img = load_images(known_args.content_path, known_args.style_path)
     result = tf_hub_style_transfer(c_img, s_img)
-    img_utils.store_image(result, known_args.output_path)
+    img_utils.store_tensor_image(result, known_args.output_path)
 
 
 if __name__ == '__main__':

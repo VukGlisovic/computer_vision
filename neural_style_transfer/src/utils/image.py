@@ -6,6 +6,14 @@ import tensorflow as tf
 
 
 def load_img(path_to_img):
+    """Loads an image from path_to_img.
+
+    Args:
+        path_to_img (str):
+
+    Returns:
+        tf.Tensor
+    """
     img = tf.io.read_file(path_to_img)
     img = tf.image.decode_image(img, channels=3)
     img = tf.image.convert_image_dtype(img, tf.float32)
@@ -14,6 +22,16 @@ def load_img(path_to_img):
 
 
 def tensor_to_image(tensor):
+    """Converts a tensor to a PIL image. It expects that
+    the image tensor is not scaled to its original value
+    range yet.
+
+    Args:
+        tensor (tf.Tensor):
+
+    Returns:
+        PIL.Image.Image
+    """
     tensor = tensor * 255
     tensor = np.array(tensor, dtype=np.uint8)
     if np.ndim(tensor) > 3:
@@ -23,6 +41,12 @@ def tensor_to_image(tensor):
 
 
 def imshow(image, title=None):
+    """Plots an image.
+
+    Args:
+        image (tf.Tensor):
+        title (str):
+    """
     if len(image.shape) > 3:
         image = tf.squeeze(image, axis=0)  # convert shape to (height, width, channels)
 
@@ -31,8 +55,15 @@ def imshow(image, title=None):
         plt.title(title)
 
 
-def store_image(image, path):
+def store_tensor_image(tensor, path):
+    """Stores an image tensor in path. If the directory
+    doesn't exist yet, then it will be created.
+
+    Args:
+        tensor (tf.Tensor):
+        path (str):
+    """
     _dir = path.rsplit('/', 1)[0]
     os.makedirs(_dir, exist_ok=True)
-    pil_img = tensor_to_image(image)
+    pil_img = tensor_to_image(tensor)
     pil_img.save(path)
