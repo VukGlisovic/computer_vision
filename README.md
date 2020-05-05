@@ -64,3 +64,11 @@ network, the approach is to divide the input image in a (for example
 19x19) grid, and then for each grid try to detect an object. The reason 
 why this network is popular, is because of its performance; inference
 time is very low.
+
+
+## Neural Style Transfer
+This part of computer vision is an extremely interesting and fun
+application that combines two images (a content and a style image)
+and produces one image that has the content of the content image,
+but drawn in the style of the style image. This will make you 
+create pictures like picasso.
