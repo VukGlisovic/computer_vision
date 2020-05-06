@@ -30,6 +30,10 @@ parser.add_argument('-b', '--beta',
                     type=float,
                     default=0.01,
                     help="How much to weight the style loss.")
+parser.add_argument('-vw', '--variation_weight',
+                    type=float,
+                    default=30,
+                    help="How much to weight the variational loss.")
 parser.add_argument('-lr', '--learning_rate',
                     type=float,
                     default=0.02,
@@ -54,7 +58,9 @@ def load_images(content_path, style_path):
         tuple[tf.Tensor, tf.Tensor]
     """
     content_image = img_utils.load_img(content_path)
+    logging.info("Shape content image: %s", content_image.get_shape())
     style_image = img_utils.load_img(style_path)
+    logging.info("Shape style image: %s", style_image.get_shape())
     return content_image, style_image
 
 
@@ -62,7 +68,8 @@ def load_images(content_path, style_path):
 def train_step(image, content_targets, style_targets, extractor, optimizer):
     with tf.GradientTape() as tape:
         outputs = extractor(image)
-        loss = style_content.style_content_loss(outputs, content_targets, style_targets, known_args.alpha, known_args.beta)
+        loss = style_content.style_content_loss(outputs, content_targets, style_targets, known_args.alpha, known_args.beta) \
+            + style_content.image_variation(outputs, known_args.variation_weight)
 
     grad = tape.gradient(loss, image)
     optimizer.apply_gradients([(grad, image)])
@@ -91,8 +98,8 @@ def main():
 
     start = time.time()
 
-    epochs = 100
-    steps_per_epoch = 5
+    epochs = 200
+    steps_per_epoch = 2
 
     step = 0
     for n in range(epochs):
