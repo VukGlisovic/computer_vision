@@ -69,7 +69,7 @@ def train_step(image, content_targets, style_targets, extractor, optimizer):
     with tf.GradientTape() as tape:
         outputs = extractor(image)
         loss = style_content.style_content_loss(outputs, content_targets, style_targets, known_args.alpha, known_args.beta) \
-            + style_content.image_variation(outputs, known_args.variation_weight)
+            + style_content.image_variation(image, known_args.variation_weight)
 
     grad = tape.gradient(loss, image)
     optimizer.apply_gradients([(grad, image)])
