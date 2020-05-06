@@ -36,7 +36,9 @@ def load_images(content_path, style_path):
         tuple[tf.Tensor, tf.Tensor]
     """
     content_image = img_utils.load_img(content_path)
+    logging.info("Shape content image: %s", content_image.get_shape())
     style_image = img_utils.load_img(style_path)
+    logging.info("Shape style image: %s", style_image.get_shape())
     return content_image, style_image
 
 
