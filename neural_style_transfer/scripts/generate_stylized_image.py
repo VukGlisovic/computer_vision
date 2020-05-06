@@ -91,8 +91,8 @@ def main():
 
     start = time.time()
 
-    epochs = 10
-    steps_per_epoch = 1
+    epochs = 100
+    steps_per_epoch = 5
 
     step = 0
     for n in range(epochs):
