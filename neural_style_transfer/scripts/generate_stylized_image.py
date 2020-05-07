@@ -65,18 +65,37 @@ def load_images(content_path, style_path):
 
 
 @tf.function()
-def train_step(image, content_targets, style_targets, extractor, optimizer):
-    with tf.GradientTape() as tape:
-        outputs = extractor(image)
-        loss = style_content.style_content_loss(outputs, content_targets, style_targets, known_args.alpha, known_args.beta) \
-            + style_content.image_variation(image, known_args.variation_weight)
+def train_step(generated_img, content_targets, style_targets, extractor, optimizer):
+    """Calculates gradients with respect to the generated image pixels
+    and applies the update to the generated image pixels.
 
-    grad = tape.gradient(loss, image)
-    optimizer.apply_gradients([(grad, image)])
-    image.assign(style_content.clip_0_1(image))
+    Args:
+        generated_img (tf.Tensor): the generated image
+        content_targets (dict): {'content': content_dict, 'style': style_dict}
+            for the content image.
+        style_targets: {'content': content_dict, 'style': style_dict} for the
+            style image.
+        extractor (StyleContentModelVGG):
+        optimizer (tf.optimizers.Adam):
+    """
+    with tf.GradientTape() as tape:
+        generated_img_targets = extractor(generated_img)
+        loss = style_content.style_content_loss(generated_img_targets, content_targets, style_targets, known_args.alpha, known_args.beta) \
+            + style_content.image_variation(generated_img, known_args.variation_weight)
+
+    grad = tape.gradient(loss, generated_img)
+    optimizer.apply_gradients([(grad, generated_img)])
+    generated_img.assign(style_content.clip_0_1(generated_img))
+    return loss
 
 
 def create_model():
+    """Creates a model by extracting the needed layers from a
+    vgg network.
+
+    Returns:
+        StyleContentModelVGG
+    """
     content_layers = ['block5_conv2']
     style_layers = ['block1_conv1',
                     'block2_conv1',
@@ -88,27 +107,30 @@ def create_model():
 
 
 def main():
+    """Sets up and executes the training.
+    """
     content_image, style_image = load_images(known_args.content_path, known_args.style_path)
     extractor = create_model()
-    style_targets = extractor(style_image)['style']
-    content_targets = extractor(content_image)['content']
-    generated_image = tf.Variable(content_image)
+    content_targets = extractor(content_image)['content']  # dict with vgg content and style values for content image
+    style_targets = extractor(style_image)['style']  # dict with vgg content and style values for style image
+    generated_image = tf.Variable(content_image)  # initialize generated image from content image
 
     opt = tf.optimizers.Adam(learning_rate=known_args.learning_rate, beta_1=0.99, epsilon=1e-1)
 
     start = time.time()
 
-    epochs = 200
-    steps_per_epoch = 2
+    epochs = 300
+    steps_per_epoch = 3
 
     step = 0
-    for n in range(epochs):
-        for m in range(steps_per_epoch):
+    total_loss = None
+    for ep in range(epochs):
+        for st in range(steps_per_epoch):
             step += 1
-            train_step(generated_image, content_targets, style_targets, extractor, opt)
-        output_path = ('_ep'+str(n).zfill(3)+'.').join(known_args.output_path.rsplit('.', 1))
+            total_loss = train_step(generated_image, content_targets, style_targets, extractor, opt)
+        output_path = ('_ep'+str(ep).zfill(3)+'.').join(known_args.output_path.rsplit('.', 1))
         img_utils.store_tensor_image(generated_image, output_path)
-        logging.info("Train step: {}".format(step))
+        logging.info("Train step: %s. Loss %s", step, total_loss.numpy())
 
     end = time.time()
     logging.info("Total time: {:.1f}".format(end - start))
