@@ -32,19 +32,25 @@ parser.add_argument('-b', '--beta',
                     help="How much to weight the style loss.")
 parser.add_argument('-vw', '--variation_weight',
                     type=float,
-                    default=30,
+                    default=3,
                     help="How much to weight the variational loss.")
 parser.add_argument('-lr', '--learning_rate',
                     type=float,
                     default=0.02,
                     help="Learning rate for Adam optimizer.")
+parser.add_argument('-wn', '--initialize_with_noise',
+                    action='store_true',
+                    help="Whether to initialize the generated image from the content image"
+                         "with or without noise.")
 known_args, _ = parser.parse_known_args()
 logging.info('Content image path: %s', known_args.content_path)
 logging.info('Style image path: %s', known_args.style_path)
 logging.info('Image output path: %s', known_args.output_path)
 logging.info('Alpha: %s', known_args.alpha)
 logging.info('Beta: %s', known_args.beta)
+logging.info('Image variation weight: %s', known_args.variation_weight)
 logging.info('Learning rate: %s', known_args.learning_rate)
+logging.info('Inialize with noise: %s', known_args.initialize_with_noise)
 
 
 def load_images(content_path, style_path):
@@ -114,6 +120,11 @@ def main():
     content_targets = extractor(content_image)['content']  # dict with vgg content and style values for content image
     style_targets = extractor(style_image)['style']  # dict with vgg content and style values for style image
     generated_image = tf.Variable(content_image)  # initialize generated image from content image
+    if known_args.initialize_with_noise:
+        generated_image = tf.add(
+            generated_image,
+            tf.random.uniform(generated_image.get_shape(), minval=-0.5, maxval=0.5, dtype=generated_image.dtype, seed=42)
+        )
 
     opt = tf.optimizers.Adam(learning_rate=known_args.learning_rate, beta_1=0.99, epsilon=1e-1)
 

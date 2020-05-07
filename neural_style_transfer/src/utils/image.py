@@ -6,7 +6,8 @@ import tensorflow as tf
 
 
 def load_img(path_to_img):
-    """Loads an image from path_to_img.
+    """Loads an image from path_to_img. The image is directly
+    scaled to the [0,1] interval.
 
     Args:
         path_to_img (str):
@@ -16,7 +17,7 @@ def load_img(path_to_img):
     """
     img = tf.io.read_file(path_to_img)
     img = tf.image.decode_image(img, channels=3)
-    img = tf.image.convert_image_dtype(img, tf.float32)
+    img = tf.image.convert_image_dtype(img, tf.float32)  # this operation also scales the pixel values
     img = img[tf.newaxis, :]
     return img
 
