@@ -119,12 +119,16 @@ def main():
     extractor = create_model()
     content_targets = extractor(content_image)['content']  # dict with vgg content and style values for content image
     style_targets = extractor(style_image)['style']  # dict with vgg content and style values for style image
-    generated_image = tf.Variable(content_image)  # initialize generated image from content image
     if known_args.initialize_with_noise:
-        generated_image = tf.add(
-            generated_image,
-            tf.random.uniform(generated_image.get_shape(), minval=-0.5, maxval=0.5, dtype=generated_image.dtype, seed=42)
+        generated_image = tf.Variable(
+            tf.add(
+                content_image,
+                tf.random.uniform(content_image.get_shape(), minval=-0.7, maxval=0.7, dtype=content_image.dtype, seed=42)
+            )
         )
+    else:
+        generated_image = tf.Variable(content_image)  # initialize generated image from content image
+    img_utils.store_tensor_image(generated_image, known_args.output_path)
 
     opt = tf.optimizers.Adam(learning_rate=known_args.learning_rate, beta_1=0.99, epsilon=1e-1)
 
