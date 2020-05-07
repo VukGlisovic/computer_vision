@@ -28,7 +28,7 @@ parser.add_argument('-a', '--alpha',
                     help="How much to weight the content loss.")
 parser.add_argument('-b', '--beta',
                     type=float,
-                    default=0.01,
+                    default=1,
                     help="How much to weight the style loss.")
 parser.add_argument('-vw', '--variation_weight',
                     type=float,
@@ -134,8 +134,8 @@ def main():
 
     start = time.time()
 
-    epochs = 300
-    steps_per_epoch = 3
+    epochs = 400
+    steps_per_epoch = 5
 
     step = 0
     total_loss = None
