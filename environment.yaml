@@ -5,8 +5,8 @@ channels:
 dependencies:
   - _libgcc_mutex=0.1=main
   - backcall=0.1.0=py_0
-  - ca-certificates=2019.9.11=hecc5488_0
-  - certifi=2019.9.11=py36_0
+  - ca-certificates=2020.4.5.1=hecc5488_0
+  - certifi=2020.4.5.1=py36h9f0ad1d_0
   - cycler=0.10.0=py_1
   - dbus=1.13.6=he372182_0
   - decorator=4.4.0=py_0
@@ -40,22 +40,27 @@ dependencies:
   - libpng=1.6.37=hed695b0_0
   - libsodium=1.0.17=h516909a_0
   - libstdcxx-ng=9.1.0=hdf63c60_0
+  - libtiff=4.1.0=hc7e4089_6
   - libuuid=2.32.1=h14c3975_1000
+  - libwebp-base=1.1.0=h516909a_3
   - libxcb=1.13=h14c3975_1002
   - libxkbcommon=0.8.4=h516909a_0
   - libxml2=2.9.9=hee79883_5
+  - lz4-c=1.8.3=he1b5a44_1001
   - matplotlib=3.1.1=py36_1
   - matplotlib-base=3.1.1=py36he7580a8_1
   - ncurses=6.1=hf484d3e_1002
   - nspr=4.20=hf484d3e_1000
   - nss=3.46=he751ad9_0
   - numpy=1.17.2=py36h95a1406_0
-  - openssl=1.1.1c=h516909a_0
+  - olefile=0.46=py_0
+  - openssl=1.1.1g=h516909a_0
   - pandas=0.25.1=py36hb3f55d8_0
   - parso=0.5.1=py_0
   - pcre=8.41=hf484d3e_1003
   - pexpect=4.7.0=py36_0
   - pickleshare=0.7.5=py36_1000
+  - pillow=6.2.1=py36hd70f55b_1
   - pip=19.2.3=py36_0
   - prompt_toolkit=2.0.10=py_0
   - pthread-stubs=0.4=h14c3975_1001
@@ -65,6 +70,7 @@ dependencies:
   - pyqt=5.12.3=py36hcca6a23_0
   - python=3.6.7=h357f687_1005
   - python-dateutil=2.8.0=py_0
+  - python_abi=3.6=1_cp36m
   - pytz=2019.3=py_0
   - pyzmq=18.1.0=py36h1768529_0
   - qt=5.12.5=h0c104cb_0
@@ -76,7 +82,6 @@ dependencies:
   - sqlite=3.30.0=hcee41ef_0
   - tk=8.6.9=hed695b0_1003
   - tornado=6.0.3=py36h516909a_0
-  - tqdm=4.36.1=py_0
   - traitlets=4.3.3=py36_0
   - wcwidth=0.1.7=py_1
   - wheel=0.33.6=py36_0
@@ -85,6 +90,7 @@ dependencies:
   - xz=5.2.4=h14c3975_1001
   - zeromq=4.3.2=he1b5a44_2
   - zlib=1.2.11=h516909a_1006
+  - zstd=1.4.4=h3b9ef0a_2
   - pip:
     - absl-py==0.8.1
     - astor==0.8.0
@@ -103,6 +109,7 @@ dependencies:
     - tensorboard==2.0.0
     - tensorflow==2.0.0
     - tensorflow-estimator==2.0.0
+    - tensorflow-hub==0.8.0
     - termcolor==1.1.0
     - werkzeug==0.16.0
     - wrapt==1.11.2
