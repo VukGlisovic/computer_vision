@@ -134,7 +134,7 @@ def main():
         generated_image = tf.Variable(
             tf.add(
                 content_image,
-                tf.random.uniform(content_image.get_shape(), minval=-0.7, maxval=0.7, dtype=content_image.dtype, seed=42)
+                tf.random.uniform(content_image.get_shape(), minval=-0.8, maxval=0.8, dtype=content_image.dtype, seed=42)
             )
         )
     else:
