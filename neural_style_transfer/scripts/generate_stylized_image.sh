@@ -14,6 +14,6 @@ nohup python generate_stylized_image.py \
     -vw=3 \
     -lr=0.02 \
     -ep=100 \
-    -st=10
+    -st=10 \
     -wn \
 > YOUR_LOG_FILE.log 2>&1 &
