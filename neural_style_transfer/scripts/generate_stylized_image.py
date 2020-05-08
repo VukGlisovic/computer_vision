@@ -38,6 +38,15 @@ parser.add_argument('-lr', '--learning_rate',
                     type=float,
                     default=0.02,
                     help="Learning rate for Adam optimizer.")
+parser.add_argument('-ep', '--epochs',
+                    type=int,
+                    default=100,
+                    help="Number of epochs. At the end of each epoch, the intermediate generated"
+                         "image will be stored.")
+parser.add_argument('-st', '--steps_per_epoch',
+                    type=int,
+                    default=10,
+                    help="The number of steps to take per epoch.")
 parser.add_argument('-wn', '--initialize_with_noise',
                     action='store_true',
                     help="Whether to initialize the generated image from the content image"
@@ -50,6 +59,8 @@ logging.info('Alpha: %s', known_args.alpha)
 logging.info('Beta: %s', known_args.beta)
 logging.info('Image variation weight: %s', known_args.variation_weight)
 logging.info('Learning rate: %s', known_args.learning_rate)
+logging.info('Epochs: %s', known_args.epochs)
+logging.info('Steps per epoch: %s', known_args.steps_per_epoch)
 logging.info('Inialize with noise: %s', known_args.initialize_with_noise)
 
 
@@ -134,13 +145,10 @@ def main():
 
     start = time.time()
 
-    epochs = 400
-    steps_per_epoch = 5
-
     step = 0
     total_loss = None
-    for ep in range(epochs):
-        for st in range(steps_per_epoch):
+    for ep in range(known_args.epochs):
+        for st in range(known_args.steps_per_epoch):
             step += 1
             total_loss = train_step(generated_image, content_targets, style_targets, extractor, opt)
         output_path = ('_ep'+str(ep).zfill(3)+'.').join(known_args.output_path.rsplit('.', 1))
