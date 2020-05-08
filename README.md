@@ -71,4 +71,5 @@ This part of computer vision is an extremely interesting and fun
 application that combines two images (a content and a style image)
 and produces one image that has the content of the content image,
 but drawn in the style of the style image. This will make you 
-create pictures like picasso.
+create pictures like picasso. The corresponding <a href="https://arxiv.org/pdf/1508.06576.pdf">paper</a> 
+is from 2015.
