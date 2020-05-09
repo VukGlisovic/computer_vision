@@ -5,12 +5,17 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 
 
-def load_img(path_to_img):
+def load_img(path_to_img, max_dim=99999):
     """Loads an image from path_to_img. The image is directly
-    scaled to the [0,1] interval.
+    scaled to the [0,1] interval. If necessary decreases the
+    shape of the image while preserving the aspect ratio.
 
     Args:
         path_to_img (str):
+        max_dim (int): if the size of the largest side is greater
+            than max_dim, then the image gets decreased in size such
+            that the largest side has size max_dim. Aspect ratios
+            are preserved.
 
     Returns:
         tf.Tensor
@@ -18,6 +23,14 @@ def load_img(path_to_img):
     img = tf.io.read_file(path_to_img)
     img = tf.image.decode_image(img, channels=3)
     img = tf.image.convert_image_dtype(img, tf.float32)  # this operation also scales the pixel values
+
+    shape = tf.cast(tf.shape(img)[:-1], tf.float32)
+    long_dim = max(shape)
+    if long_dim > max_dim:
+        scale = max_dim / long_dim
+        new_shape = tf.cast(shape * scale, tf.int32)
+        img = tf.image.resize(img, new_shape)
+
     img = img[tf.newaxis, :]
     return img
 

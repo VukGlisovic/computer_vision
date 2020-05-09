@@ -22,6 +22,12 @@ parser.add_argument('-o', '--output_path',
                     type=str,
                     help="Where to store the generated image. Note that the epoch number"
                          "will be appended to the filename (before the extension).")
+parser.add_argument('-md', '--max_dim',
+                    type=int,
+                    default=99999,
+                    help="The max size of the longest image dimension for both the content"
+                         "and the style image. If the height or width exceeds max_dim, then"
+                         "the image is resized to agree with the max_dim.")
 parser.add_argument('-a', '--alpha',
                     type=float,
                     default=1000,
@@ -55,6 +61,7 @@ known_args, _ = parser.parse_known_args()
 logging.info('Content image path: %s', known_args.content_path)
 logging.info('Style image path: %s', known_args.style_path)
 logging.info('Image output path: %s', known_args.output_path)
+logging.info('Max dimension: %s', known_args.max_dim)
 logging.info('Alpha: %s', known_args.alpha)
 logging.info('Beta: %s', known_args.beta)
 logging.info('Image variation weight: %s', known_args.variation_weight)
@@ -64,19 +71,20 @@ logging.info('Steps per epoch: %s', known_args.steps_per_epoch)
 logging.info('Inialize with noise: %s', known_args.initialize_with_noise)
 
 
-def load_images(content_path, style_path):
+def load_images(content_path, style_path, max_dim):
     """Loads a content and a style image.
 
     Args:
         content_path (str):
         style_path (str):
+        max_dim (int):
 
     Returns:
         tuple[tf.Tensor, tf.Tensor]
     """
-    content_image = img_utils.load_img(content_path)
+    content_image = img_utils.load_img(content_path, max_dim)
     logging.info("Shape content image: %s", content_image.get_shape())
-    style_image = img_utils.load_img(style_path)
+    style_image = img_utils.load_img(style_path, max_dim)
     logging.info("Shape style image: %s", style_image.get_shape())
     return content_image, style_image
 
@@ -126,7 +134,7 @@ def create_model():
 def main():
     """Sets up and executes the training.
     """
-    content_image, style_image = load_images(known_args.content_path, known_args.style_path)
+    content_image, style_image = load_images(known_args.content_path, known_args.style_path, known_args.max_dim)
     extractor = create_model()
     content_targets = extractor(content_image)['content']  # dict with vgg content and style values for content image
     style_targets = extractor(style_image)['style']  # dict with vgg content and style values for style image
