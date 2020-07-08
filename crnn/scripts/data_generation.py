@@ -35,35 +35,70 @@ logging.info("Given input parameters:\n%s", "\n".join(["{}: {}".format(k, v) for
 
 
 def create_random_image_generator(count):
+    """Creates a data generator that can produce images with
+    corresponding labels.
+
+    Args:
+        count (int):
+
+    Returns:
+        GeneratorFromDict
+    """
     gen = GeneratorFromDict(count=count,
                             length=2)
     return gen
 
 
-def iterate_over_images_and_store(generator, output_dir):
-    os.makedirs(output_dir, exist_ok=True)
+def iterate_over_images_and_store(generator, images_dir):
+    """Iterates over the given data generator, stores the images
+    and stores the corresponding labels in a dataframe.
+
+    Args:
+        generator (GeneratorFromDict):
+        images_dir (str):
+
+    Returns:
+        pd.DataFrame
+    """
+    os.makedirs(images_dir, exist_ok=True)
     data = pd.DataFrame(columns=['filename', 'label'])
     for img, label in generator:
         random_id = uuid1()
         filename = "{}.jpg".format(random_id, label)
-        path = os.path.join(output_dir, filename)
+        path = os.path.join(images_dir, filename)
         img.save(path, "JPEG")
         data = data.append({'filename': filename, 'label': label}, ignore_index=True)
     return data
 
 
 def store_df(df, output_dir, output_filename):
+    """Stores a data frame in the given output directory
+    under the given filename.
+
+    Args:
+        df (pd.DataFrame):
+        output_dir (str):
+        output_filename (str):
+    """
     os.makedirs(output_dir, exist_ok=True)
     df.to_csv(os.path.join(output_dir, output_filename), index=False)
 
 
 def generate_data(nr_examples, output_filename):
+    """Orchestrates the generation of one data set.
+
+    Args:
+        nr_examples (int):
+        output_filename (str):
+    """
     generator = create_random_image_generator(nr_examples)
     df = iterate_over_images_and_store(generator, known_args.images_dir)
     store_df(df, known_args.df_dir, output_filename)
 
 
 def main():
+    """Generates data for all three data sets: train, validation and test.
+    """
     generate_data(known_args.train_size, 'train.csv')
     generate_data(known_args.validation_size, 'validation.csv')
     generate_data(known_args.test_size, 'test.csv')
