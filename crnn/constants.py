@@ -17,6 +17,7 @@ NR_CHARACTERS = len(CHARACTERS)
 BLANK_INDEX = NR_CHARACTERS - 1  # last row in the classes file represents the blank character
 
 DIR_IMAGES = os.path.join(PROJECT_PATH, 'data/images/')
+DIR_PROCESSED = os.path.join(PROJECT_PATH, 'data/processed/')
 
 FILENAME = 'filename'
 LABEL = 'label'
