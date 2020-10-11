@@ -15,10 +15,10 @@ parser = argparse.ArgumentParser()
 
 
 def main():
-    model = build_model(10)
+    model = build_model()
     optimizer = tf.keras.optimizers.Adam()
     model.compile(optimizer=optimizer,
-                  loss=CTCLoss(blank_index=-1))
+                  loss=CTCLoss())
     model.summary()
 
 

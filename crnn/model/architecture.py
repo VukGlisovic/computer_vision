@@ -1,12 +1,14 @@
 from tensorflow import keras
 from tensorflow.keras.layers import Conv2D, MaxPool2D, BatchNormalization, Activation, Reshape, \
     Bidirectional, LSTM, Dense
+from crnn.constants import *
 
 
-def build_model(num_classes, channels=1):
+def build_model():
     """The original architecture from the CRNN paper.
     """
-    input_image = keras.Input(shape=(256, 32, channels))
+    # note that the height and width are flipped
+    input_image = keras.Input(shape=(IM_WIDTH, IM_HEIGHT, CHANNELS))
     x = Conv2D(64, 3, padding='same', activation='relu')(input_image)
     x = MaxPool2D(pool_size=2, padding='same')(x)
 
@@ -37,5 +39,5 @@ def build_model(num_classes, channels=1):
 
     x = Bidirectional(LSTM(units=256, return_sequences=True), merge_mode='sum')(x)
     x = Bidirectional(LSTM(units=256, return_sequences=True), merge_mode='sum')(x)
-    x = Dense(units=num_classes)(x)
+    x = Dense(units=NR_CHARACTERS)(x)
     return keras.Model(inputs=input_image, outputs=x, name='CRNN')
