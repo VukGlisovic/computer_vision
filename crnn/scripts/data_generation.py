@@ -4,7 +4,9 @@ import logging
 import argparse
 import pandas as pd
 from uuid import uuid1
-from trdg.generators import GeneratorFromDict
+from tqdm import tqdm
+from trdg.generators import GeneratorFromRandom
+from crnn.constants import PROJECT_PATH
 
 logformat = '%(asctime)s | %(levelname)s | [%(filename)s:%(lineno)s - %(funcName)s] %(message)s'
 logging.basicConfig(format=logformat, level=logging.INFO, stream=sys.stdout)
@@ -36,16 +38,28 @@ logging.info("Given input parameters:\n%s", "\n".join(["{}: {}".format(k, v) for
 
 def create_random_image_generator(count):
     """Creates a data generator that can produce images with
-    corresponding labels.
+    corresponding labels. The text that is generated is pretty
+    much gibberish; randomly chosen characters (from a predefined
+    set of characters).
 
     Args:
         count (int):
 
     Returns:
-        GeneratorFromDict
+        GeneratorFromRandom
     """
-    gen = GeneratorFromDict(count=count,
-                            length=2)
+    font_path = os.path.join(PROJECT_PATH, 'resources/fonts/Vudotronic.otf')
+    background_images_dir = os.path.join(PROJECT_PATH, 'resources/background_images')
+    gen = GeneratorFromRandom(count=count,
+                              length=2,
+                              allow_variable=True,
+                              use_letters=True,
+                              use_numbers=True,
+                              use_symbols=True,
+                              character_spacing=5,  # how much space to put between characters from one word
+                              fonts=[font_path],
+                              background_type=-1,  # means use images as background
+                              image_dir=background_images_dir)
     return gen
 
 
@@ -62,7 +76,7 @@ def iterate_over_images_and_store(generator, images_dir):
     """
     os.makedirs(images_dir, exist_ok=True)
     data = pd.DataFrame(columns=['filename', 'label'])
-    for img, label in generator:
+    for img, label in tqdm(generator):
         random_id = uuid1()
         filename = "{}.jpg".format(random_id, label)
         path = os.path.join(images_dir, filename)
