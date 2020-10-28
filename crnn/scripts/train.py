@@ -8,6 +8,9 @@ import tensorflow as tf
 from crnn.data_pipeline.input_dataset import input_fn
 from crnn.model.architecture import build_model
 from crnn.model.ctc_loss import CTCLoss
+from crnn.model.callbacks import *
+from crnn.metrics.accuracy import Accuracy
+from crnn.metrics.normalized_edit_distance import get_normalized_edit_distance
 from crnn.constants import *
 
 logformat = '%(asctime)s | %(levelname)s | [%(filename)s:%(lineno)s - %(funcName)s] %(message)s'
@@ -26,24 +29,26 @@ def get_model():
     model = build_model()
     optimizer = tf.keras.optimizers.Adam()
     model.compile(optimizer=optimizer,
-                  loss=CTCLoss())
+                  loss=CTCLoss(),
+                  metrics=[get_normalized_edit_distance(), Accuracy(method='beam_search')])
     model.summary()
     return model
 
 
 def train():
-    n_epochs = 10
-    batch_size = 32
+    n_epochs = 50
+    batch_size = 16
     ds_train, len_train = create_dataset(os.path.join(DIR_PROCESSED, 'train.csv'), epochs=n_epochs, batch_size=batch_size, shuffle_buffer=128, augment=True)
     ds_validation, len_validation = create_dataset(os.path.join(DIR_PROCESSED, 'validation.csv'), batch_size=128)
-    ds_test, len_test = create_dataset(os.path.join(DIR_PROCESSED, 'test.csv'), batch_size=128)
+
+    callbacks = [model_checkpoint, lr_reduce, tensorboard, early_stopping]
 
     model = get_model()
     history = model.fit(
         ds_train,
         epochs=n_epochs,
         steps_per_epoch=int(np.ceil(len_train / batch_size)),
-        # callbacks=callbacks,
+        callbacks=callbacks,
         validation_data=ds_validation,
         validation_steps=int(np.ceil(len_validation / 128))
     )
