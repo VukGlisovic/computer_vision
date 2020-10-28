@@ -3,17 +3,16 @@ from tensorflow import keras
 from crnn.constants import BLANK_INDEX
 
 
-def label_lengths(labels, blank_index):
+def label_lengths(labels):
     """Calculates the number of non bank index characters.
 
     Args:
         labels (tf.Tensor):
-        blank_index (int):
 
     Returns:
         tf.Tensor
     """
-    return tf.reduce_sum(tf.cast(labels != blank_index, tf.int32), axis=1)
+    return tf.reduce_sum(tf.cast(labels != BLANK_INDEX, tf.int32), axis=1)
 
 
 class CTCLoss(keras.losses.Loss):
@@ -40,7 +39,7 @@ class CTCLoss(keras.losses.Loss):
         """
         y_true = tf.cast(y_true, tf.int32)
         logit_length = tf.fill([tf.shape(y_pred)[0]], tf.shape(y_pred)[1])
-        label_length = label_lengths(y_true, BLANK_INDEX)
+        label_length = label_lengths(y_true)
         loss = tf.nn.ctc_loss(
             labels=y_true,
             logits=tf.transpose(y_pred, perm=[1, 0, 2]),

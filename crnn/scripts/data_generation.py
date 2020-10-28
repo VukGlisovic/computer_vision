@@ -14,7 +14,7 @@ logging.basicConfig(format=logformat, level=logging.INFO, stream=sys.stdout)
 parser = argparse.ArgumentParser()
 parser.add_argument('--train_size',
                     type=int,
-                    default=1000,
+                    default=3000,
                     help="The number of images to generate for training.")
 parser.add_argument('--validation_size',
                     type=int,
