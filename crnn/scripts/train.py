@@ -36,7 +36,7 @@ def get_model():
 
 
 def train():
-    n_epochs = 50
+    n_epochs = 150
     batch_size = 16
     ds_train, len_train = create_dataset(os.path.join(DIR_PROCESSED, 'train.csv'), epochs=n_epochs, batch_size=batch_size, shuffle_buffer=128, augment=True)
     ds_validation, len_validation = create_dataset(os.path.join(DIR_PROCESSED, 'validation.csv'), batch_size=128)

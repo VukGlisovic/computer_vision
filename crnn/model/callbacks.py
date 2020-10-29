@@ -7,7 +7,7 @@ model_checkpoint = tf.keras.callbacks.ModelCheckpoint(
     monitor='val_normalized_edit_distance',
     save_best_only=True,
     save_weights_only=True,
-    mode='max'
+    mode='min'
 )
 
 lr_reduce = tf.keras.callbacks.ReduceLROnPlateau(
@@ -36,8 +36,8 @@ tensorboard = tf.keras.callbacks.TensorBoard(
 early_stopping = tf.keras.callbacks.EarlyStopping(
     monitor='val_normalized_edit_distance',
     min_delta=0.001,
-    patience=12,
+    patience=20,
     verbose=0,
-    mode='max',
+    mode='min',
     restore_best_weights=False
 )
