@@ -75,7 +75,8 @@ def main():
 
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint('../data/results/checkpoints/efficientdet-{epoch:02d}.hdf5', save_best_only=False, save_weights_only=True),
-        tf.keras.callbacks.LearningRateScheduler(scheduler)
+        tf.keras.callbacks.LearningRateScheduler(scheduler),
+        tf.keras.callbacks.TensorBoard('../data/results/tensorboard')
     ]
 
     model.compile(optimizer=adam, loss=losses)

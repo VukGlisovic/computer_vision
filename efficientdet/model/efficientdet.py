@@ -210,12 +210,12 @@ def efficientdet(phi, num_classes=10, num_anchors=9, freeze_bn=False,
     # bounding box model
     box_net = BoxNet(w_head, d_head, num_anchors=num_anchors, separable_conv=separable_conv, freeze_bn=freeze_bn,
                      detect_quadrangle=detect_quadrangle, name='box_net')
-    regression = [box_net([feature, i]) for i, feature in enumerate(fpn_features)]
+    regression = [box_net(feature) for feature in fpn_features]
     regression = layers.Concatenate(axis=1, name='regression')(regression)
     # classification model
     class_net = ClassNet(w_head, d_head, num_classes=num_classes, num_anchors=num_anchors,
                          separable_conv=separable_conv, freeze_bn=freeze_bn, name='class_net')
-    classification = [class_net([feature, i]) for i, feature in enumerate(fpn_features)]
+    classification = [class_net(feature) for feature in fpn_features]
     classification = layers.Concatenate(axis=1, name='classification')(classification)
 
     model = models.Model(inputs=[image_input], outputs=[classification, regression], name='efficientdet')

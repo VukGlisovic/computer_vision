@@ -59,7 +59,7 @@ class BoxNet(models.Model):
             options.update(kernel_initializer)
             self.convs = [layers.Conv2D(filters=width, name=f'{self.name}/box-{i}', **options) for i in range(depth)]
             self.head = layers.Conv2D(filters=num_anchors * num_values, name=f'{self.name}/box-predict', **options)
-        self.bns = [[layers.BatchNormalization(momentum=MOMENTUM, epsilon=EPSILON, name=f'{self.name}/box-{i}-bn-{j}') for j in range(3, 8)]
+        self.bns = [layers.BatchNormalization(momentum=MOMENTUM, epsilon=EPSILON, name=f'{self.name}/box-{i}')
                     for i in range(depth)]
         # self.bns = [[BatchNormalization(freeze=freeze_bn, name=f'{self.name}/box-{i}-bn-{j}') for j in range(3, 8)]
         #             for i in range(depth)]
@@ -68,15 +68,13 @@ class BoxNet(models.Model):
         self.level = 0
 
     def call(self, inputs, **kwargs):
-        feature, level = inputs
+        feature = inputs
         for i in range(self.depth):
             feature = self.convs[i](feature)
-            # feature = self.bns[i][self.level](feature)
-            feature = self.bns[i][level](feature)
+            feature = self.bns[i](feature)
             feature = self.relu(feature)
         outputs = self.head(feature)
         outputs = self.reshape(outputs)
-        # self.level += 1
         return outputs
 
 
@@ -114,7 +112,7 @@ class ClassNet(models.Model):
             self.head = layers.Conv2D(filters=num_classes * num_anchors,
                                       bias_initializer=PriorProbability(probability=0.01),
                                       name='class-predict', **options)
-        self.bns = [[layers.BatchNormalization(momentum=MOMENTUM, epsilon=EPSILON, name=f'{self.name}/class-{i}-bn-{j}') for j in range(3, 8)]
+        self.bns = [layers.BatchNormalization(momentum=MOMENTUM, epsilon=EPSILON, name=f'{self.name}/class-{i}')
                     for i in range(depth)]
         # self.bns = [[BatchNormalization(freeze=freeze_bn, name=f'{self.name}/class-{i}-bn-{j}') for j in range(3, 8)]
         #             for i in range(depth)]
@@ -124,14 +122,12 @@ class ClassNet(models.Model):
         self.level = 0
 
     def call(self, inputs, **kwargs):
-        feature, level = inputs
+        feature = inputs
         for i in range(self.depth):
             feature = self.convs[i](feature)
-            # feature = self.bns[i][self.level](feature)
-            feature = self.bns[i][level](feature)
+            feature = self.bns[i](feature)
             feature = self.relu(feature)
         outputs = self.head(feature)
         outputs = self.reshape(outputs)
         outputs = self.activation(outputs)
-        # self.level += 1
         return outputs
