@@ -1,24 +1,31 @@
 from tensorflow import keras
+from tensorflow.keras import layers
 import tensorflow as tf
 
 
 class wBiFPNAdd(keras.layers.Layer):
+
     def __init__(self, epsilon=1e-4, **kwargs):
         super(wBiFPNAdd, self).__init__(**kwargs)
         self.epsilon = epsilon
+        self.relu = layers.Activation('relu')
 
     def build(self, input_shape):
-        num_in = len(input_shape)
+        self.num_in = len(input_shape)  # expected num_in is 2 or 3
         self.w = self.add_weight(name=self.name,
-                                 shape=(num_in,),
-                                 initializer=keras.initializers.constant(1 / num_in),
+                                 shape=(self.num_in,),
+                                 initializer=keras.initializers.ones(),
                                  trainable=True,
                                  dtype=tf.float32)
 
     def call(self, inputs, **kwargs):
-        w = keras.activations.relu(self.w)
-        x = tf.reduce_sum([w[i] * inputs[i] for i in range(len(inputs))], axis=0)
-        x = x / (tf.reduce_sum(w) + self.epsilon)
+        hxw = tf.shape(inputs[0])[1:3]
+        input_resized = tf.image.resize(inputs[-1], size=hxw, method='nearest')
+        inputs = inputs[:-1] + [input_resized]
+        w = self.relu(self.w)  # make sure weights are positive
+        x = tf.reduce_sum([w[i] * inputs[i] for i in range(self.num_in)], axis=0)
+        w_sum = tf.reduce_sum(w)
+        x = x / (w_sum + self.epsilon)
         return x
 
     def compute_output_shape(self, input_shape):
