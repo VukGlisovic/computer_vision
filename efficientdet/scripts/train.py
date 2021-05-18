@@ -1,3 +1,4 @@
+import os
 import string
 import math
 import numpy as np
@@ -73,15 +74,16 @@ def main():
     def scheduler(epoch, lr):
         return lr * tf.math.exp(-0.1)
 
+    os.makedirs('../data/results/checkpoints/', exist_ok=True)
     callbacks = [
+        tf.keras.callbacks.TensorBoard('../data/results/tensorboard', profile_batch=0),
         tf.keras.callbacks.ModelCheckpoint('../data/results/checkpoints/efficientdet-{epoch:02d}.hdf5', save_best_only=False, save_weights_only=True),
-        tf.keras.callbacks.LearningRateScheduler(scheduler),
-        tf.keras.callbacks.TensorBoard('../data/results/tensorboard')
+        tf.keras.callbacks.LearningRateScheduler(scheduler)
     ]
 
     model.compile(optimizer=adam, loss=losses)
 
-    history = model.fit(ds, epochs=1, callbacks=callbacks)
+    history = model.fit(ds, epochs=20, callbacks=callbacks, steps_per_epoch=2)
 
 
 if __name__ == '__main__':

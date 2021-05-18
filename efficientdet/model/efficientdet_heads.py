@@ -4,40 +4,17 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, models
 from tensorflow.keras import initializers
-
-
-MOMENTUM = 0.997
-EPSILON = 1e-4
-
-
-class PriorProbability(keras.initializers.Initializer):
-    """ Apply a prior probability to the weights.
-    """
-
-    def __init__(self, probability=0.01):
-        self.probability = probability
-
-    def get_config(self):
-        return {
-            'probability': self.probability
-        }
-
-    def __call__(self, shape, dtype=None):
-        # set bias to -log((1 - p)/p) for foreground
-        result = np.ones(shape, dtype=np.float32) * -math.log((1 - self.probability) / self.probability)
-
-        return result
+from efficientdet.model.weight_initializers import PriorProbability
 
 
 class BoxNet(models.Model):
-    def __init__(self, width, depth, num_anchors=9, separable_conv=True, freeze_bn=False, detect_quadrangle=False, **kwargs):
+    def __init__(self, width, depth, num_anchors=9, separable_conv=True, **kwargs):
         super(BoxNet, self).__init__(**kwargs)
         self.width = width
         self.depth = depth
         self.num_anchors = num_anchors
         self.separable_conv = separable_conv
-        self.detect_quadrangle = detect_quadrangle
-        num_values = 9 if detect_quadrangle else 4
+        num_values = 4
         options = {
             'kernel_size': 3,
             'strides': 1,
@@ -59,10 +36,7 @@ class BoxNet(models.Model):
             options.update(kernel_initializer)
             self.convs = [layers.Conv2D(filters=width, name=f'{self.name}/box-{i}', **options) for i in range(depth)]
             self.head = layers.Conv2D(filters=num_anchors * num_values, name=f'{self.name}/box-predict', **options)
-        self.bns = [layers.BatchNormalization(momentum=MOMENTUM, epsilon=EPSILON, name=f'{self.name}/box-{i}')
-                    for i in range(depth)]
-        # self.bns = [[BatchNormalization(freeze=freeze_bn, name=f'{self.name}/box-{i}-bn-{j}') for j in range(3, 8)]
-        #             for i in range(depth)]
+        self.bns = [layers.BatchNormalization(name=f'{self.name}/box-{i}') for i in range(depth)]
         self.relu = layers.Lambda(lambda x: tf.nn.swish(x))
         self.reshape = layers.Reshape((-1, num_values))
         self.level = 0
@@ -79,7 +53,7 @@ class BoxNet(models.Model):
 
 
 class ClassNet(models.Model):
-    def __init__(self, width, depth, num_classes=20, num_anchors=9, separable_conv=True, freeze_bn=False, **kwargs):
+    def __init__(self, width, depth, num_classes=20, num_anchors=9, separable_conv=True, **kwargs):
         super(ClassNet, self).__init__(**kwargs)
         self.width = width
         self.depth = depth
@@ -112,10 +86,7 @@ class ClassNet(models.Model):
             self.head = layers.Conv2D(filters=num_classes * num_anchors,
                                       bias_initializer=PriorProbability(probability=0.01),
                                       name='class-predict', **options)
-        self.bns = [layers.BatchNormalization(momentum=MOMENTUM, epsilon=EPSILON, name=f'{self.name}/class-{i}')
-                    for i in range(depth)]
-        # self.bns = [[BatchNormalization(freeze=freeze_bn, name=f'{self.name}/class-{i}-bn-{j}') for j in range(3, 8)]
-        #             for i in range(depth)]
+        self.bns = [layers.BatchNormalization(name=f'{self.name}/class-{i}') for i in range(depth)]
         self.relu = layers.Lambda(lambda x: tf.nn.swish(x))
         self.reshape = layers.Reshape((-1, num_classes))
         self.activation = layers.Activation('sigmoid')
