@@ -3,10 +3,38 @@ from tensorflow.keras import layers
 import tensorflow as tf
 
 
-class wBiFPNAdd(keras.layers.Layer):
+class SeparableConvBlock(layers.Layer):
+    """A simple block that chains a SeparableConv2D and a BatchNormalization
+    layer together.
+
+    Args:
+        num_channels (int):
+        kernel_size (int):
+        strides (int):
+    """
+
+    def __init__(self, num_channels, kernel_size, strides, **kwargs):
+        super(SeparableConvBlock, self).__init__()
+        self.sep_conv = layers.SeparableConv2D(num_channels, kernel_size=kernel_size, strides=strides, padding='same', use_bias=True)
+        self.bn = layers.BatchNormalization()
+
+    def call(self, x, **kwargs):
+        """Applies: SeparableConv2D -> BatchNormalization
+
+        Args:
+            x (tf.Tensor):
+
+        Returns:
+            tf.Tensor:
+        """
+        x = self.bn(self.sep_conv(x))
+        return x
+
+
+class FastNormalizedFusion(keras.layers.Layer):
 
     def __init__(self, epsilon=1e-4, **kwargs):
-        super(wBiFPNAdd, self).__init__(**kwargs)
+        super(FastNormalizedFusion, self).__init__(**kwargs)
         self.epsilon = epsilon
         self.relu = layers.Activation('relu')
 
@@ -20,7 +48,7 @@ class wBiFPNAdd(keras.layers.Layer):
 
     def call(self, inputs, **kwargs):
         hxw = tf.shape(inputs[0])[1:3]
-        input_resized = tf.image.resize(inputs[-1], size=hxw, method='nearest')
+        input_resized = tf.image.resize(inputs[-1], size=hxw, method='nearest')  # up or downsamples
         inputs = inputs[:-1] + [input_resized]
         w = self.relu(self.w)  # make sure weights are positive
         x = tf.reduce_sum([w[i] * inputs[i] for i in range(self.num_in)], axis=0)
@@ -32,11 +60,26 @@ class wBiFPNAdd(keras.layers.Layer):
         return input_shape[0]
 
     def get_config(self):
-        config = super(wBiFPNAdd, self).get_config()
+        config = super(FastNormalizedFusion, self).get_config()
         config.update({
             'epsilon': self.epsilon
         })
         return config
+
+
+class BiFPNFeatureFusion(layers.Layer):
+
+    def __init__(self, num_channels, **kwargs):
+        super(BiFPNFeatureFusion, self).__init__(**kwargs)
+        self.fast_normalized_fusion = FastNormalizedFusion(**kwargs)
+        self.activation = layers.Activation(tf.nn.swish)
+        self.sep_conv_block = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1)
+
+    def call(self, inputs, **kwargs):
+        features = self.fast_normalized_fusion(inputs)
+        features = self.activation(features)
+        features = self.sep_conv_block(features)
+        return features
 
 
 def bbox_transform_inv(boxes, deltas, scale_factors=None):

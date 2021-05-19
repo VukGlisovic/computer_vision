@@ -3,7 +3,7 @@ from tensorflow.keras import layers
 from tensorflow.keras import models
 from functools import reduce
 
-from efficientdet.model.custom_layers import ClipBoxes, RegressBoxes, FilterDetections, wBiFPNAdd
+from efficientdet.model.custom_layers import ClipBoxes, RegressBoxes, FilterDetections, FastNormalizedFusion, SeparableConvBlock, BiFPNFeatureFusion
 # from utils.anchors import anchors_for_shape
 import numpy as np
 from efficientdet.model.efficientnet_backbone import efficientnet
@@ -43,36 +43,6 @@ def input_image_resolution(phi):
     return 512 + phi * 128
 
 
-class SeparableConvBlock(layers.Layer):
-    """A simple block that chains a SeparableConv2D and a BatchNormalization
-    layer together.
-
-    Args:
-        num_channels (int):
-        kernel_size (int):
-        strides (int):
-        name (str):
-    """
-
-    def __init__(self, num_channels, kernel_size, strides, name, **kwargs):
-        super(SeparableConvBlock, self).__init__()
-        self.sep_conv = layers.SeparableConv2D(num_channels, kernel_size=kernel_size, strides=strides, padding='same',
-                               use_bias=True, name=f'{name}/conv')
-        self.bn = layers.BatchNormalization()
-
-    def call(self, x, **kwargs):
-        """Applies: SeparableConv2D -> BatchNormalization
-
-        Args:
-            x (tf.Tensor):
-
-        Returns:
-            tf.Tensor:
-        """
-        x = self.bn(self.sep_conv(x))
-        return x
-
-
 def build_wBiFPN(features, num_channels, id):
     if id == 0:
         _, _, C3, C4, C5 = features
@@ -83,94 +53,51 @@ def build_wBiFPN(features, num_channels, id):
         P6_in = layers.BatchNormalization(name='resample_p6/bn')(P6_in)
         P6_in = layers.MaxPooling2D(pool_size=3, strides=2, padding='same', name='resample_p6/maxpool')(P6_in)
         P7_in = layers.MaxPooling2D(pool_size=3, strides=2, padding='same', name='resample_p7/maxpool')(P6_in)
-        P6_td = wBiFPNAdd(name=f'fpn_cells/cell_{id}/fnode0/add')([P6_in, P7_in])
+        P6_td = FastNormalizedFusion(name=f'fpn_cells/cell_{id}/fnode0/add')([P6_in, P7_in])
         P6_td = layers.Activation(tf.nn.swish)(P6_td)
-        P6_td = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1,
-                                   name=f'fpn_cells/cell_{id}/fnode0/op_after_combine5')(P6_td)
-        P5_in_1 = layers.Conv2D(num_channels, kernel_size=1, padding='same',
-                                name=f'fpn_cells/cell_{id}/fnode1/resample_0_2_6/conv2d')(P5_in)
+        P6_td = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1, name=f'fpn_cells/cell_{id}/fnode0/op_after_combine5')(P6_td)
+        P5_in_1 = layers.Conv2D(num_channels, kernel_size=1, padding='same', name=f'fpn_cells/cell_{id}/fnode1/resample_0_2_6/conv2d')(P5_in)
         P5_in_1 = layers.BatchNormalization(name=f'fpn_cells/cell_{id}/fnode1/resample_0_2_6/bn')(P5_in_1)
-        P5_td = wBiFPNAdd(name=f'fpn_cells/cell_{id}/fnode1/add')([P5_in_1, P6_td])
+        P5_td = FastNormalizedFusion(name=f'fpn_cells/cell_{id}/fnode1/add')([P5_in_1, P6_td])
         P5_td = layers.Activation(tf.nn.swish)(P5_td)
-        P5_td = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1,
-                                   name=f'fpn_cells/cell_{id}/fnode1/op_after_combine6')(P5_td)
-        P4_in_1 = layers.Conv2D(num_channels, kernel_size=1, padding='same',
-                                name=f'fpn_cells/cell_{id}/fnode2/resample_0_1_7/conv2d')(P4_in)
+        P5_td = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1, name=f'fpn_cells/cell_{id}/fnode1/op_after_combine6')(P5_td)
+        P4_in_1 = layers.Conv2D(num_channels, kernel_size=1, padding='same', name=f'fpn_cells/cell_{id}/fnode2/resample_0_1_7/conv2d')(P4_in)
         P4_in_1 = layers.BatchNormalization(name=f'fpn_cells/cell_{id}/fnode2/resample_0_1_7/bn')(P4_in_1)
-        P4_td = wBiFPNAdd(name=f'fpn_cells/cell_{id}/fnode2/add')([P4_in_1, P5_td])
+        P4_td = FastNormalizedFusion(name=f'fpn_cells/cell_{id}/fnode2/add')([P4_in_1, P5_td])
         P4_td = layers.Activation(tf.nn.swish)(P4_td)
-        P4_td = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1,
-                                   name=f'fpn_cells/cell_{id}/fnode2/op_after_combine7')(P4_td)
-        P3_in = layers.Conv2D(num_channels, kernel_size=1, padding='same',
-                              name=f'fpn_cells/cell_{id}/fnode3/resample_0_0_8/conv2d')(P3_in)
+        P4_td = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1, name=f'fpn_cells/cell_{id}/fnode2/op_after_combine7')(P4_td)
+        P3_in = layers.Conv2D(num_channels, kernel_size=1, padding='same', name=f'fpn_cells/cell_{id}/fnode3/resample_0_0_8/conv2d')(P3_in)
         P3_in = layers.BatchNormalization(name=f'fpn_cells/cell_{id}/fnode3/resample_0_0_8/bn')(P3_in)
-        P3_out = wBiFPNAdd(name=f'fpn_cells/cell_{id}/fnode3/add')([P3_in, P4_td])
+        P3_out = FastNormalizedFusion(name=f'fpn_cells/cell_{id}/fnode3/add')([P3_in, P4_td])
         P3_out = layers.Activation(tf.nn.swish)(P3_out)
-        P3_out = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1,
-                                    name=f'fpn_cells/cell_{id}/fnode3/op_after_combine8')(P3_out)
-        P4_in_2 = layers.Conv2D(num_channels, kernel_size=1, padding='same',
-                                name=f'fpn_cells/cell_{id}/fnode4/resample_0_1_9/conv2d')(P4_in)
+        P3_out = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1, name=f'fpn_cells/cell_{id}/fnode3/op_after_combine8')(P3_out)
+        P4_in_2 = layers.Conv2D(num_channels, kernel_size=1, padding='same', name=f'fpn_cells/cell_{id}/fnode4/resample_0_1_9/conv2d')(P4_in)
         P4_in_2 = layers.BatchNormalization(name=f'fpn_cells/cell_{id}/fnode4/resample_0_1_9/bn')(P4_in_2)
-        P4_out = wBiFPNAdd(name=f'fpn_cells/cell_{id}/fnode4/add')([P4_in_2, P4_td, P3_out])
+        P4_out = FastNormalizedFusion(name=f'fpn_cells/cell_{id}/fnode4/add')([P4_in_2, P4_td, P3_out])
         P4_out = layers.Activation(tf.nn.swish)(P4_out)
-        P4_out = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1,
-                                    name=f'fpn_cells/cell_{id}/fnode4/op_after_combine9')(P4_out)
-
-        P5_in_2 = layers.Conv2D(num_channels, kernel_size=1, padding='same',
-                                name=f'fpn_cells/cell_{id}/fnode5/resample_0_2_10/conv2d')(P5_in)
+        P4_out = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1, name=f'fpn_cells/cell_{id}/fnode4/op_after_combine9')(P4_out)
+        P5_in_2 = layers.Conv2D(num_channels, kernel_size=1, padding='same', name=f'fpn_cells/cell_{id}/fnode5/resample_0_2_10/conv2d')(P5_in)
         P5_in_2 = layers.BatchNormalization(name=f'fpn_cells/cell_{id}/fnode5/resample_0_2_10/bn')(P5_in_2)
-        P5_out = wBiFPNAdd(name=f'fpn_cells/cell_{id}/fnode5/add')([P5_in_2, P5_td, P4_out])
+        P5_out = FastNormalizedFusion(name=f'fpn_cells/cell_{id}/fnode5/add')([P5_in_2, P5_td, P4_out])
         P5_out = layers.Activation(tf.nn.swish)(P5_out)
-        P5_out = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1,
-                                    name=f'fpn_cells/cell_{id}/fnode5/op_after_combine10')(P5_out)
-
-        P6_out = wBiFPNAdd(name=f'fpn_cells/cell_{id}/fnode6/add')([P6_in, P6_td, P5_out])
+        P5_out = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1, name=f'fpn_cells/cell_{id}/fnode5/op_after_combine10')(P5_out)
+        P6_out = FastNormalizedFusion(name=f'fpn_cells/cell_{id}/fnode6/add')([P6_in, P6_td, P5_out])
         P6_out = layers.Activation(tf.nn.swish)(P6_out)
-        P6_out = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1,
-                                    name=f'fpn_cells/cell_{id}/fnode6/op_after_combine11')(P6_out)
-
-        P7_out = wBiFPNAdd(name=f'fpn_cells/cell_{id}/fnode7/add')([P7_in, P6_out])
+        P6_out = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1, name=f'fpn_cells/cell_{id}/fnode6/op_after_combine11')(P6_out)
+        P7_out = FastNormalizedFusion(name=f'fpn_cells/cell_{id}/fnode7/add')([P7_in, P6_out])
         P7_out = layers.Activation(tf.nn.swish)(P7_out)
-        P7_out = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1,
-                                    name=f'fpn_cells/cell_{id}/fnode7/op_after_combine12')(P7_out)
+        P7_out = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1, name=f'fpn_cells/cell_{id}/fnode7/op_after_combine12')(P7_out)
 
     else:
         P3_in, P4_in, P5_in, P6_in, P7_in = features
-        P6_td = wBiFPNAdd(name=f'fpn_cells/cell_{id}/fnode0/add')([P6_in, P7_in])
-        P6_td = layers.Activation(tf.nn.swish)(P6_td)
-        P6_td = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1,
-                                   name=f'fpn_cells/cell_{id}/fnode0/op_after_combine5')(P6_td)
-        P5_td = wBiFPNAdd(name=f'fpn_cells/cell_{id}/fnode1/add')([P5_in, P6_td])
-        P5_td = layers.Activation(tf.nn.swish)(P5_td)
-        P5_td = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1,
-                                   name=f'fpn_cells/cell_{id}/fnode1/op_after_combine6')(P5_td)
-        P4_td = wBiFPNAdd(name=f'fpn_cells/cell_{id}/fnode2/add')([P4_in, P5_td])
-        P4_td = layers.Activation(tf.nn.swish)(P4_td)
-        P4_td = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1,
-                                   name=f'fpn_cells/cell_{id}/fnode2/op_after_combine7')(P4_td)
-        P3_out = wBiFPNAdd(name=f'fpn_cells/cell_{id}/fnode3/add')([P3_in, P4_td])
-        P3_out = layers.Activation(tf.nn.swish)(P3_out)
-        P3_out = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1,
-                                    name=f'fpn_cells/cell_{id}/fnode3/op_after_combine8')(P3_out)
-        P4_out = wBiFPNAdd(name=f'fpn_cells/cell_{id}/fnode4/add')([P4_in, P4_td, P3_out])
-        P4_out = layers.Activation(tf.nn.swish)(P4_out)
-        P4_out = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1,
-                                    name=f'fpn_cells/cell_{id}/fnode4/op_after_combine9')(P4_out)
-
-        P5_out = wBiFPNAdd(name=f'fpn_cells/cell_{id}/fnode5/add')([P5_in, P5_td, P4_out])
-        P5_out = layers.Activation(tf.nn.swish)(P5_out)
-        P5_out = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1,
-                                    name=f'fpn_cells/cell_{id}/fnode5/op_after_combine10')(P5_out)
-
-        P6_out = wBiFPNAdd(name=f'fpn_cells/cell_{id}/fnode6/add')([P6_in, P6_td, P5_out])
-        P6_out = layers.Activation(tf.nn.swish)(P6_out)
-        P6_out = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1,
-                                    name=f'fpn_cells/cell_{id}/fnode6/op_after_combine11')(P6_out)
-
-        P7_out = wBiFPNAdd(name=f'fpn_cells/cell_{id}/fnode7/add')([P7_in, P6_out])
-        P7_out = layers.Activation(tf.nn.swish)(P7_out)
-        P7_out = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1,
-                                    name=f'fpn_cells/cell_{id}/fnode7/op_after_combine12')(P7_out)
+        P6_td = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode0/add')([P6_in, P7_in])
+        P5_td = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode1/op_after_combine6')([P5_in, P6_td])
+        P4_td = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode2/op_after_combine7')([P4_in, P5_td])
+        P3_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode3/op_after_combine8')([P3_in, P4_td])
+        P4_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode4/op_after_combine9')([P4_in, P4_td, P3_out])
+        P5_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode5/op_after_combine10')([P5_in, P5_td, P4_out])
+        P6_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode6/op_after_combine11')([P6_in, P6_td, P5_out])
+        P7_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode7/op_after_combine12')([P7_in, P6_out])
     return P3_out, P4_td, P5_td, P6_td, P7_out
 
 
