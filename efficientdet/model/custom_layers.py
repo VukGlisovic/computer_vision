@@ -61,9 +61,9 @@ class FastNormalizedFusion(keras.layers.Layer):
 
     def get_config(self):
         config = super(FastNormalizedFusion, self).get_config()
-        config.update({
-            'epsilon': self.epsilon
-        })
+        config.update(
+            {'epsilon': self.epsilon}
+        )
         return config
 
 
@@ -71,6 +71,7 @@ class BiFPNFeatureFusion(layers.Layer):
 
     def __init__(self, num_channels, **kwargs):
         super(BiFPNFeatureFusion, self).__init__(**kwargs)
+        self.num_channels = num_channels
         self.fast_normalized_fusion = FastNormalizedFusion(**kwargs)
         self.activation = layers.Activation(tf.nn.swish)
         self.sep_conv_block = SeparableConvBlock(num_channels=num_channels, kernel_size=3, strides=1)
@@ -80,6 +81,13 @@ class BiFPNFeatureFusion(layers.Layer):
         features = self.activation(features)
         features = self.sep_conv_block(features)
         return features
+
+    def get_config(self):
+        config = super(BiFPNFeatureFusion, self).get_config()
+        config.update(
+            {'num_channels': self.num_channels}
+        )
+        return config
 
 
 def bbox_transform_inv(boxes, deltas, scale_factors=None):
