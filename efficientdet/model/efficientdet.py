@@ -3,7 +3,7 @@ from tensorflow.keras import layers
 from tensorflow.keras import models
 from functools import reduce
 
-from efficientdet.model.custom_layers import ClipBoxes, RegressBoxes, FilterDetections, FastNormalizedFusion, SeparableConvBlock, BiFPNFeatureFusion
+from efficientdet.model.custom_layers import ClipBoxes, RegressBoxes, FilterDetections, FastNormalizedFusion, SeparableConvBlock, BiFPNFeatureFusion, BiFPNBlock
 # from utils.anchors import anchors_for_shape
 import numpy as np
 from efficientdet.model.efficientnet_backbone import efficientnet
@@ -72,15 +72,8 @@ def build_wBiFPN(features, num_channels, id):
         P6_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode6/add')([P6_in, P6_td, P5_out])
         P7_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode7/add')([P7_in, P6_out])
     else:
-        P3_in, P4_in, P5_in, P6_in, P7_in = features
-        P6_td = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode0/add')([P6_in, P7_in])
-        P5_td = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode1/add')([P5_in, P6_td])
-        P4_td = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode2/add')([P4_in, P5_td])
-        P3_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode3/add')([P3_in, P4_td])
-        P4_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode4/add')([P4_in, P4_td, P3_out])
-        P5_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode5/add')([P5_in, P5_td, P4_out])
-        P6_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode6/add')([P6_in, P6_td, P5_out])
-        P7_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode7/add')([P7_in, P6_out])
+        # P3_in, P4_in, P5_in, P6_in, P7_in = features
+        P3_out, P4_td, P5_td, P6_td, P7_out = BiFPNBlock(num_channels, id)(features)
     return P3_out, P4_td, P5_td, P6_td, P7_out
 
 
