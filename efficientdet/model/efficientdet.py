@@ -3,7 +3,7 @@ from tensorflow.keras import layers
 from tensorflow.keras import models
 from functools import reduce
 
-from efficientdet.model.custom_layers import ClipBoxes, RegressBoxes, FilterDetections, FastNormalizedFusion, SeparableConvBlock, BiFPNFeatureFusion, BiFPNBlock
+from efficientdet.model.custom_layers import ClipBoxes, RegressBoxes, FilterDetections, FastNormalizedFusion, ConvBlock, BiFPNFeatureFusion, BiFPNBlock
 # from utils.anchors import anchors_for_shape
 import numpy as np
 from efficientdet.model.efficientnet_backbone import efficientnet
@@ -54,20 +54,15 @@ def build_wBiFPN(features, num_channels, id):
         P6_in = layers.MaxPooling2D(pool_size=3, strides=2, padding='same', name='resample_p6/maxpool')(P6_in)
         P7_in = layers.MaxPooling2D(pool_size=3, strides=2, padding='same', name='resample_p7/maxpool')(P6_in)
         P6_td = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode0/add')([P6_in, P7_in])
-        P5_in_1 = layers.Conv2D(num_channels, kernel_size=1, padding='same', name=f'fpn_cells/cell_{id}/fnode1/resample_0_2_6/conv2d')(P5_in)
-        P5_in_1 = layers.BatchNormalization(name=f'fpn_cells/cell_{id}/fnode1/resample_0_2_6/bn')(P5_in_1)
+        P5_in_1 = ConvBlock(num_channels, kernel_size=1, strides=1)(P5_in)
         P5_td = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode1/add')([P5_in_1, P6_td])
-        P4_in_1 = layers.Conv2D(num_channels, kernel_size=1, padding='same', name=f'fpn_cells/cell_{id}/fnode2/resample_0_1_7/conv2d')(P4_in)
-        P4_in_1 = layers.BatchNormalization(name=f'fpn_cells/cell_{id}/fnode2/resample_0_1_7/bn')(P4_in_1)
+        P4_in_1 = ConvBlock(num_channels, kernel_size=1, strides=1)(P4_in)
         P4_td = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode2/add')([P4_in_1, P5_td])
-        P3_in = layers.Conv2D(num_channels, kernel_size=1, padding='same', name=f'fpn_cells/cell_{id}/fnode3/resample_0_0_8/conv2d')(P3_in)
-        P3_in = layers.BatchNormalization(name=f'fpn_cells/cell_{id}/fnode3/resample_0_0_8/bn')(P3_in)
+        P3_in = ConvBlock(num_channels, kernel_size=1, strides=1)(P3_in)
         P3_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode3/add')([P3_in, P4_td])
-        P4_in_2 = layers.Conv2D(num_channels, kernel_size=1, padding='same', name=f'fpn_cells/cell_{id}/fnode4/resample_0_1_9/conv2d')(P4_in)
-        P4_in_2 = layers.BatchNormalization(name=f'fpn_cells/cell_{id}/fnode4/resample_0_1_9/bn')(P4_in_2)
+        P4_in_2 = ConvBlock(num_channels, kernel_size=1, strides=1)(P4_in)
         P4_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode4/add')([P4_in_2, P4_td, P3_out])
-        P5_in_2 = layers.Conv2D(num_channels, kernel_size=1, padding='same', name=f'fpn_cells/cell_{id}/fnode5/resample_0_2_10/conv2d')(P5_in)
-        P5_in_2 = layers.BatchNormalization(name=f'fpn_cells/cell_{id}/fnode5/resample_0_2_10/bn')(P5_in_2)
+        P5_in_2 = ConvBlock(num_channels, kernel_size=1, strides=1)(P5_in)
         P5_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode5/add')([P5_in_2, P5_td, P4_out])
         P6_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode6/add')([P6_in, P6_td, P5_out])
         P7_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode7/add')([P7_in, P6_out])

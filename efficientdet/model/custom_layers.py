@@ -3,6 +3,34 @@ from tensorflow.keras import layers
 import tensorflow as tf
 
 
+class ConvBlock(layers.Layer):
+    """A simple block that chains a Conv2D and a BatchNormalization
+    layer together.
+
+    Args:
+        num_channels (int):
+        kernel_size (int):
+        strides (int):
+    """
+
+    def __init__(self, num_channels, kernel_size, strides, **kwargs):
+        super(ConvBlock, self).__init__()
+        self.conv = layers.Conv2D(num_channels, kernel_size=kernel_size, strides=strides, padding='same', use_bias=True)
+        self.bn = layers.BatchNormalization()
+
+    def call(self, x, **kwargs):
+        """Applies: Conv2D -> BatchNormalization
+
+        Args:
+            x (tf.Tensor):
+
+        Returns:
+            tf.Tensor:
+        """
+        x = self.bn(self.conv(x))
+        return x
+
+
 class SeparableConvBlock(layers.Layer):
     """A simple block that chains a SeparableConv2D and a BatchNormalization
     layer together.
