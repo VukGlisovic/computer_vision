@@ -53,23 +53,11 @@ def build_wBiFPN(features, num_channels, id):
         P6_in = layers.BatchNormalization(name='resample_p6/bn')(P6_in)
         P6_in = layers.MaxPooling2D(pool_size=3, strides=2, padding='same', name='resample_p6/maxpool')(P6_in)
         P7_in = layers.MaxPooling2D(pool_size=3, strides=2, padding='same', name='resample_p7/maxpool')(P6_in)
-        P6_td = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode0/add')([P6_in, P7_in])
-        P5_in_1 = ConvBlock(num_channels, kernel_size=1, strides=1)(P5_in)
-        P5_td = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode1/add')([P5_in_1, P6_td])
-        P4_in_1 = ConvBlock(num_channels, kernel_size=1, strides=1)(P4_in)
-        P4_td = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode2/add')([P4_in_1, P5_td])
-        P3_in = ConvBlock(num_channels, kernel_size=1, strides=1)(P3_in)
-        P3_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode3/add')([P3_in, P4_td])
-        P4_in_2 = ConvBlock(num_channels, kernel_size=1, strides=1)(P4_in)
-        P4_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode4/add')([P4_in_2, P4_td, P3_out])
-        P5_in_2 = ConvBlock(num_channels, kernel_size=1, strides=1)(P5_in)
-        P5_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode5/add')([P5_in_2, P5_td, P4_out])
-        P6_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode6/add')([P6_in, P6_td, P5_out])
-        P7_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode7/add')([P7_in, P6_out])
+        P3_out, P4_out, P5_out, P6_out, P7_out = BiFPNBlock(num_channels, add_conv_blocks=True, id=id)([P3_in, P4_in, P5_in, P6_in, P7_in])
     else:
         # P3_in, P4_in, P5_in, P6_in, P7_in = features
-        P3_out, P4_td, P5_td, P6_td, P7_out = BiFPNBlock(num_channels, id)(features)
-    return P3_out, P4_td, P5_td, P6_td, P7_out
+        P3_out, P4_out, P5_out, P6_out, P7_out = BiFPNBlock(num_channels, add_conv_blocks=False, id=id)(features)
+    return P3_out, P4_out, P5_out, P6_out, P7_out
 
 
 def efficientdet(phi, num_classes=10, num_anchors=9,

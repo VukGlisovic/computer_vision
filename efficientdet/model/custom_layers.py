@@ -120,31 +120,50 @@ class BiFPNFeatureFusion(layers.Layer):
 
 class BiFPNBlock(layers.Layer):
 
-    def __init__(self, num_channels, id, **kwargs):
+    def __init__(self, num_channels, add_conv_blocks, id, **kwargs):
         super(BiFPNBlock, self).__init__(**kwargs)
-        self.id = id
         self.num_channels = num_channels
+        self.add_conv_blocks = add_conv_blocks
+        self.id = id
         # downward path
         self.bifpnff_6_td = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode0/add')
         self.bifpnff_5_td = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode1/add')
         self.bifpnff_4_td = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode2/add')
+        if self.add_conv_blocks:
+            self.conv_block_p5_in_1 = ConvBlock(num_channels, kernel_size=1, strides=1)
+            self.conv_block_p4_in_1 = ConvBlock(num_channels, kernel_size=1, strides=1)
         # upward path
         self.bifpnff_3_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode3/add')
         self.bifpnff_4_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode4/add')
         self.bifpnff_5_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode5/add')
         self.bifpnff_6_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode6/add')
         self.bifpnff_7_out = BiFPNFeatureFusion(num_channels, name=f'fpn_cells/cell_{id}/fnode7/add')
+        if self.add_conv_blocks:
+            self.conv_block_p3_in = ConvBlock(num_channels, kernel_size=1, strides=1)
+            self.conv_block_p4_in_2 = ConvBlock(num_channels, kernel_size=1, strides=1)
+            self.conv_block_p5_in_2 = ConvBlock(num_channels, kernel_size=1, strides=1)
 
     def call(self, inputs, **kwargs):
         P3_in, P4_in, P5_in, P6_in, P7_in = inputs
+        if self.add_conv_blocks:
+            P3_in = self.conv_block_p3_in(P3_in)
+            P4_in_1 = self.conv_block_p4_in_1(P4_in)
+            P4_in_2 = self.conv_block_p4_in_2(P4_in)
+            P5_in_1 = self.conv_block_p5_in_1(P5_in)
+            P5_in_2 = self.conv_block_p5_in_2(P5_in)
+        else:
+            P4_in_1 = P4_in
+            P4_in_2 = P4_in
+            P5_in_1 = P5_in
+            P5_in_2 = P5_in
         # downward path
         P6_td = self.bifpnff_6_td([P6_in, P7_in])
-        P5_td = self.bifpnff_5_td([P5_in, P6_td])
-        P4_td = self.bifpnff_4_td([P4_in, P5_td])
+        P5_td = self.bifpnff_5_td([P5_in_1, P6_td])
+        P4_td = self.bifpnff_4_td([P4_in_1, P5_td])
         # upward path
         P3_out = self.bifpnff_3_out([P3_in, P4_td])
-        P4_out = self.bifpnff_4_out([P4_in, P4_td, P3_out])
-        P5_out = self.bifpnff_5_out([P5_in, P5_td, P4_out])
+        P4_out = self.bifpnff_4_out([P4_in_2, P4_td, P3_out])
+        P5_out = self.bifpnff_5_out([P5_in_2, P5_td, P4_out])
         P6_out = self.bifpnff_6_out([P6_in, P6_td, P5_out])
         P7_out = self.bifpnff_7_out([P7_in, P6_out])
         return P3_out, P4_out, P5_out, P6_out, P7_out
