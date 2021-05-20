@@ -3,7 +3,7 @@ from tensorflow.keras import layers
 from tensorflow.keras import models
 from functools import reduce
 
-from efficientdet.model.custom_layers import ClipBoxes, RegressBoxes, FilterDetections, FastNormalizedFusion, ConvBlock, BiFPNFeatureFusion, BiFPNBlock
+from efficientdet.model.custom_layers import ClipBoxes, RegressBoxes, FilterDetections, FastNormalizedFusion, ConvBlock, BiFPNFeatureFusion, BiFPNBlock, BiFeaturePyramid
 # from utils.anchors import anchors_for_shape
 import numpy as np
 from efficientdet.model.efficientnet_backbone import efficientnet
@@ -43,23 +43,6 @@ def input_image_resolution(phi):
     return 512 + phi * 128
 
 
-def build_wBiFPN(features, num_channels, id):
-    if id == 0:
-        _, _, C3, C4, C5 = features
-        P3_in = C3
-        P4_in = C4
-        P5_in = C5
-        P6_in = layers.Conv2D(num_channels, kernel_size=1, padding='same', name='resample_p6/conv2d')(C5)
-        P6_in = layers.BatchNormalization(name='resample_p6/bn')(P6_in)
-        P6_in = layers.MaxPooling2D(pool_size=3, strides=2, padding='same', name='resample_p6/maxpool')(P6_in)
-        P7_in = layers.MaxPooling2D(pool_size=3, strides=2, padding='same', name='resample_p7/maxpool')(P6_in)
-        P3_out, P4_out, P5_out, P6_out, P7_out = BiFPNBlock(num_channels, add_conv_blocks=True, id=id)([P3_in, P4_in, P5_in, P6_in, P7_in])
-    else:
-        # P3_in, P4_in, P5_in, P6_in, P7_in = features
-        P3_out, P4_out, P5_out, P6_out, P7_out = BiFPNBlock(num_channels, add_conv_blocks=False, id=id)(features)
-    return P3_out, P4_out, P5_out, P6_out, P7_out
-
-
 def efficientdet(phi, num_classes=10, num_anchors=9,
                  score_threshold=0.01, anchor_parameters=None, separable_conv=True):
     assert phi in range(7)
@@ -73,9 +56,7 @@ def efficientdet(phi, num_classes=10, num_anchors=9,
     features = efficientnet(input_tensor=image_input, **efficientnet_params[phi])
 
     # weighted bifpn
-    fpn_features = features
-    for i in range(d_bifpn):
-        fpn_features = build_wBiFPN(fpn_features, w_bifpn, i)
+    fpn_features = BiFeaturePyramid(n_blocks=d_bifpn, num_channels=w_bifpn)(features)
 
     # bounding box model
     box_net = BoxNet(w_head, d_head, num_anchors=num_anchors, separable_conv=separable_conv, name='box_net')

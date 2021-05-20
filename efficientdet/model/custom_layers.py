@@ -176,6 +176,28 @@ class BiFPNBlock(layers.Layer):
         return config
 
 
+class BiFeaturePyramid(layers.Layer):
+
+    def __init__(self, n_blocks, num_channels, **kwargs):
+        super(BiFeaturePyramid, self).__init__(**kwargs)
+        self.n_blocks = n_blocks
+        self.num_channels = num_channels
+        self.create_p6_in = ConvBlock(num_channels, kernel_size=1, strides=1)
+        self.max_pool_p6_in = layers.MaxPooling2D(pool_size=3, strides=2, padding='same')
+        self.max_pool_p7_in = layers.MaxPooling2D(pool_size=3, strides=2, padding='same')
+        self.fpn_blocks = [BiFPNBlock(num_channels, add_conv_blocks=True, id=0)]
+        self.fpn_blocks += [BiFPNBlock(num_channels, add_conv_blocks=False, id=i) for i in range(1, n_blocks + 1)]
+
+    def call(self, inputs, **kwargs):
+        _, _, P3, P4, P5 = inputs
+        P6 = self.max_pool_p6_in(self.create_p6_in(P5))
+        P7 = self.max_pool_p7_in(P6)
+        features = [P3, P4, P5, P6, P7]
+        for block in self.fpn_blocks:
+            features = block(features)
+        return features
+
+
 def bbox_transform_inv(boxes, deltas, scale_factors=None):
     cxa = (boxes[..., 0] + boxes[..., 2]) / 2
     cya = (boxes[..., 1] + boxes[..., 3]) / 2
