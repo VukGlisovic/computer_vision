@@ -83,7 +83,7 @@ def main():
 
     model.compile(optimizer=adam, loss=losses)
 
-    history = model.fit(ds, epochs=20, callbacks=callbacks, steps_per_epoch=2)
+    history = model.fit(ds, epochs=20, callbacks=callbacks)
 
 
 if __name__ == '__main__':
