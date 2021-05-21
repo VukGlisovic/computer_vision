@@ -9,6 +9,7 @@ import numpy as np
 from efficientdet.model.efficientnet_backbone import efficientnet
 from efficientdet.model.efficientdet_heads import BoxNet, ClassNet
 from efficientdet.model.anchors2 import anchors_for_shape
+from efficientdet.data_pipeline.decode_predictions import DecodePredictions
 
 
 efficientnet_params = [
@@ -70,17 +71,19 @@ def efficientdet(phi, num_classes=10, num_anchors=9,
 
     model = models.Model(inputs=[image_input], outputs=[classification, regression], name='efficientdet')
 
-    # apply predicted regression to anchors
-    anchors = anchors_for_shape((input_size, input_size), anchor_params=anchor_parameters)
-    anchors_input = np.expand_dims(anchors, axis=0)
-    boxes = RegressBoxes(name='boxes')([anchors_input, regression[..., :4]])
-    boxes = ClipBoxes(name='clipped_boxes')([image_input, boxes])
+    detections = DecodePredictions(num_classes=num_classes, max_detections_per_class=10)([image_input, regression, classification])
 
-    # filter detections (apply NMS / score threshold / select top-k)
-    detections = FilterDetections(
-        name='filtered_detections',
-        score_threshold=score_threshold
-    )([boxes, classification])
+    # # apply predicted regression to anchors
+    # anchors = anchors_for_shape((input_size, input_size), anchor_params=anchor_parameters)
+    # anchors_input = np.expand_dims(anchors, axis=0)
+    # boxes = RegressBoxes(name='boxes')([anchors_input, regression[..., :4]])
+    # boxes = ClipBoxes(name='clipped_boxes')([image_input, boxes])
+    #
+    # # filter detections (apply NMS / score threshold / select top-k)
+    # detections = FilterDetections(
+    #     name='filtered_detections',
+    #     score_threshold=score_threshold
+    # )([boxes, classification])
 
     prediction_model = models.Model(inputs=[image_input], outputs=detections, name='efficientdet_p')
     return model, prediction_model
