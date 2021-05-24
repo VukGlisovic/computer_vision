@@ -22,10 +22,11 @@ def focal(alpha=0.25, gamma=1.5):
         Returns
             The focal loss of y_pred w.r.t. y_true.
         """
-        labels = y_true[:,0]
-        labels = tf.one_hot(tf.cast(labels, tf.int32), depth=10, dtype=tf.float32)
+        # labels = y_true[:,0]
+        labels = y_true
         anchor_state = tf.where(tf.greater_equal(labels, 0.0), 0.0, labels)
         anchor_state = tf.add(anchor_state, 1)  # -1 ignore, 0 background, 1 label
+        labels = tf.one_hot(tf.cast(labels[:,:,0], tf.int32), depth=10, dtype=tf.float32)
 
         # labels = y_true[:, :, :-1]
         # # -1 for ignore, 0 for background, 1 for object
