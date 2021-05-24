@@ -1,0 +1,71 @@
+import pandas as pd
+import tensorflow as tf
+from efficientdet.data_pipeline.utils import xyxy_to_xywh
+from efficientdet.data_pipeline.target_encoder import TargetEncoder
+
+
+def read_csv(path):
+    dtypes = {'img_path': str, 'x1': 'int32', 'y1': 'int32', 'x2': 'int32', 'y2': 'int32', 'label': 'int32'}
+    df = pd.read_csv(path, dtype=dtypes)
+    return df
+
+
+def load_image(path):
+    image_string = tf.io.read_file(path)
+    image = tf.io.decode_jpeg(image_string, channels=1)
+    return image
+
+
+def preprocess_image(img):
+    img = img / 255
+    return img
+
+
+def load_and_preprocess_image(path):
+    img = load_image(path)
+    img_preprocessed = preprocess_image(img)
+    img_preprocessed.set_shape((512, 512, 1))
+    return img_preprocessed
+
+
+def expand_dims(bbox):
+    return tf.expand_dims(bbox, axis=0)
+
+
+def name_targets(img, box_targets, cls_targets):
+    return img, {'regression': box_targets, 'classification': cls_targets}
+
+
+def create_images_dataset(df):
+    ds_image = tf.data.Dataset.from_tensor_slices(df['img_path'].values)
+    ds_image = ds_image.map(load_and_preprocess_image)
+    return ds_image
+
+
+def create_bbox_dataset(df):
+    ds_bbox = tf.data.Dataset.from_tensor_slices(df[['x1', 'y1', 'x2', 'y2']].values)
+    ds_bbox = ds_bbox.map(xyxy_to_xywh)
+    ds_bbox = ds_bbox.map(expand_dims)
+    return ds_bbox
+
+
+def create_labels_dataset(df):
+    ds_labels = tf.data.Dataset.from_tensor_slices(df['label'].values)
+    ds_labels = ds_labels.map(expand_dims)
+    return ds_labels
+
+
+def create_combined_dataset(path):
+    df = read_csv(path)
+    ds_image_paths = create_images_dataset(df)
+    ds_bbox = create_bbox_dataset(df)
+    ds_labels = create_labels_dataset(df)
+
+    # combine datasets in one dataset
+    ds = tf.data.Dataset.zip((ds_image_paths, ds_bbox, ds_labels))
+    # target encoder needs both box and label information to create target encodings
+    target_encoder = TargetEncoder()
+    ds = ds.map(target_encoder.encode_sample)
+    ds = ds.batch(8)
+    ds = ds.map(name_targets)
+    return ds
