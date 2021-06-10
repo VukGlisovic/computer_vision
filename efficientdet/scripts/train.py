@@ -8,7 +8,7 @@ from tensorflow.keras import layers
 
 from efficientdet.model.efficientdet import efficientdet
 from efficientdet.data_pipeline.input_dataset import create_combined_dataset
-from efficientdet.model.losses import smooth_l1, focal, HuberRegressionLoss, FocalClassificationLoss
+from efficientdet.model.losses import HuberRegressionLoss, FocalClassificationLoss
 
 
 def main():
