@@ -1,168 +1,81 @@
-from tensorflow import keras
 import tensorflow as tf
+from tensorflow.keras.losses import Huber
+from tensorflow_addons.losses import SigmoidFocalCrossEntropy
+from tensorflow import keras
 
 
-def focal(alpha=0.25, gamma=1.5):
+class HuberRegressionLoss(tf.losses.Loss):
+    """Bounding box regression loss.
+
+    This loss basically calculates the distance between the anchor and
+    the true bounding box. I.e. how much do delta_x, delta_y, delta_width,
+    delta_height need to change from anchor to match the true bounding box.
+
+    Args:
+        delta (float):
     """
-    Create a functor for computing the focal loss.
-    Args
-        alpha: Scale the focal weight with alpha.
-        gamma: Take the power of the focal weight with gamma.
-    Returns
-        A functor that computes the focal loss using the alpha and gamma.
-    """
 
-    def _focal(y_true, y_pred):
+    def __init__(self, delta=1.0):
+        super().__init__()
+        self.huber = Huber(delta=delta, reduction='none')
+
+    def call(self, y_true, y_pred):
+        """Calculates the regression loss for positive anchors. A loss of
+        0.0 is assigned to all other anchors.
+
+        Args:
+            y_true (tf.Tensor):
+            y_pred (tf.Tensor):
+
+        Returns:
+            tf.Tensor
         """
-        Compute the focal loss given the target tensor and the predicted tensor.
-        As defined in https://arxiv.org/abs/1708.02002
-        Args
-            y_true: Tensor of target data from the generator with shape (B, N, num_classes).
-            y_pred: Tensor of predicted data from the network with shape (B, N, num_classes).
-        Returns
-            The focal loss of y_pred w.r.t. y_true.
+        positive_mask = y_true[:, :, 4]
+        y_true = y_true[:, :, :4]
+        box_loss = self.huber(y_true, y_pred)
+        box_loss = tf.where(tf.equal(positive_mask, 1.0), box_loss, 0.0)
+        normalizer = tf.reduce_sum(positive_mask, axis=-1)
+        box_loss = tf.math.divide_no_nan(tf.reduce_sum(box_loss, axis=-1), normalizer)
+        return box_loss
+
+
+class FocalClassificationLoss(tf.losses.Loss):
+    """Cross Entropy Focal loss.
+
+    The focal loss is taken from https://arxiv.org/abs/1708.02002 (retinanet paper).
+
+    This loss basically gives more weight to harder to classify samples and
+    gives less weight to easier to classify samples. This is very useful for
+    detection networks since there usually are many background classes as labels.
+
+    Args:
+        num_classes (int):
+        alpha (float): class weight balancer.
+        gamma (float): the higher the value of gamma, the lower the loss for well-classified
+            samples. for gamma = 0, the focal loss is equivalent to categorical cross-entropy.
+    """
+
+    def __init__(self, num_classes, alpha=0.25, gamma=2.0):
+        super().__init__()
+        self.num_classes = num_classes
+        self.focal = SigmoidFocalCrossEntropy(alpha=alpha, gamma=gamma, reduction='none')
+
+    def call(self, y_true, y_pred):
+        """Calculates the classification loss for positive and negative
+        anchors. A loss of 0.0 is assigned to anchors that should be ignored.
+
+        Args:
+            y_true (tf.Tensor):
+            y_pred (tf.Tensor):
+
+        Returns:
+            tf.Tensor
         """
-        # labels = y_true[:,0]
-        labels = y_true
-        anchor_state = tf.where(tf.greater_equal(labels, 0.0), 0.0, labels)
-        anchor_state = tf.add(anchor_state, 1)  # -1 ignore, 0 background, 1 label
-        labels = tf.one_hot(tf.cast(labels[:,:,0], tf.int32), depth=10, dtype=tf.float32)
-
-        # labels = y_true[:, :, :-1]
-        # # -1 for ignore, 0 for background, 1 for object
-        # anchor_state = y_true[:, :, -1]
-        classification = y_pred
-
-        # filter out "ignore" anchors
-        indices = tf.where(keras.backend.not_equal(anchor_state, -1))
-        labels = tf.gather_nd(labels, indices)
-        classification = tf.gather_nd(classification, indices)
-
-        # compute the focal loss
-        alpha_factor = keras.backend.ones_like(labels, dtype=tf.float32) * alpha
-        alpha_factor = tf.where(keras.backend.equal(labels, 1), alpha_factor, 1 - alpha_factor)
-        # (1 - 0.99) ** 2 = 1e-4, (1 - 0.9) ** 2 = 1e-2
-        focal_weight = tf.where(keras.backend.equal(labels, 1), 1 - classification, classification)
-        focal_weight = alpha_factor * focal_weight ** gamma
-        cls_loss = focal_weight * keras.backend.binary_crossentropy(tf.cast(labels, tf.float32), classification)
-
-        # compute the normalizer: the number of positive anchors
-        normalizer = tf.where(keras.backend.equal(anchor_state, 1))
-        normalizer = keras.backend.cast(keras.backend.shape(normalizer)[0], keras.backend.floatx())
-        normalizer = keras.backend.maximum(keras.backend.cast_to_floatx(1.0), normalizer)
-
-        return keras.backend.sum(cls_loss) / normalizer
-
-    return _focal
-
-
-def smooth_l1(sigma=3.0):
-    """
-    Create a smooth L1 loss functor.
-    Args
-        sigma: This argument defines the point where the loss changes from L2 to L1.
-    Returns
-        A functor for computing the smooth L1 loss given target data and predicted data.
-    """
-    sigma_squared = sigma ** 2
-
-    def _smooth_l1(y_true, y_pred):
-        """ Compute the smooth L1 loss of y_pred w.r.t. y_true.
-        Args
-            y_true: Tensor from the generator of shape (B, N, 5). The last value for each box is the state of the anchor (ignore, negative, positive).
-            y_pred: Tensor from the network of shape (B, N, 4).
-        Returns
-            The smooth L1 loss of y_pred w.r.t. y_true.
-        """
-        # separate target and state
-        regression = y_pred
-        regression_target = y_true[:, :, :-1]
-        regression_target = tf.cast(regression_target, dtype=tf.float32)
-        anchor_state = y_true[:, :, -1]
-
-        # filter out "ignore" anchors
-        indices = tf.where(keras.backend.equal(anchor_state, 1))
-        regression = tf.gather_nd(regression, indices)
-        regression_target = tf.gather_nd(regression_target, indices)
-
-        # compute smooth L1 loss
-        # f(x) = 0.5 * (sigma * x)^2          if |x| < 1 / sigma / sigma
-        #        |x| - 0.5 / sigma / sigma    otherwise
-        regression_diff = regression - regression_target
-        regression_diff = keras.backend.abs(regression_diff)
-        regression_loss = tf.where(
-            keras.backend.less(regression_diff, 1.0 / sigma_squared),
-            0.5 * sigma_squared * keras.backend.pow(regression_diff, 2),
-            regression_diff - 0.5 / sigma_squared
-        )
-
-        # compute the normalizer: the number of positive anchors
-        normalizer = keras.backend.maximum(1, keras.backend.shape(indices)[0])
-        normalizer = keras.backend.cast(normalizer, dtype=keras.backend.floatx())
-        return keras.backend.sum(regression_loss) / normalizer
-
-    return _smooth_l1
-
-
-def smooth_l1_quad(sigma=3.0):
-    """
-    Create a smooth L1 loss functor.
-    Args
-        sigma: This argument defines the point where the loss changes from L2 to L1.
-    Returns
-        A functor for computing the smooth L1 loss given target data and predicted data.
-    """
-    sigma_squared = sigma ** 2
-
-    def _smooth_l1(y_true, y_pred):
-        """ Compute the smooth L1 loss of y_pred w.r.t. y_true.
-        Args
-            y_true: Tensor from the generator of shape (B, N, 5). The last value for each box is the state of the anchor (ignore, negative, positive).
-            y_pred: Tensor from the network of shape (B, N, 4).
-        Returns
-            The smooth L1 loss of y_pred w.r.t. y_true.
-        """
-        # separate target and state
-        regression = y_pred
-        regression = tf.concat([regression[..., :4], tf.sigmoid(regression[..., 4:9])], axis=-1)
-        regression_target = y_true[:, :, :-1]
-        anchor_state = y_true[:, :, -1]
-
-        # filter out "ignore" anchors
-        indices = tf.where(keras.backend.equal(anchor_state, 1))
-        regression = tf.gather_nd(regression, indices)
-        regression_target = tf.gather_nd(regression_target, indices)
-
-        # compute smooth L1 loss
-        # f(x) = 0.5 * (sigma * x)^2          if |x| < 1 / sigma / sigma
-        #        |x| - 0.5 / sigma / sigma    otherwise
-        regression_diff = regression - regression_target
-        regression_diff = keras.backend.abs(regression_diff)
-        box_regression_loss = tf.where(
-            keras.backend.less(regression_diff[..., :4], 1.0 / sigma_squared),
-            0.5 * sigma_squared * keras.backend.pow(regression_diff[..., :4], 2),
-            regression_diff[..., :4] - 0.5 / sigma_squared
-        )
-
-        alpha_regression_loss = tf.where(
-            keras.backend.less(regression_diff[..., 4:8], 1.0 / sigma_squared),
-            0.5 * sigma_squared * keras.backend.pow(regression_diff[..., 4:8], 2),
-            regression_diff[..., 4:8] - 0.5 / sigma_squared
-        )
-
-        ratio_regression_loss = tf.where(
-            keras.backend.less(regression_diff[..., 8], 1.0 / sigma_squared),
-            0.5 * sigma_squared * keras.backend.pow(regression_diff[..., 8], 2),
-            regression_diff[..., 8] - 0.5 / sigma_squared
-        )
-        # compute the normalizer: the number of positive anchors
-        normalizer = keras.backend.maximum(1, keras.backend.shape(indices)[0])
-        normalizer = keras.backend.cast(normalizer, dtype=keras.backend.floatx())
-
-        box_regression_loss = tf.reduce_sum(box_regression_loss) / normalizer
-        alpha_regression_loss = tf.reduce_sum(alpha_regression_loss) / normalizer
-        ratio_regression_loss = tf.reduce_sum(ratio_regression_loss) / normalizer
-
-        return box_regression_loss + alpha_regression_loss + 16 * ratio_regression_loss
-
-    return _smooth_l1
+        positive_mask = tf.cast(tf.greater(y_true, -1.0), dtype=tf.float32)
+        ignore_mask = tf.cast(tf.equal(y_true, -2.0), dtype=tf.float32)
+        y_true = tf.one_hot(tf.cast(y_true, tf.int32), depth=self.num_classes, dtype=tf.float32)
+        cls_loss = self.focal(y_true, y_pred)
+        cls_loss = tf.where(tf.equal(ignore_mask, 1.0), 0.0, cls_loss)
+        normalizer = tf.reduce_sum(positive_mask, axis=-1)
+        cls_loss = tf.math.divide_no_nan(tf.reduce_sum(cls_loss, axis=-1), normalizer)
+        return cls_loss

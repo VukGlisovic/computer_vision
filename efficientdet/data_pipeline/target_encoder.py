@@ -145,35 +145,8 @@ class TargetEncoder:
         matched_gt_cls_ids = tf.gather(labels, matched_gt_idx)
         cls_target = tf.where(tf.not_equal(positive_mask, 1.0), -1.0, matched_gt_cls_ids)
         cls_target = tf.where(tf.equal(ignore_mask, 1.0), -2.0, cls_target)
-        cls_target = tf.expand_dims(cls_target, axis=-1)
+        # cls_target = tf.expand_dims(cls_target, axis=-1)
 
         positive_mask = tf.expand_dims(tf.cast(positive_mask, tf.float32), axis=-1)
         box_target = tf.concat([box_target, positive_mask], axis=-1)
         return img, box_target, cls_target
-
-    # def encode_batch(self, batch_images, gt_boxes, cls_ids):
-    #     """Creates box and classification targets for a batch
-    #
-    #     Args:
-    #         batch_images (tf.Tensor): Batched images.
-    #         gt_boxes (tf.Tensor): Ground truth boxes, of format [x center, y center, width, height]
-    #         cls_ids (tf.Tensor): Ground truth class integers.
-    #     Returns:
-    #         batch_images (tf.Tensor): Batched images.
-    #         cls_targets (tf.Tensor): The target tensors for classification for all neck layers.
-    #         box_targets (tf.Tensor): The target tensors for box refinement for all neck layers.
-    #     """
-    #     images_shape = batch_images.shape
-    #     batch_size = images_shape[0]
-    #
-    #     cls_targets = tf.TensorArray(dtype=tf.float32, size=batch_size, dynamic_size=True)
-    #     box_targets = tf.TensorArray(dtype=tf.float32, size=batch_size, dynamic_size=True)
-    #
-    #     for i in range(batch_size):
-    #         box_target, cls_target = self._encode_sample(images_shape, gt_boxes[i], cls_ids[i])
-    #         cls_targets = cls_targets.write(i, cls_target)
-    #         box_targets = box_targets.write(i, box_target)
-    #
-    #     box_targets = box_targets.stack()
-    #     cls_targets = tf.squeeze(cls_targets.stack(), axis=-1)
-    #     return batch_images, box_targets, cls_targets
