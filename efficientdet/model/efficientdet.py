@@ -39,35 +39,51 @@ def input_image_resolution(phi):
     return 512 + phi * 128
 
 
-def efficientdet(phi, num_classes=10, num_anchors=9, separable_conv=True):
-    # determine network size parameters
-    assert phi in range(7)
-    input_size = input_image_resolution(phi)
-    input_shape = (input_size, input_size, 1)
-    image_input = layers.Input(input_shape)
-    w_bifpn = bifpn_width(phi)
-    d_bifpn = bifpn_depth(phi)
-    w_head = heads_width(phi)
-    d_head = heads_depth(phi)
+class EfficientDet(models.Model):
 
-    # create the efficientnet backbone
-    features = efficientnet(input_tensor=image_input, **efficientnet_params[phi])
+    def __init__(self, phi, num_classes=10, num_anchors=9, separable_conv=True, decode_outputs=True, **kwargs):
+        super(EfficientDet, self).__init__(**kwargs)
+        self.phi = phi
+        self.num_classes = num_classes
+        self.num_anchors = num_anchors
+        self.separable_conv = separable_conv
+        self.decode_outputs = decode_outputs
 
-    # weighted bifpn; efficient bidirectional cross-scale connections and weighted feature fusion
-    fpn_features = BiFeaturePyramid(n_blocks=d_bifpn, num_channels=w_bifpn)(features)
+        assert phi in range(7)
+        input_size = input_image_resolution(phi)
+        input_shape = (input_size, input_size, 1)
+        image_input = layers.Input(input_shape)
+        w_bifpn = bifpn_width(phi)
+        d_bifpn = bifpn_depth(phi)
+        w_head = heads_width(phi)
+        d_head = heads_depth(phi)
 
-    # bounding box model
-    box_net = BoxNet(w_head, d_head, num_anchors=num_anchors, separable_conv=separable_conv, name='box_net')
-    regression = [box_net(feature) for feature in fpn_features]
-    regression = layers.Concatenate(axis=1, name='regression')(regression)
+        # create the efficientnet backbone
+        self.feature_extractor = efficientnet(input_tensor=image_input, **efficientnet_params[phi])
 
-    # classification model
-    class_net = ClassNet(w_head, d_head, num_classes=num_classes, num_anchors=num_anchors, separable_conv=separable_conv, name='class_net')
-    classification = [class_net(feature) for feature in fpn_features]
-    classification = layers.Concatenate(axis=1, name='classification')(classification)
+        # weighted bifpn; efficient bidirectional cross-scale connections and weighted feature fusion
+        self.bi_fpn = BiFeaturePyramid(n_blocks=d_bifpn, num_channels=w_bifpn)
 
-    model = models.Model(inputs=[image_input], outputs=[classification, regression], name='efficientdet')
+        # bounding box model
+        self.box_net = BoxNet(w_head, d_head, num_anchors=num_anchors, separable_conv=separable_conv, name='box_net')
+        self.concat_regression = layers.Concatenate(axis=1, name='regression')
 
-    detections = DecodePredictions(num_classes=num_classes, max_detections_per_class=10)([image_input, regression, classification])
-    prediction_model = models.Model(inputs=[image_input], outputs=detections, name='efficientdet_p')
-    return model, prediction_model
+        # classification model
+        self.class_net = ClassNet(w_head, d_head, num_classes=num_classes, num_anchors=num_anchors,
+                             separable_conv=separable_conv, name='class_net')
+        self.concat_classification = layers.Concatenate(axis=1, name='classification')
+
+        self.decoder = DecodePredictions(num_classes=num_classes, max_detections_per_class=10)
+
+    def call(self, inputs, training=None, mask=None):
+        features = self.feature_extractor(inputs)
+        fpn_features = self.bi_fpn(features)
+        regression = [self.box_net(feature) for feature in fpn_features]
+        regression = self.concat_regression(regression)
+        classification = [self.class_net(feature) for feature in fpn_features]
+        classification = self.concat_classification(classification)
+
+        if self.decode_outputs:
+            return self.decoder([inputs, regression, classification])  # returns [boxes, scores, classes]
+        else:
+            return {'classification': classification, 'regression': regression}

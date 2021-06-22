@@ -239,7 +239,7 @@ def efficientnet(width_coefficient,
             features.append(x)
 
     if return_fpn_features:
-        return features
+        return tf.keras.Model(inputs=img_input, outputs=features)
 
     # Build top
     x = layers.Conv2D(filters=round_filters(1280, width_coefficient, depth_divisor),

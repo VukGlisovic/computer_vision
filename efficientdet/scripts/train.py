@@ -1,18 +1,15 @@
 import os
-import string
-import math
-import numpy as np
-import pandas as pd
 import tensorflow as tf
-from tensorflow.keras import layers
 
-from efficientdet.model.efficientdet import efficientdet
+from efficientdet.model.efficientdet import efficientdet, EfficientDet
 from efficientdet.data_pipeline.input_dataset import create_combined_dataset
 from efficientdet.model.losses import HuberRegressionLoss, FocalClassificationLoss
 
 
 def main():
-    model, model_prediction = efficientdet(phi=0)
+    model = EfficientDet(phi=0)
+    model.build((None, None, None, 1))
+    model.decode_outputs = False
     model.summary()
 
     ds_train = create_combined_dataset('../data/train.csv')
@@ -34,7 +31,7 @@ def main():
 
     model.compile(optimizer=adam, loss=losses)
 
-    history = model.fit(ds_train, epochs=20, callbacks=callbacks)
+    history = model.fit(ds_train, epochs=20, callbacks=callbacks, steps_per_epoch=1)
 
     model.evaluate(ds_test)
 
