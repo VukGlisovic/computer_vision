@@ -31,7 +31,7 @@ def main():
 
     model.compile(optimizer=adam, loss=losses)
 
-    history = model.fit(ds_train, epochs=20, callbacks=callbacks, steps_per_epoch=1)
+    history = model.fit(ds_train, epochs=20, callbacks=callbacks)
 
     model.evaluate(ds_test)
 
