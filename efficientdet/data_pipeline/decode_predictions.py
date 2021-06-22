@@ -1,5 +1,6 @@
 import tensorflow as tf
 
+from efficientdet.constants import BOX_VARIANCE
 from efficientdet.data_pipeline.anchors import AnchorBox
 from efficientdet.data_pipeline.utils import xywh_to_xyxy
 
@@ -22,7 +23,7 @@ class DecodePredictions(tf.keras.layers.Layer):
         self.max_detections = max_detections
 
         self.anchor_box = AnchorBox()
-        self._box_variance = tf.constant([0.1, 0.1, 0.2, 0.2], dtype=tf.float32)
+        self._box_variance = BOX_VARIANCE
 
     def _decode_box_predictions(self, anchor_boxes, box_predictions):
         boxes = box_predictions * self._box_variance

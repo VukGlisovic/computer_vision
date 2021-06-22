@@ -1,4 +1,5 @@
 import tensorflow as tf
+from efficientdet.constants import BOX_VARIANCE
 from efficientdet.data_pipeline.utils import  xywh_to_xyxy
 from efficientdet.data_pipeline.anchors import AnchorBox
 
@@ -36,15 +37,15 @@ class TargetEncoder:
         gets its own classification and regression targets.
 
     Attributes:
-      _anchor_box: Anchor box generator.
-      _box_variance: The scaling factors used to scale bounding box targets.
-        These are normalization values. For an explanation of why this may be
-        desirable, see https://leimao.github.io/blog/Bounding-Box-Encoding-Decoding/
+        _anchor_box: Anchor box generator.
+        _box_variance: These are normalization values. They scale bounding box targets
+            with the goal of having standard normally distributed targets. More details
+            can be found at https://leimao.github.io/blog/Bounding-Box-Encoding-Decoding/
     """
 
     def __init__(self):
         self._anchor_box = AnchorBox()
-        self._box_variance = tf.convert_to_tensor([0.1, 0.1, 0.2, 0.2], dtype=tf.float32)
+        self._box_variance = BOX_VARIANCE
 
     @staticmethod
     def _match_anchor_boxes(anchor_boxes, gt_boxes, positive_iou=0.5, negative_iou=0.4):
