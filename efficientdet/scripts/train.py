@@ -1,7 +1,7 @@
 import os
 import tensorflow as tf
 
-from efficientdet.model.efficientdet import efficientdet, EfficientDet
+from efficientdet.model.efficientdet import EfficientDet
 from efficientdet.data_pipeline.input_dataset import create_combined_dataset
 from efficientdet.model.losses import HuberRegressionLoss, FocalClassificationLoss
 
