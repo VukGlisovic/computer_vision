@@ -1,14 +1,9 @@
-import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras import models
-from functools import reduce
 
-from efficientdet.model.custom_layers import ClipBoxes, RegressBoxes, FilterDetections, FastNormalizedFusion, ConvBlock, BiFPNFeatureFusion, BiFPNBlock, BiFeaturePyramid
-# from utils.anchors import anchors_for_shape
-import numpy as np
+from efficientdet.model.custom_layers import BiFeaturePyramid
 from efficientdet.model.efficientnet_backbone import efficientnet
 from efficientdet.model.efficientdet_heads import BoxNet, ClassNet
-from efficientdet.model.anchors2 import anchors_for_shape
 from efficientdet.data_pipeline.decode_predictions import DecodePredictions
 
 
@@ -44,8 +39,8 @@ def input_image_resolution(phi):
     return 512 + phi * 128
 
 
-def efficientdet(phi, num_classes=10, num_anchors=9,
-                 score_threshold=0.01, anchor_parameters=None, separable_conv=True):
+def efficientdet(phi, num_classes=10, num_anchors=9, separable_conv=True):
+    # determine network size parameters
     assert phi in range(7)
     input_size = input_image_resolution(phi)
     input_shape = (input_size, input_size, 1)
@@ -54,36 +49,25 @@ def efficientdet(phi, num_classes=10, num_anchors=9,
     d_bifpn = bifpn_depth(phi)
     w_head = heads_width(phi)
     d_head = heads_depth(phi)
+
+    # create the efficientnet backbone
     features = efficientnet(input_tensor=image_input, **efficientnet_params[phi])
 
-    # weighted bifpn
+    # weighted bifpn; efficient bidirectional cross-scale connections and weighted feature fusion
     fpn_features = BiFeaturePyramid(n_blocks=d_bifpn, num_channels=w_bifpn)(features)
 
     # bounding box model
     box_net = BoxNet(w_head, d_head, num_anchors=num_anchors, separable_conv=separable_conv, name='box_net')
     regression = [box_net(feature) for feature in fpn_features]
     regression = layers.Concatenate(axis=1, name='regression')(regression)
+
     # classification model
-    class_net = ClassNet(w_head, d_head, num_classes=num_classes, num_anchors=num_anchors,
-                         separable_conv=separable_conv, name='class_net')
+    class_net = ClassNet(w_head, d_head, num_classes=num_classes, num_anchors=num_anchors, separable_conv=separable_conv, name='class_net')
     classification = [class_net(feature) for feature in fpn_features]
     classification = layers.Concatenate(axis=1, name='classification')(classification)
 
     model = models.Model(inputs=[image_input], outputs=[classification, regression], name='efficientdet')
 
     detections = DecodePredictions(num_classes=num_classes, max_detections_per_class=10)([image_input, regression, classification])
-
-    # # apply predicted regression to anchors
-    # anchors = anchors_for_shape((input_size, input_size), anchor_params=anchor_parameters)
-    # anchors_input = np.expand_dims(anchors, axis=0)
-    # boxes = RegressBoxes(name='boxes')([anchors_input, regression[..., :4]])
-    # boxes = ClipBoxes(name='clipped_boxes')([image_input, boxes])
-    #
-    # # filter detections (apply NMS / score threshold / select top-k)
-    # detections = FilterDetections(
-    #     name='filtered_detections',
-    #     score_threshold=score_threshold
-    # )([boxes, classification])
-
     prediction_model = models.Model(inputs=[image_input], outputs=detections, name='efficientdet_p')
     return model, prediction_model
