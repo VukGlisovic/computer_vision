@@ -1,4 +1,5 @@
 import tensorflow as tf
+from efficientdet.constants import ASPECT_RATIOS, SCALES, NUM_ANCHORS
 
 
 class AnchorBox:
@@ -22,10 +23,10 @@ class AnchorBox:
     """
 
     def __init__(self):
-        self.aspect_ratios = tf.cast([0.5, 1.0, 2.0], tf.float32)
-        self.scales = tf.cast([2 ** x for x in [0, 1 / 3, 2 / 3]], tf.float32)
+        self.aspect_ratios = ASPECT_RATIOS
+        self.scales = SCALES
 
-        self._num_anchors = len(self.aspect_ratios) * len(self.scales)
+        self._num_anchors = NUM_ANCHORS
         self._strides = [2 ** i for i in range(3, 8)]
         self._sizes = [32.0, 64.0, 128.0, 256.0, 512.0]
         self._anchor_shapes = self._compute_shapes()

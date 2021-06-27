@@ -41,11 +41,10 @@ def input_image_resolution(phi):
 
 class EfficientDet(models.Model):
 
-    def __init__(self, phi, num_classes=10, num_anchors=9, separable_conv=True, decode_outputs=True, **kwargs):
+    def __init__(self, phi, num_classes=10, separable_conv=True, decode_outputs=True, **kwargs):
         super(EfficientDet, self).__init__(**kwargs)
         self.phi = phi
         self.num_classes = num_classes
-        self.num_anchors = num_anchors
         self.separable_conv = separable_conv
         self.decode_outputs = decode_outputs
 
@@ -65,12 +64,11 @@ class EfficientDet(models.Model):
         self.bi_fpn = BiFeaturePyramid(n_blocks=d_bifpn, num_channels=w_bifpn)
 
         # bounding box model
-        self.box_net = BoxNet(w_head, d_head, num_anchors=num_anchors, separable_conv=separable_conv, name='box_net')
+        self.box_net = BoxNet(w_head, d_head, separable_conv=separable_conv, name='box_net')
         self.concat_regression = layers.Concatenate(axis=1, name='regression')
 
         # classification model
-        self.class_net = ClassNet(w_head, d_head, num_classes=num_classes, num_anchors=num_anchors,
-                             separable_conv=separable_conv, name='class_net')
+        self.class_net = ClassNet(w_head, d_head, num_classes=num_classes, separable_conv=separable_conv, name='class_net')
         self.concat_classification = layers.Concatenate(axis=1, name='classification')
 
         self.decoder = DecodePredictions(num_classes=num_classes, max_detections_per_class=10)
