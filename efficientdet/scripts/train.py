@@ -7,6 +7,10 @@ from efficientdet.model.losses import HuberRegressionLoss, FocalClassificationLo
 
 
 def main():
+    """Executes all necessary functions to start a training. This means:
+    building the model, loading the data, preparing callbacks and starting
+    the training.
+    """
     model = EfficientDet(phi=0)
     model.build((None, None, None, 1))
     model.decode_outputs = False
@@ -14,9 +18,6 @@ def main():
 
     ds_train = create_combined_dataset('../data/train.csv')
     ds_test = create_combined_dataset('../data/test.csv')
-
-    adam = tf.keras.optimizers.Adam()
-    losses = {'regression': HuberRegressionLoss(), 'classification': FocalClassificationLoss(num_classes=10)}
 
     def scheduler(epoch, lr):
         return lr * tf.math.exp(-0.1)
@@ -29,11 +30,12 @@ def main():
         tf.keras.callbacks.LearningRateScheduler(scheduler)
     ]
 
+    adam = tf.keras.optimizers.Adam()
+    losses = {'regression': HuberRegressionLoss(), 'classification': FocalClassificationLoss(num_classes=10)}
+
     model.compile(optimizer=adam, loss=losses)
 
-    history = model.fit(ds_train, epochs=20, callbacks=callbacks)
-
-    model.evaluate(ds_test)
+    history = model.fit(ds_train, validation_data=ds_test, epochs=20, callbacks=callbacks)
 
 
 if __name__ == '__main__':
