@@ -61,18 +61,6 @@ def load_and_preprocess_image(path):
     return img_preprocessed
 
 
-def expand_dims(bbox):
-    """Adds a dimension along the first axis.
-
-    Args:
-        bbox (tf.Tensor):
-
-    Returns:
-        tf.Tensor
-    """
-    return tf.expand_dims(bbox, axis=0)
-
-
 def name_targets(img, box_targets, cls_targets):
     """Gives names to the regression and classification targets such
     that the model can distinguish between the two. The img is simply
