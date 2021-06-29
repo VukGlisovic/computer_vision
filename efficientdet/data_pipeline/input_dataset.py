@@ -112,9 +112,10 @@ def create_bbox_dataset(df):
     Returns:
         tf.data.Dataset
     """
-    ds_bbox = tf.data.Dataset.from_tensor_slices(df[['x1', 'y1', 'x2', 'y2']].values)
+    ragged_tensor_coordinates = tf.ragged.constant(df['coordinates'].values)
+    ds_bbox = tf.data.Dataset.from_tensor_slices(ragged_tensor_coordinates)
     ds_bbox = ds_bbox.map(xyxy_to_xywh)
-    ds_bbox = ds_bbox.map(expand_dims)
+    ds_bbox = ds_bbox.map(lambda x: x.to_tensor())
     return ds_bbox
 
 
@@ -127,31 +128,36 @@ def create_labels_dataset(df):
     Returns:
         tf.data.Dataset
     """
-    ds_labels = tf.data.Dataset.from_tensor_slices(df['label'].values)
-    ds_labels = ds_labels.map(expand_dims)
+    ragged_tensor_labels = tf.ragged.constant(df['label'].values)
+    ds_labels = tf.data.Dataset.from_tensor_slices(ragged_tensor_labels)
     return ds_labels
 
 
-def create_combined_dataset(path):
+def create_combined_dataset(path, batch_size=8):
     """Creates one tf dataset that combines the images tf dataset,
     the regression tf dataset and the classification tf dataset.
 
     Args:
         path (str):
+        batch_size (int):
 
     Returns:
         tf.data.Dataset
     """
+    # read and group all boxes on one image
     df = read_csv(path)
-    ds_image_paths = create_images_dataset(df)
-    ds_bbox = create_bbox_dataset(df)
-    ds_labels = create_labels_dataset(df)
-
+    df['coordinates'] = df[['x1', 'y1', 'x2', 'y2']].values.tolist()
+    df_grouped = df.groupby('img_path')[['coordinates', 'label']].agg(list)
+    df_grouped.reset_index(drop=False, inplace=True)
+    # create separate datasets
+    ds_image_paths = create_images_dataset(df_grouped)
+    ds_bbox = create_bbox_dataset(df_grouped)
+    ds_labels = create_labels_dataset(df_grouped)
     # combine datasets in one dataset
     ds = tf.data.Dataset.zip((ds_image_paths, ds_bbox, ds_labels))
     # target encoder needs both box and label information to create target encodings
     target_encoder = TargetEncoder()
     ds = ds.map(target_encoder.encode_sample)
-    ds = ds.batch(8)
+    ds = ds.batch(batch_size)
     ds = ds.map(name_targets)
     return ds
