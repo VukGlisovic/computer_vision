@@ -88,7 +88,7 @@ def create_images_dataset(df):
         tf.data.Dataset
     """
     ds_image = tf.data.Dataset.from_tensor_slices(df['img_path'].values)
-    ds_image = ds_image.map(load_and_preprocess_image)
+    ds_image = ds_image.map(load_and_preprocess_image, num_parallel_calls=tf.data.AUTOTUNE)
     return ds_image
 
 
@@ -103,8 +103,8 @@ def create_bbox_dataset(df):
     """
     ragged_tensor_coordinates = tf.ragged.constant(df['coordinates'].values)
     ds_bbox = tf.data.Dataset.from_tensor_slices(ragged_tensor_coordinates)
-    ds_bbox = ds_bbox.map(lambda x: tf.cast(x, tf.float32))  # needed for possible augmentations later
-    ds_bbox = ds_bbox.map(lambda x: x.to_tensor())
+    ds_bbox = ds_bbox.map(lambda x: tf.cast(x, tf.float32), num_parallel_calls=tf.data.AUTOTUNE)  # needed for possible augmentations later
+    ds_bbox = ds_bbox.map(lambda x: x.to_tensor(), num_parallel_calls=tf.data.AUTOTUNE)
     return ds_bbox
 
 
@@ -163,9 +163,9 @@ def create_combined_dataset(path, batch_size=8, augment=False):
     # target encoder needs both box and label information to create target encodings
     target_encoder = TargetEncoder()
     if augment:
-        ds = ds.map(tf_affine_transform)
-    ds = ds.map(tf_dataset_xyxy_to_xywh)
-    ds = ds.map(target_encoder.encode_sample)
+        ds = ds.map(tf_affine_transform, num_parallel_calls=tf.data.AUTOTUNE)
+    ds = ds.map(tf_dataset_xyxy_to_xywh, num_parallel_calls=tf.data.AUTOTUNE)
+    ds = ds.map(target_encoder.encode_sample, num_parallel_calls=tf.data.AUTOTUNE)
     ds = ds.batch(batch_size)
-    ds = ds.map(name_targets)
+    ds = ds.map(name_targets, num_parallel_calls=tf.data.AUTOTUNE)
     return ds

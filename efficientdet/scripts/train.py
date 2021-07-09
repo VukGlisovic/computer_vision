@@ -30,7 +30,8 @@ def main():
         tf.keras.callbacks.LearningRateScheduler(scheduler, verbose=1)
     ]
 
-    adam = tf.keras.optimizers.Adam()
+    # set learning rate to 0.001 / exp(-0.1)
+    adam = tf.keras.optimizers.Adam(learning_rate=0.001105)
     losses = {'regression': HuberRegressionLoss(), 'classification': FocalClassificationLoss(num_classes=10)}
 
     model.compile(optimizer=adam, loss=losses)
