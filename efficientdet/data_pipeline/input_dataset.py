@@ -3,6 +3,7 @@ import tensorflow as tf
 from efficientdet.constants import IMG_SHAPE
 from efficientdet.data_pipeline.utils import xyxy_to_xywh
 from efficientdet.data_pipeline.target_encoder import TargetEncoder
+from efficientdet.data_pipeline.augmentations import tf_affine_transform
 
 
 def read_csv(path):
@@ -102,7 +103,7 @@ def create_bbox_dataset(df):
     """
     ragged_tensor_coordinates = tf.ragged.constant(df['coordinates'].values)
     ds_bbox = tf.data.Dataset.from_tensor_slices(ragged_tensor_coordinates)
-    ds_bbox = ds_bbox.map(xyxy_to_xywh)
+    ds_bbox = ds_bbox.map(lambda x: tf.cast(x, tf.float32))  # needed for possible augmentations later
     ds_bbox = ds_bbox.map(lambda x: x.to_tensor())
     return ds_bbox
 
@@ -121,13 +122,29 @@ def create_labels_dataset(df):
     return ds_labels
 
 
-def create_combined_dataset(path, batch_size=8):
+def tf_dataset_xyxy_to_xywh(image, boxes, labels):
+    """
+
+    Args:
+        image (tf.Tensor):
+        boxes (tf.Tensor):
+        labels (tf.Tensor):
+
+    Returns:
+        tuple[tf.Tensor, tf.Tensor, tf.Tensor]
+    """
+    boxes = xyxy_to_xywh(boxes)
+    return image, boxes, labels
+
+
+def create_combined_dataset(path, batch_size=8, augment=False):
     """Creates one tf dataset that combines the images tf dataset,
     the regression tf dataset and the classification tf dataset.
 
     Args:
         path (str):
         batch_size (int):
+        augment (bool):
 
     Returns:
         tf.data.Dataset
@@ -145,6 +162,9 @@ def create_combined_dataset(path, batch_size=8):
     ds = tf.data.Dataset.zip((ds_image_paths, ds_bbox, ds_labels))
     # target encoder needs both box and label information to create target encodings
     target_encoder = TargetEncoder()
+    if augment:
+        ds = ds.map(tf_affine_transform)
+    ds = ds.map(tf_dataset_xyxy_to_xywh)
     ds = ds.map(target_encoder.encode_sample)
     ds = ds.batch(batch_size)
     ds = ds.map(name_targets)
