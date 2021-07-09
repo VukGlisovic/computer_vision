@@ -37,7 +37,24 @@ class DecodePredictions(tf.keras.layers.Layer):
         self._box_variance = BOX_VARIANCE
 
     def _decode_box_predictions(self, anchor_boxes, box_predictions):
-        """
+        """This method adjusts the anchors according to the regression predictions.
+        The regression predictions are encoded as:
+        [
+            x_center_pred = (x_center_gt - x_center_anchor) / width_anchor,
+            y_center_pred = (y_center_gt - y_center_anchor) / height_anchor,
+            width_pred = log(gt_width / width_anchor),
+            height_pred = log(gt_height / height_anchor
+        ]
+
+        These prediction are the decoded to obtain x_center_gt (which is still a
+        prediction):
+        x_center_gt = x_center_pred * width_anchor + x_center_anchor
+        y_center_gt = y_center_pred * height_anchor + y_center_anchor
+        gt_width = exp(width_pred) * width_anchor
+        gt_height = exp(height_pred) * height_anchor
+
+        Finally, these [x_center, y_center, width, height] coordinates are
+        transformed to [x_min, y_min, x_max, y_max] coordinates.
 
         Args:
             anchor_boxes (tf.Tensor):
