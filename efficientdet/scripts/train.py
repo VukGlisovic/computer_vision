@@ -27,7 +27,7 @@ def main():
     callbacks = [
         tf.keras.callbacks.TensorBoard(os.path.join(output_dir, 'tensorboard'), profile_batch=0),
         tf.keras.callbacks.ModelCheckpoint(os.path.join(output_dir, 'checkpoints/efficientdet-{epoch:02d}.hdf5'), save_best_only=False, save_weights_only=True),
-        tf.keras.callbacks.LearningRateScheduler(scheduler)
+        tf.keras.callbacks.LearningRateScheduler(scheduler, verbose=1)
     ]
 
     adam = tf.keras.optimizers.Adam()
@@ -35,7 +35,7 @@ def main():
 
     model.compile(optimizer=adam, loss=losses)
 
-    history = model.fit(ds_train, validation_data=ds_test, epochs=20, callbacks=callbacks)
+    history = model.fit(ds_train, validation_data=ds_test, epochs=30, callbacks=callbacks)
 
 
 if __name__ == '__main__':
