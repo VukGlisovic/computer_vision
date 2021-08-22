@@ -2,11 +2,11 @@
 
 ## Installation Requirements
 
-This repository is for experimenting with different computer vision 
-models and in particular using tensorflow 2.x for it. The 
-`environment.yaml` contains all the packages to run any of the 
-scripts/notebooks in this repo. Use this environment unless stated
-otherwise.
+This repository is for experimenting with and learning about different 
+computer vision methods/models. In particular we'll use tensorflow 2.x
+to learn about that as well. The `environment.yaml` contains all the 
+packages to run any of the scripts/notebooks in this repo. Use this 
+environment unless stated otherwise.
 
 In order to run code, you have to add the repository to your `PYTHONPATH` 
 (in your `.bashrc`):
@@ -54,6 +54,10 @@ convolution is called the bottleneck layer. Here's the
 <a href="https://static.googleusercontent.com/media/research.google.com/nl//pubs/archive/43022.pdf">paper</a>
 from 2014.
 
+#### EfficientNet
+This family of architectures (EfficientNetB0, ..., EfficientNetB7), is a new approach
+to model scaling. It is based on https://arxiv.org/pdf/1905.11946.pdf
+
 
 ## Detection Models
 
@@ -64,6 +68,17 @@ network, the approach is to divide the input image in a (for example
 19x19) grid, and then for each grid try to detect an object. The reason 
 why this network is popular, is because of its performance; inference
 time is very low.
+
+#### EfficientDet
+The implementation in `computer_vision/efficientdet`, is based on 
+https://arxiv.org/pdf/1911.09070.pdf and https://keras.io/examples/vision/retinanet/#computing-pairwise-intersection-over-union-iou.
+
+
+## Segmentation Models
+
+#### Unet
+This architecture is called Unet because it is shape like a U. This is
+nicely depicted here: https://lmb.informatik.uni-freiburg.de/people/ronneber/u-net/
 
 
 ## Neural Style Transfer
