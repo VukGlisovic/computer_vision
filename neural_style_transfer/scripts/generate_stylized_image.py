@@ -121,7 +121,7 @@ def create_model():
     Returns:
         StyleContentModelVGG
     """
-    content_layers = ['block5_conv2']
+    content_layers = ['block4_conv2']
     style_layers = ['block1_conv1',
                     'block2_conv1',
                     'block3_conv1',
@@ -140,10 +140,7 @@ def main():
     style_targets = extractor(style_image)['style']  # dict with vgg content and style values for style image
     if known_args.initialize_with_noise:
         generated_image = tf.Variable(
-            tf.add(
-                content_image,
-                tf.random.uniform(content_image.get_shape(), minval=-0.8, maxval=0.8, dtype=content_image.dtype, seed=42)
-            )
+            tf.random.uniform(content_image.get_shape(), minval=0.0, maxval=1.0, dtype=content_image.dtype, seed=42)
         )
     else:
         generated_image = tf.Variable(content_image)  # initialize generated image from content image
