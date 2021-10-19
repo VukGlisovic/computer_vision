@@ -53,10 +53,10 @@ parser.add_argument('-st', '--steps_per_epoch',
                     type=int,
                     default=10,
                     help="The number of steps to take per epoch.")
-parser.add_argument('-wn', '--initialize_with_noise',
+parser.add_argument('-wn', '--initialize_white_noise',
                     action='store_true',
-                    help="Whether to initialize the generated image from the content image"
-                         "with or without noise.")
+                    help="Whether to initialize the generated image with white noise. Otherwise the content image "
+                         "will be used for initialization.")
 known_args, _ = parser.parse_known_args()
 logging.info('Content image path: %s', known_args.content_path)
 logging.info('Style image path: %s', known_args.style_path)
@@ -68,7 +68,7 @@ logging.info('Image variation weight: %s', known_args.variation_weight)
 logging.info('Learning rate: %s', known_args.learning_rate)
 logging.info('Epochs: %s', known_args.epochs)
 logging.info('Steps per epoch: %s', known_args.steps_per_epoch)
-logging.info('Inialize with noise: %s', known_args.initialize_with_noise)
+logging.info('Inialize with noise: %s', known_args.initialize_white_noise)
 
 
 def load_images(content_path, style_path, max_dim):
@@ -138,7 +138,7 @@ def main():
     extractor = create_model()
     content_targets = extractor(content_image)['content']  # dict with vgg content and style values for content image
     style_targets = extractor(style_image)['style']  # dict with vgg content and style values for style image
-    if known_args.initialize_with_noise:
+    if known_args.initialize_white_noise:
         generated_image = tf.Variable(
             tf.random.uniform(content_image.get_shape(), minval=0.0, maxval=1.0, dtype=content_image.dtype, seed=42)
         )

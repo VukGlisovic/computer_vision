@@ -9,12 +9,12 @@ nohup python generate_stylized_image.py \
     -c=CONTENT_IMAGE_PATH \
     -s=STYLE_IMAGE_PATH \
     -o=OUTPUT_IMAGE_PATH \
-    -md=2048 \
-    -a=1000 \
-    -b=1 \
+    -md=1024 \
+    -a=1 \
+    -b=1000 \
     -vw=3 \
-    -lr=0.02 \
-    -ep=100 \
-    -st=10 \
+    -lr=0.01 \
+    -ep=1000 \
+    -st=50 \
     -wn \
 > YOUR_LOG_FILE.log 2>&1 &
