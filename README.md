@@ -81,6 +81,11 @@ This architecture is called Unet because it is shape like a U. This is
 nicely depicted here: https://lmb.informatik.uni-freiburg.de/people/ronneber/u-net/
 
 
+## Siamese Network
+These networks are trained to find similar images. Use cases are for example face 
+matching and finding duplicates (similar images or videos).
+
+
 ## Neural Style Transfer
 This part of computer vision is an extremely interesting and fun
 application that combines two images (a content and a style image)
