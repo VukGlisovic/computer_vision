@@ -2,14 +2,32 @@ import tensorflow as tf
 
 
 class CNN_Encoder(tf.keras.Model):
-    # Since you have already extracted the features and dumped it
-    # This encoder passes those features through a Fully connected layer
+    """The CNN_Encoder expects the output features of a pretrained
+    network (e.g. InceptionV3) where the spatial dimensions are
+    flattened.
+
+    This layer/model basically reduces the dimensionality of the
+    input features.
+
+    Args:
+        embedding_dim (int):
+    """
     def __init__(self, embedding_dim):
         super(CNN_Encoder, self).__init__()
         # shape after fc == (batch_size, 64, embedding_dim)
         self.fc = tf.keras.layers.Dense(embedding_dim)
 
     def call(self, x):
+        """
+        Input shape: (bs, H*W, latent_dim)
+        Output shape: (bs, H*W, embedding_dim)
+
+        Args:
+            x (tf.Tensor):
+
+        Returns:
+            tf.Tensor
+        """
         x = self.fc(x)
         x = tf.nn.relu(x)
         return x
