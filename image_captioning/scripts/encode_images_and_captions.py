@@ -16,28 +16,6 @@ logformat = '%(asctime)s | %(levelname)s | [%(filename)s:%(lineno)s - %(funcName
 logging.basicConfig(format=logformat, level=logging.INFO, stream=sys.stdout)
 
 
-def load_annotations():
-    """Loads annotations from disk and prepares image path with
-    caption combinations.
-
-    Returns:
-        tuple[dict, list]
-    """
-    logging.info("Loading annotations file from disk.")
-    annotations = utils.load_json_file(ANNOTATION_FILE)
-    imgpath_to_caption, image_paths = utils.group_captions(annotations)
-
-    all_captions = []
-    all_imgpaths = []
-
-    for image_path in image_paths:
-        caption_list = imgpath_to_caption[image_path]
-        all_captions.extend(caption_list)
-        all_imgpaths.extend([image_path] * len(caption_list))  # duplicate image path so that every caption has its own image path
-
-    return all_captions, all_imgpaths
-
-
 def encode_images_to_features(all_imgpaths):
     """Encodes all images with an InceptionV3 network that is
     initialized with imagenet weights.
@@ -100,7 +78,7 @@ def main(max_length, vocabulary_size):
         max_length (int):
         vocabulary_size (int):
     """
-    all_captions, all_imgpaths = load_annotations()
+    all_captions, all_imgpaths, imgpath_to_caption = input_dataset.load_annotations()
     encode_images_to_features(all_imgpaths)
     fit_text_vectorizer(all_captions, max_length, vocabulary_size)
 
