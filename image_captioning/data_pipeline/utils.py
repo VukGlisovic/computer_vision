@@ -1,5 +1,20 @@
 import os
+import json
 from image_captioning.constants import DATA_DIR
+
+
+def load_json_file(path):
+    """Reads a JSON file from disk into a python dictionary.
+
+    Args:
+        path (str):
+
+    Returns:
+        dict
+    """
+    with open(path, 'r') as f:
+        dct = json.load(f)
+    return dct
 
 
 def imgpath_to_featurepath(path):
