@@ -14,7 +14,7 @@ def create_checkpoint_manager(cnn_encoder, rnn_decoder, optimizer, restore_lates
         restore_latest (bool):
 
     Returns:
-        tf.train.Checkpoint
+        tf.train.CheckpointManager
     """
     ckpt = tf.train.Checkpoint(encoder=cnn_encoder,
                                decoder=rnn_decoder,

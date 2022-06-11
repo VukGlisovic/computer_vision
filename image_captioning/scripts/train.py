@@ -3,7 +3,7 @@ import sys
 import logging
 import argparse
 import tensorflow as tf
-import matplotlib as plt
+import matplotlib.pyplot as plt
 
 from image_captioning.data_pipeline import input_dataset
 from image_captioning.data_pipeline import utils
@@ -29,14 +29,13 @@ def create_models(vocabulary_size):
         vocabulary_size (int):
 
     Returns:
-        tuple[tf.keras.models.Model, tf.keras.models.Model, tf.keras.optimizers.Optimizer, tf.train.Checkpoint]
+        tuple[tf.keras.models.Model, tf.keras.models.Model, tf.keras.optimizers.Optimizer]
     """
     logging.info("Creating encoder, decoder, optimizer and checkpoint manager.")
     cnn_encoder = encoder.CNN_Encoder(embedding_dim)
     rnn_decoder = decoder.RNN_Decoder(embedding_dim, units, vocabulary_size)
     optimizer = tf.keras.optimizers.Adam()
-    ckpt_manager = checkpoint_manager.create_checkpoint_manager(cnn_encoder, rnn_decoder, optimizer, restore_latest=True)
-    return cnn_encoder, rnn_decoder, optimizer, ckpt_manager
+    return cnn_encoder, rnn_decoder, optimizer
 
 
 @tf.function
@@ -94,7 +93,7 @@ def run_training(dataset, cnn_encoder, rnn_decoder, optimizer, word_to_index, ck
         rnn_decoder (tf.keras.models.Model):
         optimizer (tf.keras.optimizers.Optimizer):
         word_to_index (tf.keras.layers.StringLookup):
-        ckpt_manager (tf.train.Checkpoint):
+        ckpt_manager (tf.train.CheckpointManager):
         epochs (int):
         num_steps_epoch (int):
 
@@ -104,7 +103,7 @@ def run_training(dataset, cnn_encoder, rnn_decoder, optimizer, word_to_index, ck
     # adding this in a separate cell because if you run the training cell many times, the loss_plot array will be reset
     loss_values = []
 
-    logging.info("Starting training...")
+    logging.info("Start training...")
     for epoch in range(epochs):
         total_loss = 0
 
@@ -115,6 +114,7 @@ def run_training(dataset, cnn_encoder, rnn_decoder, optimizer, word_to_index, ck
             if batch % 100 == 0:
                 average_batch_loss = batch_loss.numpy() / int(target.shape[1])
                 logging.info(f'Epoch {epoch} Batch {batch} Loss {average_batch_loss:.4f}')
+            break
 
         # storing the epoch end loss value to plot later
         loss_values.append(total_loss / num_steps_epoch)
@@ -153,7 +153,7 @@ def main(config):
     """Combines all functionality
 
     Args:
-        config (dict): 
+        config (dict):
     """
     epochs = config['epochs']
     batch_size = config['batch_size']
@@ -165,7 +165,8 @@ def main(config):
     tokenizer = text_vectorization.load_text_vectorizer(TOKENIZER_PATH)
     train_dataset = input_dataset.create_input_dataset(train_featurepaths, train_captions, tokenizer, buffer_size, batch_size)
 
-    cnn_encoder, rnn_decoder, optimizer, ckpt_manager = create_models(tokenizer.vocabulary_size())
+    cnn_encoder, rnn_decoder, optimizer = create_models(tokenizer.vocabulary_size())
+    ckpt_manager = checkpoint_manager.create_checkpoint_manager(cnn_encoder, rnn_decoder, optimizer, restore_latest=True)
 
     # Create mappings for words to indices and indicies to words.
     word_to_index = tf.keras.layers.StringLookup(mask_token="", vocabulary=tokenizer.get_vocabulary())
