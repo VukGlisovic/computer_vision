@@ -14,9 +14,6 @@ logformat = '%(asctime)s | %(levelname)s | [%(filename)s:%(lineno)s - %(funcName
 logging.basicConfig(format=logformat, level=logging.INFO, stream=sys.stdout)
 
 
-EPOCHS = 20
-BATCH_SIZE = 64
-BUFFER_SIZE = 1000
 embedding_dim = 256
 units = 512
 # Shape of the vector extracted from InceptionV3 is (64, 2048)
@@ -67,12 +64,12 @@ def train_step(cnn_encoder, rnn_decoder, optimizer, word_to_index, feature_tenso
     return loss_value, total_loss
 
 
-def run_training(dataset, cnn_encoder, rnn_decoder, optimizer, word_to_index, ckpt_manager, num_steps_epoch):
+def run_training(dataset, cnn_encoder, rnn_decoder, optimizer, word_to_index, ckpt_manager, epochs, num_steps_epoch):
     # adding this in a separate cell because if you run the training cell many times, the loss_plot array will be reset
     loss_values = []
 
     logging.info("Starting training...")
-    for epoch in range(EPOCHS):
+    for epoch in range(epochs):
         total_loss = 0
 
         for batch, (feature_tensor, target) in enumerate(dataset):
@@ -110,12 +107,16 @@ def plot_loss_curve(data_points, path):
     plt.close()
 
 
-def main():
+def main(config):
+    epochs = config['epochs']
+    batch_size = config['batch_size']
+    buffer_size = config['buffer_size']
+
     all_captions, all_imgpaths, imgpath_to_caption = input_dataset.load_annotations()
     train_featurepaths, train_captions, val_featurepaths, val_captions = input_dataset.split_dataset(all_imgpaths, imgpath_to_caption)
 
     tokenizer = text_vectorization.load_text_vectorizer(TOKENIZER_PATH)
-    train_dataset = input_dataset.create_input_dataset(train_featurepaths, train_captions, tokenizer, BUFFER_SIZE, BATCH_SIZE)
+    train_dataset = input_dataset.create_input_dataset(train_featurepaths, train_captions, tokenizer, buffer_size, batch_size)
 
     cnn_encoder, rnn_decoder, optimizer, ckpt_manager = create_models(tokenizer.vocabulary_size())
 
@@ -123,8 +124,8 @@ def main():
     word_to_index = tf.keras.layers.StringLookup(mask_token="", vocabulary=tokenizer.get_vocabulary())
     # index_to_word = tf.keras.layers.StringLookup(mask_token="", vocabulary=tokenizer.get_vocabulary(), invert=True)
 
-    num_steps_per_epoch = len(train_featurepaths) // BATCH_SIZE
-    loss_values = run_training(train_dataset, cnn_encoder, rnn_decoder, optimizer, word_to_index, ckpt_manager, num_steps_per_epoch)
+    num_steps_per_epoch = len(train_featurepaths) // batch_size
+    loss_values = run_training(train_dataset, cnn_encoder, rnn_decoder, optimizer, word_to_index, ckpt_manager, epochs, num_steps_per_epoch)
 
     plot_loss_curve(loss_values, os.path.join(EXPERIMENT_DIR, 'loss_curve.png'))
 
@@ -135,5 +136,6 @@ if __name__ == '__main__':
                         default='../config.json',
                         help='Path to configuration file')
     known_args, _ = parser.parse_known_args()
-    config = utils.load_json_file(known_args.config)
-    main()
+    config_dict = utils.load_json_file(known_args.config)
+
+    main(config_dict)
