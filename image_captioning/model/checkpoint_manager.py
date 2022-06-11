@@ -10,7 +10,7 @@ def create_checkpoint_manager(cnn_encoder, rnn_decoder, optimizer, restore_lates
     Args:
         cnn_encoder (tf.keras.models.Model):
         rnn_decoder (tf.keras.models.Model):
-        optimizer (tf.keras.optimizer.Optimizer):
+        optimizer (tf.keras.optimizers.Optimizer):
         restore_latest (bool):
 
     Returns:

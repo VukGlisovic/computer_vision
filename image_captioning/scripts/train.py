@@ -23,6 +23,14 @@ attention_features_shape = 64
 
 
 def create_models(vocabulary_size):
+    """Initializes all object that are necessary for training
+
+    Args:
+        vocabulary_size (int):
+
+    Returns:
+        tuple[tf.keras.models.Model, tf.keras.models.Model, tf.keras.optimizers.Optimizer, tf.train.Checkpoint]
+    """
     logging.info("Creating encoder, decoder, optimizer and checkpoint manager.")
     cnn_encoder = encoder.CNN_Encoder(embedding_dim)
     rnn_decoder = decoder.RNN_Decoder(embedding_dim, units, vocabulary_size)
@@ -33,6 +41,19 @@ def create_models(vocabulary_size):
 
 @tf.function
 def train_step(cnn_encoder, rnn_decoder, optimizer, word_to_index, feature_tensor, target):
+    """Executes one training step.
+
+    Args:
+        cnn_encoder (tf.keras.models.Model):
+        rnn_decoder (tf.keras.models.Model):
+        optimizer (tf.keras.optimizers.Optimizer):
+        word_to_index (tf.keras.layers.StringLookup):
+        feature_tensor (tf.tensor):
+        target (tf.tensor):
+
+    Returns:
+        tuple[tf.tensor, tf.tensor]
+    """
     loss_value = 0
 
     # initializing the hidden state for each batch
@@ -65,6 +86,21 @@ def train_step(cnn_encoder, rnn_decoder, optimizer, word_to_index, feature_tenso
 
 
 def run_training(dataset, cnn_encoder, rnn_decoder, optimizer, word_to_index, ckpt_manager, epochs, num_steps_epoch):
+    """Executes the full training.
+
+    Args:
+        dataset (tf.keras.data.Dataset):
+        cnn_encoder (tf.keras.models.Model):
+        rnn_decoder (tf.keras.models.Model):
+        optimizer (tf.keras.optimizers.Optimizer):
+        word_to_index (tf.keras.layers.StringLookup):
+        ckpt_manager (tf.train.Checkpoint):
+        epochs (int):
+        num_steps_epoch (int):
+
+    Returns:
+        list
+    """
     # adding this in a separate cell because if you run the training cell many times, the loss_plot array will be reset
     loss_values = []
 
@@ -93,6 +129,12 @@ def run_training(dataset, cnn_encoder, rnn_decoder, optimizer, word_to_index, ck
 
 
 def plot_loss_curve(data_points, path):
+    """Plots the resulting loss curve.
+
+    Args:
+        data_points (list):
+        path (str): where to store the figure
+    """
     fig, ax = plt.subplots(figsize=(15, 8))
 
     ax.set_title("Loss Curve", fontsize=20)
@@ -108,6 +150,11 @@ def plot_loss_curve(data_points, path):
 
 
 def main(config):
+    """Combines all functionality
+
+    Args:
+        config (dict): 
+    """
     epochs = config['epochs']
     batch_size = config['batch_size']
     buffer_size = config['buffer_size']
