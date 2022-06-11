@@ -17,6 +17,12 @@ logging.basicConfig(format=logformat, level=logging.INFO, stream=sys.stdout)
 
 
 def load_annotations():
+    """Loads annotations from disk and prepares image path with
+    caption combinations.
+
+    Returns:
+        tuple[dict, list]
+    """
     logging.info("Loading annotations file from disk.")
     annotations = utils.load_json_file(ANNOTATION_FILE)
     imgpath_to_caption, image_paths = utils.group_captions(annotations)
@@ -33,6 +39,12 @@ def load_annotations():
 
 
 def encode_images_to_features(all_imgpaths):
+    """Encodes all images with an InceptionV3 network that is
+    initialized with imagenet weights.
+
+    Args:
+        all_imgpaths (list):
+    """
     logging.info("Initialize inceptionV3 network with imagenet weights.")
     inceptionV3 = tf.keras.applications.InceptionV3(include_top=False, weights='imagenet')
 
@@ -62,6 +74,13 @@ def encode_images_to_features(all_imgpaths):
 
 
 def fit_text_vectorizer(all_captions, max_length, vocabulary_size):
+    """Fits a TextVectorization tensorflow layer.
+
+    Args:
+        all_captions (list):
+        max_length (int):
+        vocabulary_size (int):
+    """
     tokenizer_path = os.path.join(DATA_DIR, 'experiment/tokenizer.pkl')
     if os.path.exists(tokenizer_path):
         logging.info("Tokenizer already exists.")
@@ -74,6 +93,15 @@ def fit_text_vectorizer(all_captions, max_length, vocabulary_size):
 
 
 def main(max_length, vocabulary_size):
+    """Combines all functionality:
+    1. loads the necessary data
+    2. encodes images to features
+    3. fits a TextVectorization layer
+
+    Args:
+        max_length (int):
+        vocabulary_size (int):
+    """
     all_captions, all_imgpaths = load_annotations()
     encode_images_to_features(all_imgpaths)
     fit_text_vectorizer(all_captions, max_length, vocabulary_size)
