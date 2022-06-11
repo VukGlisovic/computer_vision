@@ -81,14 +81,12 @@ def fit_text_vectorizer(all_captions, max_length, vocabulary_size):
         max_length (int):
         vocabulary_size (int):
     """
-    tokenizer_path = os.path.join(DATA_DIR, 'experiment/tokenizer.pkl')
-    if os.path.exists(tokenizer_path):
+    if os.path.exists(TOKENIZER_PATH):
         logging.info("Tokenizer already exists.")
-        tokenizer = text_vectorization.load_text_vectorizer(tokenizer_path)
     else:
         logging.info("Fitting new tokenizer.")
         tokenizer = text_vectorization.fit_text_vectorizer(all_captions, text_vectorization.standardize_text, max_length, vocabulary_size)
-        text_vectorization.save_text_vectorizer(tokenizer, tokenizer_path)
+        text_vectorization.save_text_vectorizer(tokenizer, TOKENIZER_PATH)
     logging.info("Finished fitting tokenizer!")
 
 
