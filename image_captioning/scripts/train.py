@@ -114,7 +114,6 @@ def run_training(dataset, cnn_encoder, rnn_decoder, optimizer, word_to_index, ck
             if batch % 100 == 0:
                 average_batch_loss = batch_loss.numpy() / int(target.shape[1])
                 logging.info(f'Epoch {epoch} Batch {batch} Loss {average_batch_loss:.4f}')
-            break
 
         # storing the epoch end loss value to plot later
         loss_values.append(total_loss / num_steps_epoch)
