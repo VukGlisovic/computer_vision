@@ -7,9 +7,8 @@ import tensorflow as tf
 from glob import glob
 from tqdm import tqdm
 
-from image_captioning.data_pipeline import input_dataset
-from image_captioning.data_pipeline import utils
-from image_captioning.model import text_vectorization
+from image_captioning.data_pipeline import input_dataset, utils
+from image_captioning.model import text_vectorization, encoder
 from image_captioning.constants import *
 
 logformat = '%(asctime)s | %(levelname)s | [%(filename)s:%(lineno)s - %(funcName)s] %(message)s'
@@ -24,7 +23,7 @@ def encode_images_to_features(all_imgpaths):
         all_imgpaths (list):
     """
     logging.info("Initialize inceptionV3 network with imagenet weights.")
-    inceptionV3 = tf.keras.applications.InceptionV3(include_top=False, weights='imagenet')
+    inceptionV3 = encoder.create_inception_v3()
 
     os.makedirs(FEATURES_DIR, exist_ok=True)  # directory where to store processed features
 

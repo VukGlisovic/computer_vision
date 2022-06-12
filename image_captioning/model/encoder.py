@@ -1,6 +1,16 @@
 import tensorflow as tf
 
 
+def create_inception_v3():
+    """Creates an InceptionV3 network that is initialized with
+    imagenet weights.
+
+    Returns:
+        tf.keras.models.Model
+    """
+    return tf.keras.applications.InceptionV3(include_top=False, weights='imagenet')
+
+
 class CNN_Encoder(tf.keras.Model):
     """The CNN_Encoder expects the output features of a pretrained
     network (e.g. InceptionV3) where the spatial dimensions are
