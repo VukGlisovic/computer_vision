@@ -19,7 +19,7 @@ def load_json_file(path):
 
 
 def imgpath_to_featurepath(path):
-    """Converts a path pointing to an image a path pointing
+    """Converts a path pointing to an image to a path pointing
     to its corresponding encoded features.
 
     Args:
@@ -31,6 +31,21 @@ def imgpath_to_featurepath(path):
     filename = os.path.basename(path)
     filename = filename.replace('.jpg', '.npy')
     return os.path.join(DATA_DIR, 'train2014_features', filename)  # store features in separate directory
+
+
+def featurepath_to_imgpath(path):
+    """Converts a path pointing to encoded features tp a path pointing
+    to its corresponding image.
+
+    Args:
+        path (str):
+
+    Returns:
+        str
+    """
+    filename = os.path.basename(path)
+    filename = filename.replace('.npy', '.jpg')
+    return os.path.join(DATA_DIR, 'train2014', filename)
 
 
 def group_captions(annotations):
