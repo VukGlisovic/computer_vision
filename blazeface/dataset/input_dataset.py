@@ -40,7 +40,8 @@ def reduce_landmarks(landmarks):
 
 
 def landmarks_to_bboxes(landmarks):
-    """Converts landmarks to a face bounding box.
+    """Converts landmarks to a face bounding box. The bounding boxes
+    will have values in the [0, 1] range.
 
     Args:
         landmarks (tf.Tensor): shape [bs, 68, 2]
