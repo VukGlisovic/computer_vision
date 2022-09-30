@@ -1,5 +1,5 @@
 ipykernel==6.13.0
-joblib==1.1.0
+joblib==1.2.0
 matplotlib==3.2.2
 numpy==1.22.4
 pandas==1.4.2
