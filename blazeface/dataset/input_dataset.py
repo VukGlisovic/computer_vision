@@ -2,7 +2,7 @@ import os
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from blazeface.constants import DATA_DIR, BBOX_PADDING
+from blazeface.constants import *
 
 
 def load_the300w_lp(split="train[:80%]"):
@@ -17,6 +17,34 @@ def load_the300w_lp(split="train[:80%]"):
     """
     dataset, info = tfds.load("the300w_lp", split=split, data_dir=os.path.join(DATA_DIR, "tensorflow_datasets"), with_info=True)
     return dataset, info
+
+
+def unpack_dct(dct):
+    """Extracts the necessary information from the input dictionary.
+    The dictionary provides information per sample.
+
+    Args:
+        dct (dict):
+
+    Returns:
+        tuple[tf.Tensor, tf.Tensor]
+    """
+    return dct['image'], dct['landmarks_2d']
+
+
+def preprocess_image(img, landmarks):
+    """Resizes the image and simply passes along the landmarks.
+
+    Args:
+        img (tf.Tensor):
+        landmarks (tf.Tensor):
+
+    Returns:
+        tuple[tf.Tensor, tf.Tensor]
+    """
+    img = tf.image.convert_image_dtype(img, tf.float32)
+    img = tf.image.resize(img, (IMG_SIZE, IMG_SIZE), preserve_aspect_ratio=True)
+    return img, landmarks
 
 
 def reduce_landmarks(landmarks):
