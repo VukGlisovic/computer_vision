@@ -17,7 +17,8 @@ def get_anchor_scale(m, n=4, scale_min=0.1484375, scale_max=0.75):
 
 
 def generate_anchors(feature_maps, n_anchors_per_fmap):
-    """Creates all the anchors for all feature map locations.
+    """Creates all the anchors for all feature map locations. It
+    returns all anchors in normalized format; [0,1] range.
     Note that it only creates square anchors as described by the
     blazeface paper:
     "Due to the limited variance in human face aspect ratios, limiting
