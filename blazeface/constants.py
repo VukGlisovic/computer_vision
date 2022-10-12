@@ -7,6 +7,7 @@ PROJECT_PATH = os.path.join(os.path.realpath(__file__)[:os.path.realpath(__file_
 
 DATA_DIR = os.path.join(PROJECT_PATH, 'data')
 
+# architecture hyperparameters
 IMG_SIZE = 128
 BBOX_PADDING = 1e-3
 N_LANDMARKS = 6
@@ -16,3 +17,7 @@ N_ANCHORS_PER_LOC = [2, 6]  # number of anchor predictions per location in the 1
 assert len(FMAPS_WITH_ANCHORS) == len(N_ANCHORS_PER_LOC)
 BOX_VARIANCE = [0.1, 0.1, 0.2, 0.2]
 LMARK_VARIANCE = N_LANDMARKS * BOX_VARIANCE[0:2]
+
+# loss function hyperparameters
+NEG_POS_RATIO = 3
+LOC_LOSS_ALPHA = 1
