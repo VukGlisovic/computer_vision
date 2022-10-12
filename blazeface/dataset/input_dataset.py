@@ -20,7 +20,8 @@ def load_the300w_lp(split="train[:80%]"):
 
 
 def unpack_dct(dct):
-    """Extracts the necessary information from the input dictionary.
+    """Extracts the necessary information from the input dictionary and
+    adds another dimension to the landmarks.
     The dictionary provides information per sample.
 
     Args:
@@ -29,7 +30,7 @@ def unpack_dct(dct):
     Returns:
         tuple[tf.Tensor, tf.Tensor]
     """
-    return dct['image'], dct['landmarks_2d']
+    return dct['image'], tf.expand_dims(dct["landmarks_2d"], 0)
 
 
 def preprocess_image(img, landmarks):
