@@ -34,15 +34,15 @@ class BlazeFaceModel(tf.keras.models.Model):
         self.dbb6_to_labels = tf.keras.layers.Conv2D(N_ANCHORS_PER_LOC[1], kernel_size=(3, 3), padding="same")
 
         total_regression_points = 4 + N_LANDMARKS * 2  # 4 box coordinates and landmark coordinates
-        self.dbb3_to_boxes = tf.keras.layers.Conv2D(N_ANCHORS_PER_LOC[0] * total_regression_points, kernel_size=(3, 3), padding="same")  # 16*16*2*total_regression_points=512*total_regression_points output channels
-        self.dbb6_to_boxes = tf.keras.layers.Conv2D(N_ANCHORS_PER_LOC[1] * total_regression_points, kernel_size=(3, 3), padding="same")  # 8*8*6*total_regression_points=384*total_regression_points output channels
+        self.dbb3_to_deltas = tf.keras.layers.Conv2D(N_ANCHORS_PER_LOC[0] * total_regression_points, kernel_size=(3, 3), padding="same")  # 16*16*2*total_regression_points=512*total_regression_points output channels
+        self.dbb6_to_deltas = tf.keras.layers.Conv2D(N_ANCHORS_PER_LOC[1] * total_regression_points, kernel_size=(3, 3), padding="same")  # 8*8*6*total_regression_points=384*total_regression_points output channels
 
         self.labels_reshape = tf.keras.layers.Reshape((-1, 1))
         self.labels_concat = tf.keras.layers.Concatenate(axis=1)
         self.labels_act = tf.keras.layers.Activation('sigmoid')
 
-        self.boxes_reshape = tf.keras.layers.Reshape((-1, total_regression_points))
-        self.boxes_concat = tf.keras.layers.Concatenate(axis=1)
+        self.deltas_reshape = tf.keras.layers.Reshape((-1, total_regression_points))
+        self.deltas_concat = tf.keras.layers.Concatenate(axis=1)
 
     def call(self, inputs):
         x = self.input_conv(inputs)
@@ -55,19 +55,21 @@ class BlazeFaceModel(tf.keras.models.Model):
             x = dbb(x)
         dbb6_out = x
 
+        # label predictions
         dbb3_out_labels = self.dbb3_to_labels(dbb3_out)
         dbb6_out_labels = self.dbb6_to_labels(dbb6_out)
-
-        dbb3_out_boxes = self.dbb3_to_boxes(dbb3_out)
-        dbb6_out_boxes = self.dbb6_to_boxes(dbb6_out)
 
         dbb3_out_labels = self.labels_reshape(dbb3_out_labels)
         dbb6_out_labels = self.labels_reshape(dbb6_out_labels)
         out_labels = self.labels_concat([dbb3_out_labels, dbb6_out_labels])
         out_labels = self.labels_act(out_labels)
 
-        dbb3_out_boxes = self.boxes_reshape(dbb3_out_boxes)
-        dbb6_out_boxes = self.boxes_reshape(dbb6_out_boxes)
-        out_boxes = self.boxes_concat([dbb3_out_boxes, dbb6_out_boxes])
+        # bounding box coordinate delta predictions
+        dbb3_out_deltas = self.dbb3_to_deltas(dbb3_out)
+        dbb6_out_deltas = self.dbb6_to_deltas(dbb6_out)
 
-        return [out_labels, out_boxes, dbb3_out_labels, dbb6_out_labels, dbb3_out_boxes, dbb6_out_boxes]
+        dbb3_out_deltas = self.deltas_reshape(dbb3_out_deltas)
+        dbb6_out_deltas = self.deltas_reshape(dbb6_out_deltas)
+        out_deltas = self.deltas_concat([dbb3_out_deltas, dbb6_out_deltas])
+
+        return [out_deltas, out_labels]
