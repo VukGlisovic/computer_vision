@@ -98,7 +98,7 @@ def calculate_targets(anchor_boxes, gt_boxes, gt_landmarks):
     iou_best_match_gt_box = tf.reduce_max(iou_map, axis=2)
     # find out which anchors have a positive match with the ground truth boxes
     pos_cond = tf.greater(iou_best_match_gt_box, IOU_THRESHOLD)
-    #
+    # concat bounding boxes with landmarks
     gt_landmarks = tf.reshape(gt_landmarks, (batch_size, -1, N_LANDMARKS * 2))  # merge landmarks and coordinates dimensions
     gt_boxes_and_landmarks = tf.concat([gt_boxes, gt_landmarks], axis=-1)
     # gather the best matched ground truth box to each anchor
