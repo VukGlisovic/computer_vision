@@ -1,5 +1,7 @@
 import tensorflow as tf
 
+from blazeface.constants import FMAPS_WITH_ANCHORS, N_ANCHORS_PER_LOC
+
 
 def get_anchor_scale(m, n=4, scale_min=0.1484375, scale_max=0.75):
     """Get the scale for a particular a certain index.
@@ -16,7 +18,7 @@ def get_anchor_scale(m, n=4, scale_min=0.1484375, scale_max=0.75):
     return scale_min + ((scale_max - scale_min) / (n - 1)) * (m - 1)
 
 
-def generate_anchors(feature_maps, n_anchors_per_fmap):
+def generate_anchors():
     """Creates all the anchors for all feature map locations. It
     returns all anchors in normalized format; [0,1] range.
     Note that it only creates square anchors as described by the
@@ -25,17 +27,12 @@ def generate_anchors(feature_maps, n_anchors_per_fmap):
     the anchors to the 1:1 aspect ratio was found sufficient for
     accurate face detection."
 
-    Args:
-        feature_maps (list[int]):
-        n_anchors_per_fmap (list[int]):
-
     Returns:
         tf.Tensor
     """
-    assert len(feature_maps) == len(n_anchors_per_fmap), "Number of elements in feature_maps and n_anchors_per_fmap must match."
     anchors = []
     idx = 0
-    for fmap_size, n_anchors in zip(feature_maps, n_anchors_per_fmap):
+    for fmap_size, n_anchors in zip(FMAPS_WITH_ANCHORS, N_ANCHORS_PER_LOC):
         for i in range(n_anchors // 2):
             current_scale = get_anchor_scale(idx + 1)
             next_scale = get_anchor_scale(idx + 2)
