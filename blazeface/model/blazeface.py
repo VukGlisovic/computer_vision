@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 from blazeface.model.custom_blocks import BlazeBlock, DoubleBlazeBlock
+from blazeface.constants import N_ANCHORS_PER_LOC, N_LANDMARKS
 
 
 class BlazeFaceModel(tf.keras.models.Model):
@@ -11,15 +12,10 @@ class BlazeFaceModel(tf.keras.models.Model):
     Meaning a higher receptive field is used by applying a kernel size of 5x5.
 
     The feature map shapes are based on an input image of shape 128x128.
-
-    Args:
-        detections_per_layer (list): whether to downsample or not.
-        total_reg_points (int): number of output feature maps.
     """
 
-    def __init__(self, detections_per_layer, total_reg_points):
+    def __init__(self):
         super(BlazeFaceModel, self).__init__()
-        total_reg_points = 6 * 2 + 4  # hyper_params["total_landmarks"] * 2 + 4
         # input conv (in [bs, 128, 128, 3], out [bs, 64, 64, 24])
         self.input_conv = tf.keras.layers.Conv2D(filters=24, kernel_size=(5, 5), strides=2, padding="same", activation="relu")
         # 5 blaze blocks (out [bs, 32, 32, 48])
@@ -34,17 +30,18 @@ class BlazeFaceModel(tf.keras.models.Model):
         for stride, filters1, filters2 in [(2, 24, 96), (1, 24, 96), (1, 24, 96)]:
             self.double_blaze_blocks_part2.append(DoubleBlazeBlock(stride, filters1, filters2))
 
-        self.dbb3_to_labels = tf.keras.layers.Conv2D(detections_per_layer[0], kernel_size=(3, 3), padding="same")
-        self.dbb6_to_labels = tf.keras.layers.Conv2D(detections_per_layer[1], kernel_size=(3, 3), padding="same")
+        self.dbb3_to_labels = tf.keras.layers.Conv2D(N_ANCHORS_PER_LOC[0], kernel_size=(3, 3), padding="same")
+        self.dbb6_to_labels = tf.keras.layers.Conv2D(N_ANCHORS_PER_LOC[1], kernel_size=(3, 3), padding="same")
 
-        self.dbb3_to_boxes = tf.keras.layers.Conv2D(detections_per_layer[0] * total_reg_points, kernel_size=(3, 3), padding="same")  # 16*16*2*total_reg_points=512*total_reg_points output channels
-        self.dbb6_to_boxes = tf.keras.layers.Conv2D(detections_per_layer[1] * total_reg_points, kernel_size=(3, 3), padding="same")  # 8*8*6*total_reg_points=384*total_reg_points output channels
+        total_regression_points = 4 + N_LANDMARKS * 2  # 4 box coordinates and landmark coordinates
+        self.dbb3_to_boxes = tf.keras.layers.Conv2D(N_ANCHORS_PER_LOC[0] * total_regression_points, kernel_size=(3, 3), padding="same")  # 16*16*2*total_regression_points=512*total_regression_points output channels
+        self.dbb6_to_boxes = tf.keras.layers.Conv2D(N_ANCHORS_PER_LOC[1] * total_regression_points, kernel_size=(3, 3), padding="same")  # 8*8*6*total_regression_points=384*total_regression_points output channels
 
         self.labels_reshape = tf.keras.layers.Reshape((-1, 1))
         self.labels_concat = tf.keras.layers.Concatenate(axis=1)
         self.labels_act = tf.keras.layers.Activation('sigmoid')
 
-        self.boxes_reshape = tf.keras.layers.Reshape((-1, total_reg_points))
+        self.boxes_reshape = tf.keras.layers.Reshape((-1, total_regression_points))
         self.boxes_concat = tf.keras.layers.Concatenate(axis=1)
 
     def call(self, inputs):
