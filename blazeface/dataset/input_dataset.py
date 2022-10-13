@@ -2,6 +2,8 @@ import os
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
+from blazeface.dataset import anchors
+from blazeface.dataset import target_encoder
 from blazeface.constants import *
 
 
@@ -84,3 +86,22 @@ def landmarks_to_bboxes(landmarks):
     y2 = tf.reduce_max(landmarks[..., 1], axis=-1) + BBOX_PADDING
     bboxes = tf.stack([x1, y1, x2, y2], axis=-1)
     return tf.clip_by_value(bboxes, 0, 1)
+
+
+def create_input_dataset(dataset, batch_size=12):
+    """Applies the necessary preprocessing steps to run a blazeface training.
+
+    Args:
+        dataset (tf.data.Dataset):
+        batch_size (int):
+
+    Returns:
+        tf.data.Dataset
+    """
+    ds = dataset.map(unpack_dct)
+    ds = ds.map(preprocess_image)
+    ds = ds.map(lambda img, lmarks: (img, landmarks_to_bboxes(lmarks), reduce_landmarks(lmarks)))
+    ds = ds.batch(batch_size)
+    all_anchors = anchors.generate_anchors()
+    ds = ds.map(lambda img, bboxes, lmarks: (img, target_encoder.calculate_targets(all_anchors, bboxes, lmarks)))
+    return ds

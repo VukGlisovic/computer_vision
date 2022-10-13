@@ -72,4 +72,4 @@ class BlazeFaceModel(tf.keras.models.Model):
         dbb6_out_deltas = self.deltas_reshape(dbb6_out_deltas)
         out_deltas = self.deltas_concat([dbb3_out_deltas, dbb6_out_deltas])
 
-        return [out_deltas, out_labels]
+        return {'deltas': out_deltas, 'labels': out_labels}

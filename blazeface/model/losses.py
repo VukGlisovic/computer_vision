@@ -6,7 +6,7 @@ from blazeface.constants import NEG_POS_RATIO, LOC_LOSS_ALPHA, N_LANDMARKS
 class ClassLoss(tf.keras.losses.Loss):
 
     def __init__(self):
-        super().__init__()
+        super().__init__(name='class_loss')
         self.neg_pos_ratio = tf.constant(NEG_POS_RATIO, dtype=tf.float32)
         self.bxe = tf.losses.BinaryCrossentropy(reduction=tf.losses.Reduction.NONE)
 
@@ -50,7 +50,7 @@ class ClassLoss(tf.keras.losses.Loss):
 class RegressionLoss(tf.keras.losses.Loss):
 
     def __init__(self):
-        super().__init__()
+        super().__init__(name='regression_loss')
         self.loc_loss_alpha = tf.constant(LOC_LOSS_ALPHA, dtype=tf.float32)
         self.total_regression_points = 4 + N_LANDMARKS * 2  # 4 box coordinates and landmark coordinates
         self.huber = tf.losses.Huber(reduction=tf.losses.Reduction.NONE)
@@ -78,4 +78,3 @@ class RegressionLoss(tf.keras.losses.Loss):
         loc_loss = (loc_loss / n_pos_bboxes) * self.loc_loss_alpha
 
         return loc_loss
-
