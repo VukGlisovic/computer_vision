@@ -22,7 +22,7 @@ def generate_iou_map(gt_boxes, bboxes, bboxes_perm=[0, 2, 1]):
     gt_expand_axis = gt_rank - 2
     # get ground truth and anchor coordinates
     gt_x1, gt_y1, gt_x2, gt_y2 = tf.split(gt_boxes, 4, axis=-1)
-    bbox_y1, bbox_x1, bbox_y2, bbox_x2 = tf.split(bboxes, 4, axis=-1)
+    bbox_x1, bbox_y1, bbox_x2, bbox_y2 = tf.split(bboxes, 4, axis=-1)
     # calculate ground truth box and bounding box areas
     gt_area = tf.squeeze((gt_y2 - gt_y1) * (gt_x2 - gt_x1), axis=-1)
     bbox_area = tf.squeeze((bbox_y2 - bbox_y1) * (bbox_x2 - bbox_x1), axis=-1)
@@ -97,15 +97,15 @@ def calculate_targets(anchor_boxes, gt_boxes, gt_landmarks):
     # get corresponding IOU value for the best matches
     iou_best_match_gt_box = tf.reduce_max(iou_map, axis=2)
     # find out which anchors have a positive match with the ground truth boxes
-    pos_cond = tf.greater(iou_best_match_gt_box, IOU_THRESHOLD)
+    pos_mask = tf.greater(iou_best_match_gt_box, IOU_THRESHOLD)
     # concat bounding boxes with landmarks
     gt_landmarks = tf.reshape(gt_landmarks, (batch_size, -1, N_LANDMARKS * 2))  # merge landmarks and coordinates dimensions
     gt_boxes_and_landmarks = tf.concat([gt_boxes, gt_landmarks], axis=-1)
     # gather the best matched ground truth box to each anchor
     gt_boxes_and_landmarks_map = tf.gather(gt_boxes_and_landmarks, idx_best_match_gt_box, batch_dims=1)
-    gt_boxes_and_landmarks_matches = tf.where(tf.expand_dims(pos_cond, axis=-1), gt_boxes_and_landmarks_map, tf.zeros_like(gt_boxes_and_landmarks_map))
+    gt_boxes_and_landmarks_matches = tf.where(tf.expand_dims(pos_mask, axis=-1), gt_boxes_and_landmarks_map, tf.zeros_like(gt_boxes_and_landmarks_map))
     target_deltas = calculate_bboxes_and_landmarks_deltas(anchor_boxes, gt_boxes_and_landmarks_matches) / (BOX_VARIANCE + LMARK_VARIANCE)
     # convert positive IOU matches tensor to labels
-    target_labels = tf.expand_dims(tf.cast(pos_cond, dtype=tf.float32), axis=-1)
+    target_labels = tf.expand_dims(tf.cast(pos_mask, dtype=tf.float32), axis=-1)
 
-    return target_deltas, target_labels
+    return {'deltas': target_deltas, 'labels': target_labels}
