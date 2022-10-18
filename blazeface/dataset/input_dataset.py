@@ -35,7 +35,21 @@ def unpack_dct(dct):
     return dct['image'], tf.expand_dims(dct["landmarks_2d"], 0)
 
 
-def preprocess_image(img, landmarks):
+def preprocess_image(img):
+    """Resizes the image.
+
+    Args:
+        img (tf.Tensor):
+
+    Returns:
+        tuple[tf.Tensor, tf.Tensor]
+    """
+    img = tf.image.convert_image_dtype(img, tf.float32)
+    img = tf.image.resize(img, (IMG_SIZE, IMG_SIZE), preserve_aspect_ratio=True)
+    return img
+
+
+def preprocess_image_and_pass_landmarks(img, landmarks):
     """Resizes the image and simply passes along the landmarks.
 
     Args:
@@ -45,9 +59,7 @@ def preprocess_image(img, landmarks):
     Returns:
         tuple[tf.Tensor, tf.Tensor]
     """
-    img = tf.image.convert_image_dtype(img, tf.float32)
-    img = tf.image.resize(img, (IMG_SIZE, IMG_SIZE), preserve_aspect_ratio=True)
-    return img, landmarks
+    return preprocess_image(img), landmarks
 
 
 def reduce_landmarks(landmarks):
@@ -99,9 +111,25 @@ def create_input_dataset(dataset, batch_size=12):
         tf.data.Dataset
     """
     ds = dataset.map(unpack_dct)
-    ds = ds.map(preprocess_image)
+    ds = ds.map(preprocess_image_and_pass_landmarks)
     ds = ds.map(lambda img, lmarks: (img, landmarks_to_bboxes(lmarks), reduce_landmarks(lmarks)))
     ds = ds.batch(batch_size)
     all_anchors = anchors.generate_anchors()
     ds = ds.map(lambda img, bboxes, lmarks: (img, target_encoder.calculate_targets(all_anchors, bboxes, lmarks)))
+    return ds
+
+
+def create_images_dataset(dataset, batch_size=12):
+    """Creates a tf dataset with only images.
+
+    Args:
+        dataset (tf.data.Dataset):
+        batch_size (int):
+
+    Returns:
+        tf.data.Dataset
+    """
+    ds = dataset.map(lambda dct: dct['image'])
+    ds = ds.map(preprocess_image)
+    ds = ds.batch(batch_size)
     return ds
