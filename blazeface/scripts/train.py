@@ -1,6 +1,9 @@
+import os
 import sys
 import logging
 import argparse
+from datetime import datetime
+
 import tensorflow as tf
 
 from blazeface.dataset import input_dataset
@@ -10,11 +13,30 @@ logformat = '%(asctime)s | %(levelname)s | [%(filename)s:%(lineno)s - %(funcName
 logging.basicConfig(format=logformat, level=logging.INFO, stream=sys.stdout)
 
 
-def main():
-    """Combines all functionality
+def get_output_dir(experiment_dir):
+    """Composes an output directory based on the current date and
+    the run number of the day.
 
     Args:
-        config (dict):
+        experiment_dir (str):
+
+    Returns:
+        str
+    """
+    date = datetime.now().strftime(format='%Y%m%d')
+    run_nr = 0
+    output_dir_template = os.path.join(experiment_dir, date + '_run{:03d}')
+    output_dir = output_dir_template.format(run_nr)
+    while os.path.isdir(output_dir):
+        # increment run number until unused directory found
+        run_nr += 1
+        output_dir = output_dir_template.format(run_nr)
+    logging.info("Output directory: %s", output_dir)
+    return output_dir
+
+
+def main():
+    """Combines all functionality
     """
     ds_train, _ = input_dataset.load_the300w_lp("train[:80%]")
     ds_train = input_dataset.create_input_dataset(ds_train)
@@ -23,16 +45,18 @@ def main():
     ds_validation = input_dataset.create_input_dataset(ds_validation)
     logging.info("Loaded validation dataset.")
 
-    checkpoint_cb = tf.keras.callbacks.ModelCheckpoint('../data/experiments/checkpoints/', monitor="val_loss", save_best_only=True, save_weights_only=True)
-    tensorboard_cb = tf.keras.callbacks.TensorBoard(log_dir='../data/experiments/tensorboard/')
-    learning_rate_cb = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', patience=3, verbose=1)
+    output_dir = get_output_dir('../data/experiments/')
+    checkpoints_dir = os.path.join(output_dir, 'checkpoints')
+    os.makedirs(checkpoints_dir, exist_ok=True)
+    checkpoint_cb = tf.keras.callbacks.ModelCheckpoint(os.path.join(checkpoints_dir, 'weights-{epoch:02d}.hdf5'), monitor="val_loss", save_best_only=True, save_weights_only=True)
+    tensorboard_cb = tf.keras.callbacks.TensorBoard(log_dir=os.path.join(output_dir, 'tensorboard/'))
+    learning_rate_cb = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=2, verbose=1)
     callbacks = [checkpoint_cb, tensorboard_cb, learning_rate_cb]
     logging.info("Callback created.")
 
     model = blazeface.BlazeFaceModel()
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
                   loss={'deltas': losses.RegressionLoss(), 'labels': losses.ClassLoss()})
-                  # loss=[losses.RegressionLoss(), losses.ClassLoss()])
     logging.info("Created and compiled model.")
     model.fit(ds_train,
               validation_data=ds_validation,
