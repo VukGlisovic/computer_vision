@@ -4,40 +4,6 @@ from blazeface.dataset import utils
 from blazeface.constants import *
 
 
-def generate_iou_map(gt_boxes, bboxes, bboxes_perm=[0, 2, 1]):
-    """Computes the pairwise IOU matrix for two sets of boxes. All boxes
-    should be of format [xmin, ymin, xmax, ymax].
-
-    Args:
-        gt_boxes (tf.Tensor): shape [n_anchors, 4]
-        bboxes (tf.Tensor): shape [bs, n_bboxes, 4]. Here n_bboxes will usually
-            be 1 since the model is meant to be trained on a single face.
-        bboxes_perm (list): transposes the bboxes such that the coordinates are
-            of the gt_boxes and the bboxes are aligned.
-
-    Returns:
-        tf.Tensor: shape [bs, n_anchors, n_bboxes]
-    """
-    gt_rank = tf.rank(gt_boxes)
-    gt_expand_axis = gt_rank - 2
-    # get ground truth and anchor coordinates
-    gt_x1, gt_y1, gt_x2, gt_y2 = tf.split(gt_boxes, 4, axis=-1)
-    bbox_x1, bbox_y1, bbox_x2, bbox_y2 = tf.split(bboxes, 4, axis=-1)
-    # calculate ground truth box and bounding box areas
-    gt_area = tf.squeeze((gt_y2 - gt_y1) * (gt_x2 - gt_x1), axis=-1)
-    bbox_area = tf.squeeze((bbox_y2 - bbox_y1) * (bbox_x2 - bbox_x1), axis=-1)
-    # calculate intersection area
-    x_top = tf.maximum(bbox_x1, tf.transpose(gt_x1, bboxes_perm))
-    y_top = tf.maximum(bbox_y1, tf.transpose(gt_y1, bboxes_perm))
-    x_bottom = tf.minimum(bbox_x2, tf.transpose(gt_x2, bboxes_perm))
-    y_bottom = tf.minimum(bbox_y2, tf.transpose(gt_y2, bboxes_perm))
-    intersection_area = tf.maximum(x_bottom - x_top, 0) * tf.maximum(y_bottom - y_top, 0)  # if no overlap between boxes, take 0
-    # calculate union area
-    union_area = (tf.expand_dims(bbox_area, -1) + tf.expand_dims(gt_area, gt_expand_axis) - intersection_area)
-
-    return intersection_area / union_area
-
-
 def calculate_bboxes_and_landmarks_deltas(anchor_boxes, bboxes_and_landmarks):
     """Calculating bounding box and landmark deltas for given ground truth boxes and landmarks.
 
@@ -91,7 +57,7 @@ def calculate_targets(anchor_boxes, gt_boxes, gt_landmarks):
     """
     batch_size = tf.shape(gt_boxes)[0]
     # calculate IOU values between ground truth boxes and bounding boxes
-    iou_map = generate_iou_map(gt_boxes, utils.xywh_to_xyxy(anchor_boxes))
+    iou_map = utils.generate_iou_map(gt_boxes, utils.xywh_to_xyxy(anchor_boxes))
     # get index of best matching ground truth box for each anchor
     idx_best_match_gt_box = tf.argmax(iou_map, axis=2, output_type=tf.int32)
     # get corresponding IOU value for the best matches
