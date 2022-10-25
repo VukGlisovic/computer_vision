@@ -2,8 +2,7 @@ import os
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from blazeface.dataset import anchors
-from blazeface.dataset import target_encoder
+from blazeface.dataset import anchors, target_encoder, augmentations
 from blazeface.constants import *
 
 
@@ -100,12 +99,14 @@ def landmarks_to_bboxes(landmarks):
     return tf.clip_by_value(bboxes, 0, 1)
 
 
-def create_input_dataset(dataset, batch_size=12):
+def create_input_dataset(dataset, shuffle_buffer=None, batch_size=12, augment=False):
     """Applies the necessary preprocessing steps to run a blazeface training.
 
     Args:
         dataset (tf.data.Dataset):
+        shuffle_buffer (int):
         batch_size (int):
+        augment (bool):
 
     Returns:
         tf.data.Dataset
@@ -113,7 +114,12 @@ def create_input_dataset(dataset, batch_size=12):
     ds = dataset.map(unpack_dct)
     ds = ds.map(preprocess_image_and_pass_landmarks)
     ds = ds.map(lambda img, lmarks: (img, landmarks_to_bboxes(lmarks), reduce_landmarks(lmarks)))
-    ds = ds.batch(batch_size)
+    if augment:
+        ds = ds.map(lambda img, bboxes, lmarks: augmentations.randomly_apply_augmentations(img, bboxes, lmarks))
+    if shuffle_buffer:
+        ds = ds.shuffle(shuffle_buffer)
+    # use padded_batch to set the output shape of the dataset
+    ds = ds.padded_batch(batch_size, padded_shapes=([None, None, 3], [None, None], [None, None, None]), padding_values=(tf.constant(0, tf.float32), tf.constant(0, tf.float32), tf.constant(0, tf.float32)))
     all_anchors = anchors.generate_anchors()
     ds = ds.map(lambda img, bboxes, lmarks: (img, target_encoder.calculate_targets(all_anchors, bboxes, lmarks)))
     return ds
