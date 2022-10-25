@@ -39,7 +39,7 @@ def main():
     """Combines all functionality
     """
     ds_train, _ = input_dataset.load_the300w_lp("train[:80%]")
-    ds_train = input_dataset.create_input_dataset(ds_train)
+    ds_train = input_dataset.create_input_dataset(ds_train, shuffle_buffer=512, batch_size=32, augment=True)
     logging.info("Loaded training dataset.")
     ds_validation, _ = input_dataset.load_the300w_lp("train[80%:]")
     ds_validation = input_dataset.create_input_dataset(ds_validation)
@@ -50,8 +50,9 @@ def main():
     os.makedirs(checkpoints_dir, exist_ok=True)
     checkpoint_cb = tf.keras.callbacks.ModelCheckpoint(os.path.join(checkpoints_dir, 'weights-{epoch:02d}.hdf5'), monitor="val_loss", save_best_only=True, save_weights_only=True)
     tensorboard_cb = tf.keras.callbacks.TensorBoard(log_dir=os.path.join(output_dir, 'tensorboard/'))
-    learning_rate_cb = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=2, verbose=1)
-    callbacks = [checkpoint_cb, tensorboard_cb, learning_rate_cb]
+    learning_rate_cb = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=10, min_delta=0.0001, verbose=1),
+    early_stop_cb = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=20)
+    callbacks = [checkpoint_cb, tensorboard_cb, learning_rate_cb, early_stop_cb]
     logging.info("Callback created.")
 
     model = blazeface.BlazeFaceModel()
@@ -60,7 +61,7 @@ def main():
     logging.info("Created and compiled model.")
     model.fit(ds_train,
               validation_data=ds_validation,
-              epochs=20,
+              epochs=200,
               callbacks=callbacks)
 
 
