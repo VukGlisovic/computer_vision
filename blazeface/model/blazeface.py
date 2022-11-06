@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from blazeface.model.custom_blocks import BlazeBlock, DoubleBlazeBlock
-from blazeface.constants import N_ANCHORS_PER_LOC, N_LANDMARKS
+from blazeface.constants import N_ANCHORS_PER_LOC, N_LANDMARKS, IMG_SIZE
 
 
 class BlazeFaceModel(tf.keras.models.Model):
@@ -73,3 +73,8 @@ class BlazeFaceModel(tf.keras.models.Model):
         out_deltas = self.deltas_concat([dbb3_out_deltas, dbb6_out_deltas])
 
         return {'deltas': out_deltas, 'labels': out_labels}
+
+    def init_model_weights(self):
+        """Initializes the model weights by running an inference.
+        """
+        _ = self(tf.random.normal(shape=(1, IMG_SIZE, IMG_SIZE, 3)))
