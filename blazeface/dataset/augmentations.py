@@ -25,7 +25,7 @@ def randomly_apply_augmentations(img, bboxes, lmarks):
     return img, bboxes, lmarks
 
 
-def get_random_bool(p=0.9):
+def get_random_bool(p=0.5):
     """Gets a random boolean. p indicates the probability of obtaining
     a True bool value as output.
 
