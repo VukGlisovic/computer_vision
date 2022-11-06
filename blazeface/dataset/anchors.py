@@ -6,6 +6,9 @@ from blazeface.constants import FMAPS_WITH_ANCHORS, N_ANCHORS_PER_LOC
 def get_anchor_scale(m, n=4, scale_min=0.1484375, scale_max=0.75):
     """Get the scale for a particular a certain index.
 
+    Based on: "SSD: Single Shot MultiBox Detector" section 2.2.
+    https://arxiv.org/pdf/1512.02325.pdf
+
     Args:
         m (int):
         n (int):
