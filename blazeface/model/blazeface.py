@@ -1,6 +1,8 @@
+import logging
 import tensorflow as tf
 
 from blazeface.model.custom_blocks import BlazeBlock, DoubleBlazeBlock
+from blazeface.dataset import anchors
 from blazeface.constants import N_ANCHORS_PER_LOC, N_LANDMARKS, IMG_SIZE
 
 
@@ -78,3 +80,24 @@ class BlazeFaceModel(tf.keras.models.Model):
         """Initializes the model weights by running an inference.
         """
         _ = self(tf.random.normal(shape=(1, IMG_SIZE, IMG_SIZE, 3)))
+
+
+def load_model(checkpoint_path, summary=False):
+    """Creates a BlazeFace model and loads weights from a checkpoint.
+
+    Args:
+        checkpoint_path (str):
+        summary (bool):
+
+    Returns:
+        tuple[tf.keras.models.Model, tf.Tensor]
+    """
+    model = BlazeFaceModel()
+    model.init_model_weights()
+    model.load_weights(checkpoint_path)
+    if summary:
+        model.summary()
+    logging.info("Loaded model from checkpoint: %s", checkpoint_path)
+    all_anchors = anchors.generate_anchors()
+    logging.info("Created all anchors.")
+    return model, all_anchors
