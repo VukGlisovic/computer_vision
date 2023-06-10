@@ -73,6 +73,7 @@ venv.bak/
 
 # project folders
 data/
+experiments/
 models/
 *_saved_model/
 *_checkpoints/
