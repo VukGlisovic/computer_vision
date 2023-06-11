@@ -23,12 +23,12 @@ def build_ViT(input_shape):
     # rescaling (normalizing pixel val between 0 and 1)
     rescale = rescale_layer(inputs)
     # generate patches with conv layer
-    patches = custom_layers.generate_patch_conv_orgPaper_f(patch_size, hidden_size, rescale)
+    patch_encodings = custom_layers.build_image_patches_encoder(patch_size, hidden_size, rescale)
 
     ######################################
     # ready for the transformer blocks
     ######################################
-    encoder_out = custom_layers.Encoder_f(transformer_layers, mlp_dim, num_heads, patches)
+    encoder_out = custom_layers.vit_encoder(transformer_layers, mlp_dim, num_heads, patch_encodings)
 
     #####################################
     #  final part (mlp to classification)

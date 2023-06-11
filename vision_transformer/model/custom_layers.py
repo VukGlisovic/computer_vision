@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def generate_patch_conv_orgPaper_f(patch_size, hidden_size, inputs):
+def build_image_patches_encoder(patch_size, hidden_size, inputs):
     """The conv layer returns a tensor of shape (bs, n_patches_height, n_patches_width, n_filters).
     This is reshaped to (bs, n_patches_height * n_patches_width, n_filters). It is basically
     flattened along the spatial dimension.
@@ -21,17 +21,18 @@ class AddPositionalEmbeddings(tf.keras.layers.Layer):
     def __init__(self, pos_embedding_init=tf.keras.initializers.RandomNormal(stddev=0.02), **kwargs):
         super().__init__(**kwargs)
         self.pos_embedding_init = pos_embedding_init
+        self.pos_embedding = None  # is created in the build
 
     def build(self, inputs_shape):
         """input_shape = (batch_size, seq_len, emb_dim). We want each
         sample in the batch to get the same positional embeddings.
         """
         pos_emb_shape = (1, inputs_shape[1], inputs_shape[2])
-        self.pos_embedding = self.add_weight(name='pos_embedding',
+        self.pos_embedding = self.add_weight(name='positional_embedding',
                                              shape=pos_emb_shape,
                                              initializer=self.pos_embedding_init)
 
-    def call(self, inputs, inputs_positions=None):
+    def call(self, inputs):
         """inputs.shape = (batch_size, seq_len, emb_dim). Thus, self.pos_embedding
         is broadcasted to match the batch size.
         """
@@ -39,6 +40,8 @@ class AddPositionalEmbeddings(tf.keras.layers.Layer):
         return inputs + pos_embedding
 
     def get_config(self):
+        """Needed to be able to save and load the model again.
+        """
         config = super().get_config()
         config.update({
             'pos_embedding_init': self.pos_embedding_init
@@ -46,31 +49,41 @@ class AddPositionalEmbeddings(tf.keras.layers.Layer):
         return config
 
 
-def mlp_block_f(mlp_dim, inputs):
+def build_mlp_block(inputs, mlp_dim, dropout_rate=0.1):
+    """ Dense -> Dropout -> Dense -> Dropout
+    The default dropout rate is from the original paper. Just like
+    the gelu activation is.
+    """
     x = tf.keras.layers.Dense(units=mlp_dim, activation=tf.nn.gelu)(inputs)
-    x = tf.keras.layers.Dropout(rate=0.1)(x)  # dropout rate is from original paper,
-    x = tf.keras.layers.Dense(units=inputs.shape[-1], activation=tf.nn.gelu)(x)  # check GELU paper
-    x = tf.keras.layers.Dropout(rate=0.1)(x)
+    x = tf.keras.layers.Dropout(rate=dropout_rate)(x)
+    x = tf.keras.layers.Dense(units=inputs.shape[-1], activation=tf.nn.gelu)(x)
+    x = tf.keras.layers.Dropout(rate=dropout_rate)(x)
     return x
 
 
-def Encoder1Dblock_f(num_heads, mlp_dim, inputs):
-    x = tf.keras.layers.LayerNormalization(dtype=inputs.dtype)(inputs)
-    x = tf.keras.layers.MultiHeadAttention(num_heads=num_heads, key_dim=inputs.shape[-1], dropout=0.1)(x, x)
-    # self attention multi-head, dropout_rate is from original implementation
-    x = tf.keras.layers.Add()([x, inputs])  # 1st residual part
+def vit_transformer_block(num_heads, mlp_dim, inputs):
+    """ layer_norm -> MultiHeadAttention -> residual_1 -> layer_norm -> mlp_block -> residual_2 """
+    x0 = tf.keras.layers.LayerNormalization(dtype=inputs.dtype)(inputs)
+    # MultiHeadAttention expects 2 arguments: the query and value. Optionally you could add a third argument
+    # that is the key, but if not given, than key is the same as value.
+    x0 = tf.keras.layers.MultiHeadAttention(num_heads=num_heads, key_dim=inputs.shape[-1], dropout=0.1)(x0, x0)
 
-    y = tf.keras.layers.LayerNormalization(dtype=x.dtype)(x)
-    y = mlp_block_f(mlp_dim, y)
-    y_1 = tf.keras.layers.Add()([y, x])  # 2nd residual part
-    return y_1
+    x0 = tf.keras.layers.Add()([x0, inputs])  # 1st residual part
+
+    x1 = tf.keras.layers.LayerNormalization(dtype=x0.dtype)(x0)
+    x1 = build_mlp_block(x1, mlp_dim)
+
+    x_2 = tf.keras.layers.Add()([x1, x0])  # 2nd residual part
+    return x_2
 
 
-def Encoder_f(num_layers, mlp_dim, num_heads, inputs):
-    x = AddPositionalEmbeddings(name='pos_embedding_input')(inputs)
+def vit_encoder(num_layers, mlp_dim, num_heads, inputs):
+    """Combines the positional embeddings with the transformer blocks.
+    """
+    x = AddPositionalEmbeddings(name='add_positional_embeddings')(inputs)
     x = tf.keras.layers.Dropout(rate=0.2)(x)
     for _ in range(num_layers):
-        x = Encoder1Dblock_f(num_heads, mlp_dim, x)
+        x = vit_transformer_block(num_heads, mlp_dim, x)
 
     encoded = tf.keras.layers.LayerNormalization(name='encoder_norm')(x)
     return encoded
