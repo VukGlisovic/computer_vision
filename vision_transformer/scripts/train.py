@@ -1,7 +1,8 @@
 import os
 import re
-import logging
+import argparse
 
+import yaml
 import tensorflow as tf
 
 from vision_transformer.constants import EXPERIMENTS_DIR
@@ -9,7 +10,21 @@ from vision_transformer.data_pipeline import input_dataset
 from vision_transformer.model import model
 
 
+def load_config(config_path):
+    """
+    Args:
+        config_path (str):
+
+    Returns:
+        dict
+    """
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+    return config
+
+
 def get_output_dir():
+    """ Dynamically determines the new output directory. """
     experiment_dirs = os.listdir(EXPERIMENTS_DIR)
     nr_last_experiment = max([int(re.findall(r"run(\d+)", exp_dir)[0]) for exp_dir in experiment_dirs])
     output_dir = os.path.join(EXPERIMENTS_DIR, f'run{nr_last_experiment+1:03d}')
@@ -17,12 +32,13 @@ def get_output_dir():
     return output_dir
 
 
-def train():
+def train(config):
+    """ Creates dataloaders, builds the model and runs a training. """
     ds_train, ds_val, _ = input_dataset.get_cifar10_data_splits()
     for x, y in ds_train.take(1):
         img_shape = list(tf.shape(x).numpy())[1:]
 
-    vit = model.build_ViT(img_shape)
+    vit = model.build_ViT(img_shape, config['model'])
     vit.summary()
 
     vit.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=2e-3),
@@ -46,4 +62,10 @@ def train():
 
 
 if __name__ == '__main__':
-    train()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config_path', default='config.yaml', type=str, help='Path to yaml file.')
+    known_args, _ = parser.parse_known_args()
+
+    train(
+        load_config(known_args.config_path)
+    )
