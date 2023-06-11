@@ -4,14 +4,6 @@ from vision_transformer.constants import CIFAR10_CLASSES
 from vision_transformer.model import model_builder_functions
 
 
-# # hyperparameters
-# transformer_layers = 6
-# patch_size = 4  # nr pixels height/width
-# hidden_size = 64
-# num_heads = 4
-# mlp_dim = 128
-
-
 def build_ViT(input_shape, model_config):
     """ Builds the ViT model. """
     # unpack model configuration
