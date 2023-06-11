@@ -3,18 +3,20 @@ import tensorflow as tf
 
 def generate_patch_conv_orgPaper_f(patch_size, hidden_size, inputs):
     """The conv layer returns a tensor of shape (bs, n_patches_height, n_patches_width, n_filters).
-    This is reshaped to (bs, n_patches_height * n_patches_width, n_filters).
+    This is reshaped to (bs, n_patches_height * n_patches_width, n_filters). It is basically
+    flattened along the spatial dimension.
     """
-    patches = tf.keras.layers.Conv2D(filters=hidden_size, kernel_size=patch_size, strides=patch_size, padding='valid')(inputs)
-    row_axis, col_axis = (1, 2)  # channels last images
+    encoded_patches = tf.keras.layers.Conv2D(filters=hidden_size, kernel_size=patch_size, strides=patch_size, padding='valid')(inputs)
+    row_axis, col_axis = 1, 2  # channels last
     seq_len = (inputs.shape[row_axis] // patch_size) * (inputs.shape[col_axis] // patch_size)
-    x = tf.reshape(patches, [-1, seq_len, hidden_size])
-    return x
+    encoded_patches = tf.keras.layers.Reshape(target_shape=[seq_len, hidden_size])(encoded_patches)
+    return encoded_patches
 
 
 class AddPositionEmbs(tf.keras.layers.Layer):
     """inputs are image patches
-    Custom layer to add positional embeddings to the inputs."""
+    Custom layer to add positional embeddings to the inputs.
+    """
 
     def __init__(self, pos_embedding_init=tf.keras.initializers.RandomNormal(stddev=0.02), **kwargs):
         super().__init__(**kwargs)
