@@ -13,7 +13,7 @@ def generate_patch_conv_orgPaper_f(patch_size, hidden_size, inputs):
     return encoded_patches
 
 
-class AddPositionEmbs(tf.keras.layers.Layer):
+class AddPositionalEmbeddings(tf.keras.layers.Layer):
     """inputs are image patches
     Custom layer to add positional embeddings to the inputs.
     """
@@ -67,7 +67,7 @@ def Encoder1Dblock_f(num_heads, mlp_dim, inputs):
 
 
 def Encoder_f(num_layers, mlp_dim, num_heads, inputs):
-    x = AddPositionEmbs(name='pos_embedding_input')(inputs)
+    x = AddPositionalEmbeddings(name='pos_embedding_input')(inputs)
     x = tf.keras.layers.Dropout(rate=0.2)(x)
     for _ in range(num_layers):
         x = Encoder1Dblock_f(num_heads, mlp_dim, x)
