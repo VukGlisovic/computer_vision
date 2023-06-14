@@ -13,14 +13,14 @@ def get_cifar10_raw_data():
     return x_train, y_train, x_test, y_test
 
 
-def get_cifar10_data_splits():
+def get_cifar10_data_splits(batch_size=128):
     """ Loads CIFAR10 data and creates train, val and test splits """
     x_train, y_train, x_test, y_test = get_cifar10_raw_data()
     x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2, random_state=42, shuffle=True)
 
-    ds_train = create_tf_dataset(x_train, y_train, shuffle_buffer=40000, batch_size=128)
-    ds_val = create_tf_dataset(x_val, y_val, shuffle_buffer=0, batch_size=128)
-    ds_test = create_tf_dataset(x_test, y_test, shuffle_buffer=0, batch_size=128)
+    ds_train = create_tf_dataset(x_train, y_train, shuffle_buffer=40000, batch_size=batch_size)
+    ds_val = create_tf_dataset(x_val, y_val, shuffle_buffer=0, batch_size=batch_size)
+    ds_test = create_tf_dataset(x_test, y_test, shuffle_buffer=0, batch_size=batch_size)
     return ds_train, ds_val, ds_test
 
 

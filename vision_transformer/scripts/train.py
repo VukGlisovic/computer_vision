@@ -34,14 +34,14 @@ def get_output_dir():
 
 def train(config):
     """ Creates dataloaders, builds the model and runs a training. """
-    ds_train, ds_val, _ = input_dataset.get_cifar10_data_splits()
+    ds_train, ds_val, _ = input_dataset.get_cifar10_data_splits(config['train']['batch_size'])
     for x, y in ds_train.take(1):
         img_shape = list(tf.shape(x).numpy())[1:]
 
     vit = model.build_ViT(img_shape, config['model'])
     vit.summary()
 
-    vit.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=2e-3),
+    vit.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=config['train']['learning_rate']),
                 loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                 metrics=[tf.keras.metrics.SparseCategoricalAccuracy(name="accuracy"),
                          tf.keras.metrics.SparseTopKCategoricalAccuracy(k=5, name="top5 acc")])
@@ -57,7 +57,7 @@ def train(config):
 
     history = vit.fit(ds_train,
                       validation_data=ds_val,
-                      epochs=120,
+                      epochs=config['train']['epochs'],
                       callbacks=callbacks)
 
 
