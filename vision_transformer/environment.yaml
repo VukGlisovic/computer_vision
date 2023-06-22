@@ -1,0 +1,17 @@
+name: vit
+channels:
+  - defaults
+  - nvidia
+dependencies:
+  - python=3.10
+  - conda-forge::pip=23.0.1
+  - conda-forge::cudatoolkit=11.2
+  - conda-forge::cudnn=8.1.0
+  - nvidia::cuda-nvcc=11.3
+  - conda-forge::scikit-learn=1.2.1
+  - conda-forge::pandas=1.5.3
+  - conda-forge::matplotlib=3.7.0
+  - conda-forge::ipykernel=6.21.2
+  - pip:
+    - PyYAML==6.0
+    - tensorflow==2.9.3
