@@ -1,0 +1,13 @@
+name: huggingface-pt
+channels:
+  - defaults
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - ipykernel=6.25.0
+  - python=3.10
+  - pip
+  - pip:
+    - torch==2.1.1
+    - transformers==4.35.2
