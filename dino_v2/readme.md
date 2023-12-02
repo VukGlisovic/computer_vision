@@ -1,4 +1,4 @@
-# VisionTransformer
+# DINO
 
 
 <a href="https://github.com/facebookresearch/dinov2">DINOv2 github</a>
