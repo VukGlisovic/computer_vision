@@ -9,5 +9,6 @@ dependencies:
   - python=3.10
   - pip
   - pip:
+    - datasets==2.15.0
     - torch==2.1.1
     - transformers==4.35.2
