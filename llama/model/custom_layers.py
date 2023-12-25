@@ -133,10 +133,10 @@ class SwiGLU(nn.Module):
 
         self.linear_gate = nn.Linear(size, size)  # Linear transformation for the gating mechanism
         self.linear = nn.Linear(size, size)  # Linear transformation for the main branch
-        self.beta = torch.randn(1, requires_grad=True)  # Random initialization of the beta parameter
+        self.beta = torch.ones(1, requires_grad=True)  # initialize to 1
 
         # Using nn.Parameter for beta to ensure it's recognized as a learnable parameter
-        self.beta = nn.Parameter(torch.ones(1))
+        self.beta = nn.Parameter(self.beta)
         self.register_parameter("beta", self.beta)
 
     def forward(self, x):
