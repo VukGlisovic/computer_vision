@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import torch
 from torch import nn
 from torch.nn import functional as F
 
@@ -11,31 +12,45 @@ class Llama(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        # Embedding layer for token representations
+        self.vocab_size = self.config['vocab_size']
+        self.context_window = self.config['context_window']
+        # embedding layer for token index to vector representation
         self.embeddings = nn.Embedding(config['vocab_size'], config['d_model'])
-        # Sequential block of LlamaBlocks based on the specified number of layers
+        # multiple LlamaBlocks sequentially
         self.llama_blocks = nn.Sequential(
             OrderedDict([(f"llama_{i}", LlamaBlock(config)) for i in range(config['n_layers'])])
         )
-        # Feedforward network (FFN) for final output
+        # feedforward network (FFN) for final output
         self.ffn = nn.Sequential(
             nn.Linear(config['d_model'], config['d_model']),
             SwiGLU(config['d_model']),
             nn.Linear(config['d_model'], config['vocab_size']),
         )
 
-    def forward(self, idx, targets=None):
-        # Input token indices are passed through the embedding layer
-        x = self.embeddings(idx)
-        # Process the input through the LlamaBlocks
+    def forward(self, indices, targets=None):
+        # input token indices to embedding vectors
+        x = self.embeddings(indices)
+        # process the embeddings through the LlamaBlocks
         x = self.llama_blocks(x)
-        # Pass the processed input through the final FFN for output logits
+        # pass the processed input through the final FFN for output logits
         logits = self.ffn(x)
 
-        # If targets are not provided, return only the logits
         if targets is None:
             return logits
-        # If targets are provided, compute and return the cross-entropy loss
         else:
-            loss = F.cross_entropy(logits.view(-1, self.config['vocab_size']), targets.view(-1))
+            loss = F.cross_entropy(logits.view(-1, self.vocab_size), targets.view(-1))
             return logits, loss
+
+    # Generate function for text generation using the trained model
+    def generate(self, device, tokenizer=None, max_new_tokens=30):
+        indices = torch.zeros(1, 1).long().to(device)  # shape (batch dim, characters dim)
+        for _ in range(max_new_tokens):
+            logits = self(indices[:, -self.context_window:])  # model inference for the next character
+            last_time_step_logits = logits[:, -1, :]  # [batch_size (of one), (last) timestep, (all) logits]
+            p = F.softmax(last_time_step_logits, dim=-1)  # logits to probabilities
+            idx_next = torch.multinomial(p, num_samples=1)  # sample from the distribution to get the next token
+            indices = torch.cat([indices, idx_next], dim=-1)  # append to the sequence
+        generated_indices = indices.tolist()[0]  # [0] to remove the batch dim
+        if tokenizer is None:
+            return generated_indices
+        return tokenizer.decode(generated_indices)
