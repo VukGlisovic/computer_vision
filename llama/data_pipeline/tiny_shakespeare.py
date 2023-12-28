@@ -13,5 +13,9 @@ def download_tiny_shakespeare(file_name="tinyshakespeare.txt"):
     # store in DATA_DIR
     os.makedirs(DATA_DIR, exist_ok=True)
     save_path = os.path.join(DATA_DIR, file_name)
-    urllib.request.urlretrieve(url, save_path)
+    if os.path.isfile(save_path):
+        print(f"Tiny shakespeare already downloaded to: '{save_path}'")
+    else:
+        urllib.request.urlretrieve(url, save_path)
+        print(f"Downloaded tiny shakespeare to: '{save_path}'")
     return save_path
