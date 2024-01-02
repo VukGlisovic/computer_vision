@@ -42,7 +42,7 @@ class Llama(nn.Module):
             return logits, loss
 
     # Generate function for text generation using the trained model
-    def generate(self, device, tokenizer=None, max_new_tokens=30):
+    def generate(self, device, tokenizer=None, tk_kwargs=None, max_new_tokens=30):
         indices = torch.zeros(1, 1).long().to(device)  # shape (batch dim, characters dim)
         for _ in range(max_new_tokens):
             logits = self(indices[:, -self.context_window:])  # model inference for the next character
@@ -53,4 +53,4 @@ class Llama(nn.Module):
         generated_indices = indices.tolist()[0]  # [0] to remove the batch dim
         if tokenizer is None:
             return generated_indices
-        return tokenizer.decode(generated_indices)
+        return tokenizer.decode(generated_indices, **tk_kwargs)
