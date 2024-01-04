@@ -8,6 +8,12 @@ from llama.constants import DATA_DIR
 
 
 def how_to_get_gutenberg_subset():
+    """Gives some simple instructions on how to get a subset
+    of the gutenberg dataset.
+
+    Returns:
+        str: where the unzipped data should be stored.
+    """
     folder_name = 'gutenberg_dataset_subset'
     save_path = os.path.join(DATA_DIR, folder_name)
     print("You can download the dataset from here:\n"
@@ -18,12 +24,29 @@ def how_to_get_gutenberg_subset():
 
 
 def preprocess_text(text):
+    """Applies some simple preprocessing to the text.
+
+    Args:
+        text (str):
+
+    Returns:
+        str
+    """
     # text = re.sub(r'(?<!\n)\n(?!\n)', '', text)  # remove single \n
     text = re.sub(r'\n\n+', '\n\n', text)
     return text
 
 
 def load_gutenberg_data(data_dir):
+    """Loads the gutenberg data from disk. Traverses the data_dir
+    and looks for .txt files.
+
+    Args:
+        data_dir (str):
+
+    Returns:
+        tuple[dict, pd.DataFrame]
+    """
     text_files = glob(os.path.join(data_dir, '**/*.txt'), recursive=True)
     text_dict = {}
     for filepath in tqdm(text_files):
