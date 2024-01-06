@@ -19,7 +19,7 @@ def evaluate_loss(model, dl):
     model.eval()
 
     losses = []
-    for x, y in dl:
+    for x, y in tqdm(dl):
         _, loss = model(x, y)
         losses.append(loss.item())
 

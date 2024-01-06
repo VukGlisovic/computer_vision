@@ -66,11 +66,19 @@ class RoPEAttentionHead(nn.Module):
         return R
 
     def forward(self, x, return_attn_weights=False):
-        # x: input tensor of shape (batch, sequence length, dimension)
+        """
+        Args:
+            x (Tensor): shape [batch size, sequence length, hidden dim]
+            return_attn_weights (bool):
 
+        Returns:
+            Tensor: can additionally return attention weights
+        """
         b, m, d = x.shape  # batch size, sequence length, dimension
 
-        # Linear transformations for Q, K, and V
+        # Linear transformations (Dense layers) for Q, K, and V
+        # Since the Dense layers are applied on the dimension, you can make the sequence length as long as you want,
+        # it will not add any trainable parameters to these Dense layers.
         q = self.w_q(x)
         k = self.w_k(x)
         v = self.w_v(x)
