@@ -9,7 +9,7 @@ class TextDataset(Dataset):
     def __init__(self, text_data, tokenizer, context_window, device, dtype=torch.int8, verbose=1):
         """
         Args:
-            text_data (str): one big string with all text concatenated.
+            text_data (list[str]): list of strings containing the texts.
             tokenizer (Tokenizer):
             context_window (int):
             device (str): whether to have data on CPU or GPU
