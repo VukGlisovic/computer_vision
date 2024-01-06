@@ -54,3 +54,9 @@ class Llama(nn.Module):
         if tokenizer is None:
             return generated_indices
         return tokenizer.decode(generated_indices, **tk_kwargs)
+
+
+def print_model_parameters(model):
+    nr_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    nr_non_trainable_params = sum(p.numel() for p in model.parameters() if not p.requires_grad)
+    print(f"Number of trainable/non-trainable parameters: {nr_trainable_params:,} / {nr_non_trainable_params:,}")
