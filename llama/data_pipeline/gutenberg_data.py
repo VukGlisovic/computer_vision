@@ -49,7 +49,7 @@ def load_gutenberg_data(data_dir):
     """
     text_files = glob(os.path.join(data_dir, '**/*.txt'), recursive=True)
     text_dict = {}
-    for filepath in tqdm(text_files):
+    for filepath in tqdm(text_files, desc="Loading Gutenberg text data"):
         try:
             with open(filepath, 'r') as f:
                 text_dict[os.path.basename(filepath)] = preprocess_text(f.read())

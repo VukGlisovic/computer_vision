@@ -3,6 +3,8 @@ import pandas as pd
 import torch
 from tqdm import tqdm
 
+from llama.model.model import save_model
+
 
 @torch.no_grad()
 def evaluate_loss(model, dl):
@@ -26,7 +28,7 @@ def evaluate_loss(model, dl):
     return np.mean(losses)
 
 
-def train(model, optimizer, dl_train, dl_val, n_epochs, scheduler=None):
+def train(model, optimizer, dl_train, dl_val, n_epochs, scheduler=None, ckpt_path=None):
     """Trains a model on the training dataloader while also evaluating the model
     on the validation dataloader at the end of each epoch.
 
@@ -37,6 +39,7 @@ def train(model, optimizer, dl_train, dl_val, n_epochs, scheduler=None):
         dl_val (Dataloader): validation pytorch dataloader
         n_epochs (int):
         scheduler (Scheduler): pytorch scheduler
+        ckpt_path (str): template where to save the model. E.g. model-ep{epoch:02d}.pth
 
     Returns:
         pd.DataFrame: contains resulting metrics
@@ -79,5 +82,9 @@ def train(model, optimizer, dl_train, dl_val, n_epochs, scheduler=None):
         loss_val = evaluate_loss(model, dl_val)
         metrics['val'].append(loss_val)
         print(f"Ep {epoch + 1}/{n_epochs} | Train loss {metrics['train'][-1]:.3f} | Val loss {loss_val:.3f}")
+
+        # save model checkpoint if checkpoint path configured
+        if ckpt_path:
+            save_model(model, ckpt_path.format(epoch=epoch))
 
     return pd.DataFrame(metrics)
