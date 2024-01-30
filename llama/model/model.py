@@ -41,9 +41,15 @@ class Llama(nn.Module):
             loss = F.cross_entropy(logits.view(-1, self.vocab_size), targets.view(-1))
             return logits, loss
 
-    # Generate function for text generation using the trained model
-    def generate(self, device, tokenizer=None, tk_kwargs=None, max_new_tokens=30):
-        indices = torch.zeros(1, 1).long().to(device)  # shape (batch dim, characters dim)
+    @torch.no_grad()
+    def generate(self, device, text_start, tokenizer=None, tk_kwargs=None, max_new_tokens=30, dtype=torch.int16):
+        # initialize first indices to text_start if provided, otherwise simply initialize to zero.
+        if text_start:
+            assert tokenizer is not None, "When providing a text_start, you have to provide a tokenizer as well."
+            indices = torch.tensor(tokenizer.encode(text_start).ids, dtype=dtype).expand([1, -1]).long().to(device)
+        else:
+            indices = torch.zeros(1, 1).long().to(device)  # shape (batch dim, characters dim)
+        # generate new tokens
         for _ in range(max_new_tokens):
             logits = self(indices[:, -self.context_window:])  # model inference for the next character
             last_time_step_logits = logits[:, -1, :]  # [batch_size (of one), (last) timestep, (all) logits]
@@ -51,6 +57,7 @@ class Llama(nn.Module):
             idx_next = torch.multinomial(p, num_samples=1)  # sample from the distribution to get the next token
             indices = torch.cat([indices, idx_next], dim=-1)  # append to the sequence
         generated_indices = indices.tolist()[0]  # [0] to remove the batch dim
+        # decode the generated tokens if required
         if tokenizer is None:
             return generated_indices
         return tokenizer.decode(generated_indices, **tk_kwargs)
