@@ -1,0 +1,16 @@
+name: svtr
+channels:
+  - defaults
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - ipykernel=6.28.0
+  - matplotlib=3.8.3
+  - pandas=2.2.1
+  - python=3.10
+  - pip
+  - pip:
+    - torch==2.2.1
+    - torchvision==0.17.1
+    - tqdm==4.66.2
