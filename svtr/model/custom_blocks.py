@@ -69,3 +69,27 @@ class PatchEmbedding(nn.Module):
         x = x.flatten(start_dim=2, end_dim=3)  # flatten sothat later we can easily add a position embedding
         x = x.permute((0, 2, 1))  # out shape: [bs, nr_patches, hdim2]
         return x
+
+
+class MLP(nn.Module):
+
+    def __init__(self, in_dim, hidden_dim_factor=2., act=nn.GELU, dropout=0.):
+        super().__init__()
+        self.in_dim = in_dim
+        self.hidden_dim_factor = hidden_dim_factor
+        self.dropout = dropout
+
+        out_dim = in_dim
+        hidden_dim = int(in_dim * hidden_dim_factor)
+        self.dense1 = nn.Linear(in_dim, hidden_dim)
+        self.act = act()
+        self.dense2 = nn.Linear(hidden_dim, out_dim)
+        self.drop = nn.Dropout(dropout)
+
+    def forward(self, x):
+        x = self.dense1(x)
+        x = self.act(x)
+        x = self.drop(x)
+        x = self.dense2(x)
+        x = self.drop(x)
+        return x
