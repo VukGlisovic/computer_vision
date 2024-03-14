@@ -1,7 +1,7 @@
 from torch import nn
 
 
-class CBALayer(nn.Module):
+class CBABlock(nn.Module):
     """Convolution, BatchNorm, Activation (CBA) block.
     """
 
