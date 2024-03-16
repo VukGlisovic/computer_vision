@@ -13,6 +13,33 @@ config_tiny = {
 }
 
 
+config_small = {
+    'embed_dim': [96, 192, 256],
+    'out_dim': 192,
+    'stages': [['local']*3, ['local']*5 + ['global'], ['global']*6],
+    'num_heads': [3, 6, 8],
+    'local_mixer': [[7, 11], [7, 11], [7, 11]]
+}
+
+
+config_base = {
+    'embed_dim': [128, 256, 384],
+    'out_dim': 256,
+    'stages': [['local']*3, ['local']*5 + ['global'], ['global']*9],
+    'num_heads': [4, 8, 12],
+    'local_mixer': [[7, 11], [7, 11], [7, 11]]
+}
+
+
+config_large = {
+    'embed_dim': [192, 256, 512],
+    'out_dim': 384,
+    'stages': [['local']*3, ['local']*7 + ['global']*2, ['global']*9],
+    'num_heads': [6, 8, 16],
+    'local_mixer': [[7, 11], [7, 11], [7, 11]]
+}
+
+
 class SVTRNet(nn.Module):
 
     def __init__(
