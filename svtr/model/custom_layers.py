@@ -81,6 +81,7 @@ class WindowedMultiheadAttention(nn.Module):
             # flatten attention mask for each location and prepend two dimensions to match attentions rank
             mask = mask.reshape((1, 1, H*W, -1))
             self.mask = torch.from_numpy(mask)
+            self.mask = nn.Parameter(self.mask, requires_grad=False)
 
     def forward(self, x):
         bs = x.shape[0]  # batch size
