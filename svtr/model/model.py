@@ -40,7 +40,7 @@ config_large = {
 }
 
 
-class SVTRNet(nn.Module):
+class SVTR(nn.Module):
 
     def __init__(
             self,
