@@ -1,11 +1,9 @@
-import os
-
 import torch
 import torchvision
 from torchvision import transforms
 from torch.utils.data import Dataset
 
-from svtr.constants import PROJECT_PATH
+from svtr.constants import DATA_DIR
 
 
 class ConcatenatedMNISTDataset(Dataset):
@@ -26,10 +24,11 @@ class ConcatenatedMNISTDataset(Dataset):
     ```
     """
 
-    def __init__(self, num_digits, train=True, root=os.path.join(PROJECT_PATH, 'data')):
+    def __init__(self, num_digits, train=True, root=DATA_DIR, device='cpu'):
         self.num_digits = num_digits
         self.train = train
         self.root = root
+        self.device = device
         # create MNIST transformation sequence (images will have dynamic range [0, 1])
         mnist_transform = transforms.Compose([
             transforms.ToTensor(),
@@ -52,10 +51,10 @@ class ConcatenatedMNISTDataset(Dataset):
         images = []
         targets = []
         start = index * self.num_digits
-        for i in range(start, start +self.num_digits):
+        for i in range(start, start+self.num_digits):
             image, target = self.mnist_dataset[i]
             images.append(image)
             targets.append(target)
         concatenated_image = torch.cat(images, dim=2)  # Concatenate along width dimension
         targets = torch.tensor(targets)
-        return concatenated_image, targets
+        return concatenated_image.to(self.device), targets.to(self.device)
