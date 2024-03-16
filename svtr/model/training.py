@@ -74,7 +74,7 @@ def train(model, optimizer, dl_train, dl_val, n_epochs, scheduler=None, ckpt_pat
 
             loss_train = loss.item()
             train_losses.append(loss_train)
-            pbar.set_description(f"Ep {epoch + 1}/{n_epochs} | Train loss {loss_train:.4f}")
+            pbar.set_description(f"Ep {epoch + 1}/{n_epochs} | Train loss {np.mean(train_losses):.4f}")
 
         metrics['train'].append(np.mean(train_losses))
 
