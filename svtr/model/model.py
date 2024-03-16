@@ -60,6 +60,7 @@ class SVTR(nn.Module):
         self.out_channels = out_channels
         self.patch_embedding = custom_blocks.PatchEmbedding(image_shape=self.img_shape, hdim1=self.config['embed_dim'][0] // 2, hdim2=self.config['embed_dim'][0])
         self.emb_indices = torch.arange(0, self.patch_embedding.nr_patches, dtype=torch.int32)
+        self.emb_indices = nn.Parameter(self.emb_indices, requires_grad=False)
         self.pos_embedding = nn.Embedding(num_embeddings=self.patch_embedding.nr_patches, embedding_dim=self.patch_embedding.hdim2)
 
         self.stage1 = custom_blocks.MixingBlocksMerging(
