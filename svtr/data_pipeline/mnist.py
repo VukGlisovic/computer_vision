@@ -38,6 +38,9 @@ class ConcatenatedMNISTDataset(Dataset):
         self.mnist_dataset = torchvision.datasets.MNIST(
             root=root, train=train, download=True, transform=mnist_transform
         )
+        # character to index mapping
+        self.char_to_idx = dict(zip(range(10), range(10)))
+        self.char_to_idx[0] = 10
 
     def __len__(self):
         return len(self.mnist_dataset) // self.num_digits
@@ -46,7 +49,8 @@ class ConcatenatedMNISTDataset(Dataset):
         """
         Output shape of image: [C, H, W]
         Since the targets are all digits and already nicely aligned with their indices,
-        we don't have to apply a character to index mapping.
+        we don't have to apply a character to index mapping except for digit 0 since we
+        reserve 0 for the blank index.
         """
         images = []
         targets = []
@@ -54,7 +58,7 @@ class ConcatenatedMNISTDataset(Dataset):
         for i in range(start, start+self.num_digits):
             image, target = self.mnist_dataset[i]
             images.append(image)
-            targets.append(target)
+            targets.append(self.char_to_idx[target])
         concatenated_image = torch.cat(images, dim=2)  # Concatenate along width dimension
         targets = torch.tensor(targets)
         return concatenated_image.to(self.device), targets.to(self.device)
