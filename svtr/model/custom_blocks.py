@@ -122,7 +122,7 @@ class SequentialMixingBlocks(nn.Module):
         self.mixers = mixing_type_list
         self.in_hw = in_hw
 
-        self.mixing_blocks = []
+        self.mixing_blocks = nn.ModuleList()
         for mixer in mixing_type_list:
             block = MixingBlock(
                 embed_dim=embed_dim,
@@ -157,8 +157,8 @@ class MixingBlocksMerging(SequentialMixingBlocks):
                  linear_dropout=0.,
                  act=nn.GELU):
         super().__init__(embed_dim, out_dim, num_heads, mixing_type_list, window_shape, in_hw, mlp_hidden_dim_factor, attn_dropout, linear_dropout, act)
-        self.out_h = self.in_hw[0] // 2
-        self.out_w = self.in_hw[1]
+        self.out_h = in_hw[0] // 2
+        self.out_w = in_hw[1]
 
         self.merging_conv = nn.Conv2d(
             in_channels=embed_dim,
@@ -199,7 +199,7 @@ class MixingBlocksCombining(SequentialMixingBlocks):
         super().__init__(embed_dim, out_dim, num_heads, mixing_type_list, window_shape, in_hw, mlp_hidden_dim_factor, attn_dropout, linear_dropout, act)
         self.out_drop = out_drop
         self.out_h = 1  # because of pooling over height axis
-        self.out_w = self.in_hw[1]
+        self.out_w = in_hw[1]
 
         self.pooling = lambda x: x.mean(axis=1, keepdim=False)
         self.dense = nn.Linear(
@@ -212,9 +212,7 @@ class MixingBlocksCombining(SequentialMixingBlocks):
     def forward(self, x):
         # mixing blocks: local/global multi-head attention layers
         x = super().forward(x)
-        # shape transformations before merging_conv: [bs, nr_patches, embed_dim] -> [bs, embed_dim, nr_patches] -> [bs, embed_dim, height, width]
-        # x = x.permute([0, 2, 1])
-        # x = x.reshape([x.shape[0], self.embed_dim, self.in_HW[0], self.in_HW[1]])
+        # shape transformations before combining: [bs, nr_patches, embed_dim] -> [bs, embed_dim, nr_patches] -> [bs, embed_dim, height, width]
         x = x.reshape([x.shape[0], self.in_hw[0], self.in_hw[1], self.embed_dim])
         # combining: pool over height dimension and apply transformations
         x = self.pooling(x)  # out shape [bs, width, embed_dim]
