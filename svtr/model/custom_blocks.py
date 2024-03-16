@@ -201,7 +201,6 @@ class MixingBlocksCombining(SequentialMixingBlocks):
         self.out_h = 1  # because of pooling over height axis
         self.out_w = in_hw[1]
 
-        self.pooling = lambda x: x.mean(axis=1, keepdim=False)
         self.dense = nn.Linear(
             in_features=embed_dim,
             out_features=out_dim
@@ -215,7 +214,7 @@ class MixingBlocksCombining(SequentialMixingBlocks):
         # shape transformations before combining: [bs, nr_patches, embed_dim] -> [bs, embed_dim, nr_patches] -> [bs, embed_dim, height, width]
         x = x.reshape([x.shape[0], self.in_hw[0], self.in_hw[1], self.embed_dim])
         # combining: pool over height dimension and apply transformations
-        x = self.pooling(x)  # out shape [bs, width, embed_dim]
+        x = x.mean(axis=1, keepdim=False)  # pooling height dim; out shape [bs, width, embed_dim]
         x = self.dense(x)  # out shape [bs, width, out_dim]
         x = self.act(x)
         x = self.dropout(x)
