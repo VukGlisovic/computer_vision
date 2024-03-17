@@ -18,7 +18,7 @@ def main():
     dataloader_train = DataLoader(dataset=dataset_train, batch_size=32, shuffle=True)
     dataloader_test = DataLoader(dataset=dataset_test, batch_size=64, shuffle=False)
 
-    model_svtr = SVTR(architecture='tiny', img_shape=[1, 32, 160])
+    model_svtr = SVTR(architecture='tiny', img_shape=[1, 32, 160], vocab_size=dataset_train.vocab_size)
     model_svtr = model_svtr.to(device)
     print_model_parameters(model_svtr)
     optimizer = torch.optim.Adam(model_svtr.parameters(), lr=1e-3)

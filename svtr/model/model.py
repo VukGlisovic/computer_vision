@@ -51,13 +51,15 @@ class SVTR(nn.Module):
             last_drop=0.1,
             attn_drop_rate=0.,
             out_channels=192,
-            out_char_num=25,
+            vocab_size=11,
             act=nn.GELU):
         super().__init__()
         self.architecture = architecture
         self.config = eval(f'config_{architecture}')
         self.img_shape = img_shape
         self.out_channels = out_channels
+        self.vocab_size = vocab_size
+
         self.patch_embedding = custom_blocks.PatchEmbedding(image_shape=self.img_shape, hdim1=self.config['embed_dim'][0] // 2, hdim2=self.config['embed_dim'][0])
         self.emb_indices = torch.arange(0, self.patch_embedding.nr_patches, dtype=torch.int32)
         self.emb_indices = nn.Parameter(self.emb_indices, requires_grad=False)
@@ -105,7 +107,7 @@ class SVTR(nn.Module):
 
         self.dense_out = nn.Linear(
             in_features=self.config['out_dim'],
-            out_features=out_char_num
+            out_features=vocab_size
         )
 
     def forward(self, x):

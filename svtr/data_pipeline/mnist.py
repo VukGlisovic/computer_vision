@@ -24,7 +24,8 @@ class ConcatenatedMNISTDataset(Dataset):
     ```
     """
     vocab = ['<BLK>', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
-    indices = list(range(len(vocab)))
+    vocab_size = len(vocab)
+    indices = list(range(vocab_size))
 
     def __init__(self, num_digits, train=True, root=DATA_DIR, device='cpu'):
         self.num_digits = num_digits
