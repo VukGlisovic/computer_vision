@@ -23,6 +23,8 @@ class ConcatenatedMNISTDataset(Dataset):
         pass
     ```
     """
+    vocab = ['<BLK>', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
+    indices = list(range(len(vocab)))
 
     def __init__(self, num_digits, train=True, root=DATA_DIR, device='cpu'):
         self.num_digits = num_digits
@@ -39,8 +41,8 @@ class ConcatenatedMNISTDataset(Dataset):
             root=root, train=train, download=True, transform=mnist_transform
         )
         # character to index mapping
-        self.char_to_idx = dict(zip(range(10), range(10)))
-        self.char_to_idx[0] = 10
+        self.char_to_idx = dict(zip(self.vocab, self.indices))
+        self.idx_to_char = dict(zip(self.indices, self.vocab))
 
     def __len__(self):
         return len(self.mnist_dataset) // self.num_digits
@@ -58,7 +60,7 @@ class ConcatenatedMNISTDataset(Dataset):
         for i in range(start, start+self.num_digits):
             image, target = self.mnist_dataset[i]
             images.append(image)
-            targets.append(self.char_to_idx[target])
+            targets.append(self.char_to_idx[str(target)])
         concatenated_image = torch.cat(images, dim=2)  # Concatenate along width dimension
         targets = torch.tensor(targets)
         return concatenated_image.to(self.device), targets.to(self.device)
