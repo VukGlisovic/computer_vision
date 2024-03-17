@@ -11,6 +11,8 @@ dependencies:
   - python=3.10
   - pip
   - pip:
+    - flashlight-text==0.0.6
     - torch==2.2.1
+    - torchaudio==2.2.1
     - torchvision==0.17.1
     - tqdm==4.66.2
