@@ -50,7 +50,7 @@ def train(model, optimizer, dl_train, dl_val, n_epochs, scheduler=None, ckpt_pat
     # create loss function
     ctc_loss = CTCLoss(blank=0)
     # Placeholder for storing losses
-    metrics = {'train': [], 'val': []}
+    metrics = {'train_loss': [], 'val_loss': [], 'train_ned': [], 'val_ned': []}
     if scheduler:
         metrics['lr'] = []
 
@@ -76,7 +76,7 @@ def train(model, optimizer, dl_train, dl_val, n_epochs, scheduler=None, ckpt_pat
             train_losses.append(loss_train)
             pbar.set_description(f"Ep {epoch + 1}/{n_epochs} | Train loss {np.mean(train_losses):.4f}")
 
-        metrics['train'].append(np.mean(train_losses))
+        metrics['train_loss'].append(np.mean(train_losses))
 
         # adjust the learning rate if there is a lr scheduler
         if scheduler:
@@ -84,9 +84,9 @@ def train(model, optimizer, dl_train, dl_val, n_epochs, scheduler=None, ckpt_pat
             scheduler.step()
 
         # evaluate loss on the validation set
-        loss_val = evaluate_loss(model, ctc_loss, dl_val)
-        metrics['val'].append(loss_val)
-        print(f"Ep {epoch + 1}/{n_epochs} | Train loss {metrics['train'][-1]:.3f} | Val loss {loss_val:.3f}")
+        val_loss = evaluate_loss(model, ctc_loss, dl_val)
+        metrics['val_loss'].append(val_loss)
+        print(f"Ep {epoch + 1}/{n_epochs} | Train loss {metrics['train_loss'][-1]:.3f} | Val loss {val_loss:.3f}")
 
         # save model checkpoint if checkpoint path configured
         if ckpt_path:
