@@ -10,7 +10,7 @@ from svtr.model.ctc_decoder import CTCDecoder
 
 
 @torch.no_grad()
-def evaluate_loss(model, dl, loss_fnc, normalized_edit_distance):
+def evaluate_metrics(model, dl, loss_fnc, normalized_edit_distance):
     """Evaluates the performance of the model on the provided dataloader.
 
     Args:
@@ -25,15 +25,11 @@ def evaluate_loss(model, dl, loss_fnc, normalized_edit_distance):
     # set the model to evaluation mode
     model.eval()
 
-    losses = []
-    ned = []
     for x, y in tqdm(dl):
         pred = model(x)
-        loss = loss_fnc(pred, y)
-        losses.append(loss.item())
-        ned.append(normalized_edit_distance(pred, y))
-
-    return np.mean(losses), np.mean(ned)
+        # update state in loss/metric objects
+        loss_fnc(pred, y)
+        normalized_edit_distance(pred, y)
 
 
 def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=None, ckpt_path=None):
@@ -66,8 +62,6 @@ def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=N
         # set model in training mode
         model.train()
 
-        train_losses = []
-        train_ned = []
         for x, y in (pbar := tqdm(dl_train)):
             # Zero out gradients
             optimizer.zero_grad()
@@ -75,19 +69,18 @@ def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=N
             # Forward pass through the model to calculate logits and loss
             logits = model(x)
             loss = ctc_loss(logits, y)
-            ned = normalized_edit_distance(logits, y)
+            normalized_edit_distance(logits, y)
 
             # Backward pass and optimization step
             loss.backward()
             optimizer.step()
 
-            loss_train = loss.item()
-            train_losses.append(loss_train)
-            train_ned.append(ned)
-            pbar.set_description(f"Ep {epoch + 1}/{n_epochs} | Train loss {np.mean(train_losses):.4f} | Train ned {np.mean(train_ned):.4f}")
+            pbar.set_description(f"Ep {epoch + 1}/{n_epochs} | Train loss {ctc_loss.compute():.4f} | Train ned {normalized_edit_distance.compute():.4f}")
 
-        metrics['train_loss'].append(np.mean(train_losses))
-        metrics['train_ned'].append(np.mean(train_ned))
+        metrics['train_loss'].append(ctc_loss.compute())
+        metrics['train_ned'].append(normalized_edit_distance.compute())
+        ctc_loss.reset()
+        normalized_edit_distance.reset()
 
         # adjust the learning rate if there is a lr scheduler
         if scheduler:
@@ -95,12 +88,14 @@ def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=N
             scheduler.step()
 
         # evaluate loss on the validation set
-        val_loss, val_ned = evaluate_loss(model, dl_val, ctc_loss, normalized_edit_distance)
-        metrics['val_loss'].append(val_loss)
-        metrics['val_ned'].append(val_ned)
+        evaluate_metrics(model, dl_val, ctc_loss, normalized_edit_distance)
+        metrics['val_loss'].append(ctc_loss.compute())
+        metrics['val_ned'].append(normalized_edit_distance.compute())
+        ctc_loss.reset()
+        normalized_edit_distance.reset()
         print(f"Ep {epoch + 1}/{n_epochs} "
               f"| Train loss {metrics['train_loss'][-1]:.4f} | Train ned {metrics['train_ned'][-1]:.4f}"
-              f"| Val loss {val_loss:.4f} | Val ned {val_ned:.4f}")
+              f"| Val loss {metrics['val_loss'][-1]:.4f} | Val ned {metrics['val_ned'][-1]:.4f}")
 
         # save model checkpoint if checkpoint path configured
         if ckpt_path:
