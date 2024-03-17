@@ -122,7 +122,9 @@ class SVTR(nn.Module):
         # mixing and combining stage 3
         c = self.stage3(cc2)
         # final dense transforming into character predictions for every vertical patch
-        return self.dense_out(c)
+        out = self.dense_out(c)
+        out = out.log_softmax(axis=2)
+        return out
 
 
 def print_model_parameters(model):

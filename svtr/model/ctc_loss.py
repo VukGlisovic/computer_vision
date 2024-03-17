@@ -14,6 +14,14 @@ class CTCLoss:
         self.ctc_loss = torch.nn.CTCLoss(blank=blank, reduction=reduction, zero_infinity=zero_infinity)
 
     def __call__(self, y_pred, y_true, *args, **kwargs):
+        """
+        Args:
+            y_pred (tensor):
+            y_true (tensor):
+
+        Returns:
+            tensor: a scalar representing the loss value.
+        """
         # y_pred shape: [bs, nr_patches, vocab_size] ([bs, time_steps, nr_classes])
         bs, n_timesteps, n_classes = y_pred.shape
         _, target_length = y_true.shape
