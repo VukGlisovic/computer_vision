@@ -1,4 +1,5 @@
-import numpy as np
+import os.path
+
 import pandas as pd
 import torch
 from tqdm import tqdm
@@ -32,7 +33,7 @@ def evaluate_metrics(model, dl, loss_fnc, normalized_edit_distance):
         normalized_edit_distance(pred, y)
 
 
-def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=None, ckpt_path=None):
+def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=None, ckpt_path=None, output_dir=None):
     """Trains a model on the training dataloader while also evaluating the model
     on the validation dataloader at the end of each epoch.
 
@@ -45,36 +46,39 @@ def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=N
         n_epochs (int):
         scheduler (Scheduler): pytorch scheduler
         ckpt_path (str): template where to save the model. E.g. model-ep{epoch:02d}.pth
+        output_dir (str):
 
     Returns:
         pd.DataFrame: contains resulting metrics
     """
     # create loss function
     ctc_loss = CTCLoss(blank=0)
+    # create metrics
     normalized_edit_distance = NormalizedEditDistance(ctc_decoder)
-    # Placeholder for storing losses
+    # placeholder for storing losses and metrics
     metrics = {'train_loss': [], 'val_loss': [], 'train_ned': [], 'val_ned': []}
     if scheduler:
         metrics['lr'] = []
 
-    # Iterate through epochs
+    # start training
     for epoch in range(n_epochs):
         # set model in training mode
         model.train()
 
         for x, y in (pbar := tqdm(dl_train)):
-            # Zero out gradients
+            # zero out gradients
             optimizer.zero_grad()
 
-            # Forward pass through the model to calculate logits and loss
+            # forward pass through the model to calculate log_softmax output and loss
             logits = model(x)
             loss = ctc_loss(logits, y)
             normalized_edit_distance(logits, y)
 
-            # Backward pass and optimization step
+            # backward pass and optimization step
             loss.backward()
             optimizer.step()
 
+            # update progress bar
             pbar.set_description(f"Ep {epoch + 1}/{n_epochs} | Train loss {ctc_loss.compute():.4f} | Train ned {normalized_edit_distance.compute():.4f}")
 
         metrics['train_loss'].append(ctc_loss.compute())
@@ -101,4 +105,7 @@ def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=N
         if ckpt_path:
             save_model(model, ckpt_path.format(epoch=epoch))
 
-    return pd.DataFrame(metrics)
+    df_metrics = pd.DataFrame(metrics)
+    if output_dir:
+        df_metrics.to_csv(os.path.join(output_dir, 'metrics.csv'), index=False)
+    return df_metrics

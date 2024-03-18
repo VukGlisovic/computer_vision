@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 
 
@@ -13,7 +12,8 @@ class CTCLoss:
             zero_infinity (bool):
         """
         self.ctc_loss = torch.nn.CTCLoss(blank=blank, reduction=reduction, zero_infinity=zero_infinity)
-        self.loss_list = []
+        self.avg_loss = -1
+        self.n = 0
 
     def __call__(self, y_pred, y_true, *args, **kwargs):
         """
@@ -31,11 +31,19 @@ class CTCLoss:
         input_lengths = torch.full(size=(bs,), fill_value=n_timesteps, dtype=torch.long)
         target_lengths = torch.full(size=(bs,), fill_value=target_length, dtype=torch.long)
         loss = self.ctc_loss(y_pred, y_true, input_lengths, target_lengths)
-        self.loss_list.append(loss.item())
+        self.update(loss.item(), bs)
         return loss
 
+    def update(self, loss, bs):
+        """Incrementally update the average loss.
+        """
+        new_n = self.n + bs
+        self.avg_loss = self.avg_loss * (self.n / new_n) + loss * (bs / new_n)
+        self.n += bs
+
     def compute(self):
-        return np.mean(self.loss_list)
+        return self.avg_loss
 
     def reset(self):
-        self.loss_list = []
+        self.avg_loss = -1
+        self.n = 0

@@ -14,16 +14,26 @@ class NormalizedEditDistance:
             decoder (CTCDecoder):
         """
         self.decoder = decoder
-        self.ned_list = []
+        self.avg_ned = -1
+        self.n = 0
 
     def __call__(self, y_pred, y_true, *args, **kwargs):
         y_pred_indices, _ = self.decoder(y_pred, to_text=False)
-        ned = [edit_distance(pred, label) / len(label) for pred, label in zip(y_pred_indices, y_true)]
-        self.ned_list += ned
-        return ned
+        ned_batch = [edit_distance(pred, label) / len(label) for pred, label in zip(y_pred_indices, y_true)]
+        self.update(ned_batch)
+        return ned_batch
+
+    def update(self, ned_list):
+        """Incrementally update the average normalized edit distance.
+        """
+        nr_samples = len(ned_list)
+        new_n = self.n + nr_samples
+        self.avg_ned = self.avg_ned * (self.n / new_n) + np.mean(ned_list) * (nr_samples / new_n)
+        self.n += nr_samples
 
     def compute(self):
-        return np.mean(self.ned_list)
+        return self.avg_ned
 
     def reset(self):
-        self.ned_list = []
+        self.avg_ned = -1
+        self.n = 0
