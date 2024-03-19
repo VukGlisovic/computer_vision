@@ -56,7 +56,7 @@ def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=N
     # create metrics
     normalized_edit_distance = NormalizedEditDistance(ctc_decoder)
     # placeholder for storing losses and metrics
-    metrics = {'train_loss': [], 'val_loss': [], 'train_ned': [], 'val_ned': []}
+    metrics = {'train_loss': [], 'val_loss': [], 'train_ned': [], 'val_ned': [], 'train_acc': [], 'val_acc': []}
     if scheduler:
         metrics['lr'] = []
 
@@ -79,10 +79,11 @@ def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=N
             optimizer.step()
 
             # update progress bar
-            pbar.set_description(f"Ep {epoch + 1}/{n_epochs} | Train loss {ctc_loss.compute():.4f} | Train ned {normalized_edit_distance.compute():.4f}")
+            pbar.set_description(f"Ep {epoch + 1}/{n_epochs} | Train loss {ctc_loss.compute():.4f} | Train ned/acc {normalized_edit_distance.ned_result():.4f}/{normalized_edit_distance.acc_result()*100:.2f}")
 
         metrics['train_loss'].append(ctc_loss.compute())
-        metrics['train_ned'].append(normalized_edit_distance.compute())
+        metrics['train_ned'].append(normalized_edit_distance.ned_result())
+        metrics['train_acc'].append(normalized_edit_distance.acc_result())
         ctc_loss.reset()
         normalized_edit_distance.reset()
 
@@ -94,12 +95,13 @@ def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=N
         # evaluate loss on the validation set
         evaluate_metrics(model, dl_val, ctc_loss, normalized_edit_distance)
         metrics['val_loss'].append(ctc_loss.compute())
-        metrics['val_ned'].append(normalized_edit_distance.compute())
+        metrics['val_ned'].append(normalized_edit_distance.ned_result())
+        metrics['val_acc'].append(normalized_edit_distance.acc_result())
         ctc_loss.reset()
         normalized_edit_distance.reset()
         print(f"Ep {epoch + 1}/{n_epochs} "
-              f"| Train loss {metrics['train_loss'][-1]:.4f} | Train ned {metrics['train_ned'][-1]:.4f}"
-              f"| Val loss {metrics['val_loss'][-1]:.4f} | Val ned {metrics['val_ned'][-1]:.4f}")
+              f"| Train loss {metrics['train_loss'][-1]:.4f} | Train ned/acc {metrics['train_ned'][-1]:.4f}/{metrics['train_acc'][-1]*100:.2f}"
+              f"| Val loss {metrics['val_loss'][-1]:.4f} | Val ned/acc {metrics['val_ned'][-1]:.4f}/{metrics['val_acc'][-1]*100:.2f}")
 
         # save model checkpoint if checkpoint path configured
         if ckpt_path:
