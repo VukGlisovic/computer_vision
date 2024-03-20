@@ -66,10 +66,10 @@ class WindowedMultiheadAttention(nn.Module):
         self.attn_dropout = nn.Dropout(attn_dropout)
         self.proj = nn.Linear(embed_dim, embed_dim)
         self.linear_dropout = nn.Dropout(linear_dropout)
-        H, W = in_hw
         if mixing_type.lower() == 'local':
             # we only want to attend to a local regions. Therefore, we need to make sure far away patches get no attention.
             # this is achieved by basically setting the attention values of out of far away patches to -inf.
+            H, W = in_hw
             kh, kw = window_shape  # kernel height, kernel width
             mask = np.full([H * W, H + kh - 1, W + kw - 1], -np.inf, dtype=np.float32)
             for h, w in product(range(0, H), range(0, W)):
