@@ -2,6 +2,7 @@ import torch
 from torch import nn
 
 from svtr.model import custom_blocks
+from svtr.model import custom_layers
 
 
 config_tiny = {
@@ -70,10 +71,7 @@ class SVTR(nn.Module):
         self.vocab_size = vocab_size
 
         self.patch_embedding = custom_blocks.PatchEmbedding(image_shape=self.img_shape, hdim1=self.config['embed_dim'][0] // 2, hdim2=self.config['embed_dim'][0])
-        self.emb_indices = torch.arange(0, self.patch_embedding.nr_patches, dtype=torch.int32)
-        self.emb_indices = nn.Parameter(self.emb_indices, requires_grad=False)
-        self.pos_embedding = nn.Embedding(num_embeddings=self.patch_embedding.nr_patches, embedding_dim=self.patch_embedding.hdim2)
-        nn.init.uniform_(self.pos_embedding.weight, -0.1, 0.1)  # Small range for initialization
+        self.pos_embedding = custom_layers.PositionEmbedding(num_embeddings=self.patch_embedding.nr_patches, embedding_dim=self.patch_embedding.hdim2, in_hw=[self.patch_embedding.out_h, self.patch_embedding.out_w])
 
         self.stage1 = custom_blocks.MixingBlocksMerging(
             embed_dim=self.config['embed_dim'][0],
@@ -124,7 +122,7 @@ class SVTR(nn.Module):
         # embed image into patches with conv and batchnorm layers
         cc0 = self.patch_embedding(x)
         # add positional embedding
-        x = cc0 + self.pos_embedding(self.emb_indices)
+        x = self.pos_embedding(cc0)
         # mixing and merging stage 1
         cc1 = self.stage1(x)
         # mixing and merging stage 2

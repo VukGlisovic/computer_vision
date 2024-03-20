@@ -33,6 +33,25 @@ class CBA(nn.Module):
         return x
 
 
+class PositionEmbedding(nn.Module):
+
+    def __init__(self, num_embeddings, embedding_dim, in_hw):
+        super().__init__()
+        self.num_embeddings = num_embeddings
+        self.embedding_dim = embedding_dim
+        self.in_hw = in_hw
+        self.h, self.w = in_hw
+
+        self.emb_indices = torch.arange(0, num_embeddings, dtype=torch.int32)
+        self.emb_indices = nn.Parameter(self.emb_indices, requires_grad=False)
+        self.pos_embedding = nn.Embedding(num_embeddings=num_embeddings, embedding_dim=embedding_dim)
+        nn.init.uniform_(self.pos_embedding.weight, -0.1, 0.1)  # Small range for initialization
+
+    def forward(self, x):
+        x = x + self.pos_embedding(self.emb_indices)
+        return x
+
+
 class WindowedMultiheadAttention(nn.Module):
     """Inspired by https://pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html
     """
