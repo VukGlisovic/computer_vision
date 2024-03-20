@@ -40,6 +40,15 @@ config_large = {
 }
 
 
+config_custom = {
+    'embed_dim': [64, 128, 256],
+    'out_dim': 192,
+    'stages': [['global']*2, ['global']*2, ['global']*2],
+    'num_heads': [2, 4, 8],
+    'local_mixer': [[7, 11], [7, 11], [7, 11]]
+}
+
+
 class SVTR(nn.Module):
 
     def __init__(
@@ -64,6 +73,7 @@ class SVTR(nn.Module):
         self.emb_indices = torch.arange(0, self.patch_embedding.nr_patches, dtype=torch.int32)
         self.emb_indices = nn.Parameter(self.emb_indices, requires_grad=False)
         self.pos_embedding = nn.Embedding(num_embeddings=self.patch_embedding.nr_patches, embedding_dim=self.patch_embedding.hdim2)
+        nn.init.uniform_(self.pos_embedding.weight, -0.1, 0.1)  # Small range for initialization
 
         self.stage1 = custom_blocks.MixingBlocksMerging(
             embed_dim=self.config['embed_dim'][0],
