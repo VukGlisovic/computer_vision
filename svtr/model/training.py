@@ -79,7 +79,9 @@ def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=N
             optimizer.step()
 
             # update progress bar
-            pbar.set_description(f"Ep {epoch + 1}/{n_epochs} | Train loss {ctc_loss.compute():.4f} | Train ned/acc {normalized_edit_distance.ned_result():.4f}/{normalized_edit_distance.acc_result()*100:.2f}")
+            pbar.set_description(f"Ep {epoch + 1}/{n_epochs} "
+                                 f"| Train loss {ctc_loss.compute():.4f} "
+                                 f"| Train ned/acc {normalized_edit_distance.ned_result():.4f}/{normalized_edit_distance.acc_result()*100:.2f}")
 
         metrics['train_loss'].append(ctc_loss.compute())
         metrics['train_ned'].append(normalized_edit_distance.ned_result())

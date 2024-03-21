@@ -173,7 +173,7 @@ class MixingBlocksMerging(SequentialMixingBlocks):
         x = super().forward(x)
         # shape transformations before merging_conv: [bs, nr_patches, embed_dim] -> [bs, embed_dim, nr_patches] -> [bs, embed_dim, height, width]
         x = x.permute([0, 2, 1])
-        x = x.reshape([x.shape[0], self.embed_dim, self.in_hw[0], self.in_hw[1]])
+        x = x.reshape([x.shape[0], self.embed_dim, self.in_hw[0], -1])
         # merging: subsample in the height dimension
         x = self.merging_conv(x)
         # shape transformations: [bs, embed_dim, height/2, width] -> [bs, embed_dim, nr_patches] -> [bs, nr_patches, embed_dim]
@@ -212,7 +212,7 @@ class MixingBlocksCombining(SequentialMixingBlocks):
         # mixing blocks: local/global multi-head attention layers
         x = super().forward(x)
         # shape transformations before combining: [bs, nr_patches, embed_dim] -> [bs, embed_dim, nr_patches] -> [bs, embed_dim, height, width]
-        x = x.reshape([x.shape[0], self.in_hw[0], self.in_hw[1], self.embed_dim])
+        x = x.reshape([x.shape[0], self.in_hw[0], -1, self.embed_dim])
         # combining: pool over height dimension and apply transformations
         x = x.mean(axis=1, keepdim=False)  # pooling height dim; out shape [bs, width, embed_dim]
         x = self.dense(x)  # out shape [bs, width, out_dim]
