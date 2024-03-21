@@ -48,7 +48,21 @@ class PositionEmbedding(nn.Module):
         nn.init.uniform_(self.pos_embedding.weight, -0.1, 0.1)  # Small range for initialization
 
     def forward(self, x):
-        x = x + self.pos_embedding(self.emb_indices)
+        if self.training:
+            x = x + self.pos_embedding(self.emb_indices)
+        else:
+            # eval mode; the input image can be of different size
+            nr_patches = x.shape[1]
+            w = nr_patches // self.h
+            weight_interpolated = nn.functional.interpolate(
+                self.pos_embedding.weight.permute([1, 0]).reshape(1, self.embedding_dim, self.h, self.w),
+                size=[self.h, w],
+                mode='bicubic',
+                align_corners=True,
+            )
+            weight_interpolated = weight_interpolated.permute([0, 2, 3, 1]).reshape(self.h*w, self.embedding_dim)
+            indices = torch.arange(0, self.h*w, dtype=torch.int32, device=weight_interpolated.device)
+            x = x + nn.functional.embedding(indices, weight_interpolated)
         return x
 
 
