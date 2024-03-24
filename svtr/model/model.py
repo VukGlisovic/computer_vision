@@ -10,7 +10,7 @@ config_tiny = {
     'out_dim': 192,
     'stages': [['local']*3, ['local']*3 + ['global']*3, ['global']*3],
     'num_heads': [2, 4, 8],
-    'local_mixer': [[7, 11], [7, 11], [7, 11]]
+    'window_shape': [[7, 11], [7, 11], [7, 11]]
 }
 
 
@@ -19,7 +19,7 @@ config_small = {
     'out_dim': 192,
     'stages': [['local']*3, ['local']*5 + ['global'], ['global']*6],
     'num_heads': [3, 6, 8],
-    'local_mixer': [[7, 11], [7, 11], [7, 11]]
+    'window_shape': [[7, 11], [7, 11], [7, 11]]
 }
 
 
@@ -28,7 +28,7 @@ config_base = {
     'out_dim': 256,
     'stages': [['local']*3, ['local']*5 + ['global'], ['global']*9],
     'num_heads': [4, 8, 12],
-    'local_mixer': [[7, 11], [7, 11], [7, 11]]
+    'window_shape': [[7, 11], [7, 11], [7, 11]]
 }
 
 
@@ -37,7 +37,7 @@ config_large = {
     'out_dim': 384,
     'stages': [['local']*3, ['local']*7 + ['global']*2, ['global']*9],
     'num_heads': [6, 8, 16],
-    'local_mixer': [[7, 11], [7, 11], [7, 11]]
+    'window_shape': [[7, 11], [7, 11], [7, 11]]
 }
 
 
@@ -46,7 +46,7 @@ config_custom = {
     'out_dim': 192,
     'stages': [['global']*2, ['global']*2, ['global']*2],
     'num_heads': [2, 4, 8],
-    'local_mixer': [[7, 11], [7, 11], [7, 11]]
+    'window_shape': [[7, 11], [7, 11], [7, 11]]
 }
 
 
@@ -78,7 +78,7 @@ class SVTR(nn.Module):
             out_dim=self.config['embed_dim'][1],
             num_heads=self.config['num_heads'][0],
             mixing_type_list=self.config['stages'][0],
-            window_shape=self.config['local_mixer'][0],
+            window_shape=self.config['window_shape'][0],
             in_hw=[self.patch_embedding.out_h, self.patch_embedding.out_w],
             mlp_hidden_dim_factor=mlp_ratio,
             attn_dropout=attn_drop_rate,
@@ -91,7 +91,7 @@ class SVTR(nn.Module):
             out_dim=self.config['embed_dim'][2],
             num_heads=self.config['num_heads'][1],
             mixing_type_list=self.config['stages'][1],
-            window_shape=self.config['local_mixer'][1],
+            window_shape=self.config['window_shape'][1],
             in_hw=[self.stage1.out_h, self.stage1.out_w],
             mlp_hidden_dim_factor=mlp_ratio,
             attn_dropout=attn_drop_rate,
@@ -104,7 +104,7 @@ class SVTR(nn.Module):
             out_dim=self.config['out_dim'],
             num_heads=self.config['num_heads'][2],
             mixing_type_list=self.config['stages'][2],
-            window_shape=self.config['local_mixer'][2],
+            window_shape=self.config['window_shape'][2],
             in_hw=[self.stage2.out_h, self.stage2.out_w],
             mlp_hidden_dim_factor=mlp_ratio,
             attn_dropout=attn_drop_rate,
