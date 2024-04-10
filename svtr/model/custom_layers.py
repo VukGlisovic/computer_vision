@@ -100,21 +100,25 @@ class WindowedMultiheadAttention(nn.Module):
         self.proj = nn.Linear(embed_dim, embed_dim)
         self.linear_dropout = nn.Dropout(linear_dropout)
         if mixing_type.lower() == 'local':
-            # we only want to attend to a local regions. Therefore, we need to make sure far away patches get no attention.
-            # this is achieved by basically setting the attention values of out of far away patches to -inf.
-            H, W = in_hw
-            kh, kw = window_shape  # kernel height, kernel width
-            mask = np.full([H * W, H + kh - 1, W + kw - 1], -np.inf, dtype=np.float32)
-            for h, w in product(range(0, H), range(0, W)):
-                # for every location, create a mask pointing to the region around that location
-                mask[h * W + w, h:h + kh, w:w + kw] = 0.
-            # remove edges that are out of the image
-            pad_h, pad_w = kh // 2, kw // 2
-            mask = mask[:, pad_h: H+pad_h, pad_w: W+pad_w]
-            # flatten attention mask for each location and prepend two dimensions to match attentions rank
-            mask = mask.reshape((1, 1, H*W, -1))
-            self.mask = torch.from_numpy(mask)
-            self.mask = nn.Parameter(self.mask, requires_grad=False)
+            mask = self.create_local_attention_mask(self.in_hw)
+            # create mask once for training for speed (instead of recreating every forward pass)
+            self.mask = nn.Parameter(mask, requires_grad=False)
+
+    def create_local_attention_mask(self, in_hw):
+        # we only want to attend to a local regions. Therefore, we need to make sure far away patches get no attention.
+        # this is achieved by basically setting the attention values of out of far away patches to -inf.
+        H, W = in_hw
+        kh, kw = self.window_shape  # kernel height, kernel width
+        mask = np.full([H * W, H + kh - 1, W + kw - 1], -np.inf, dtype=np.float32)
+        for h, w in product(range(0, H), range(0, W)):
+            # for every location, create a mask pointing to the region around that location
+            mask[h * W + w, h:h + kh, w:w + kw] = 0.
+        # remove edges that are out of the image
+        pad_h, pad_w = kh // 2, kw // 2
+        mask = mask[:, pad_h: H+pad_h, pad_w: W+pad_w]
+        # flatten attention mask for each location and prepend two dimensions to match attentions rank
+        mask = mask.reshape((1, 1, H*W, -1))
+        return torch.from_numpy(mask)
 
     def forward(self, x):
         bs = x.shape[0]  # batch size
@@ -129,7 +133,15 @@ class WindowedMultiheadAttention(nn.Module):
         attn = (q.matmul(k.permute((0, 1, 3, 2))))
         if self.mixing_type == 'local':
             # when looking at a local region around a location, we want to remove all attention outside of that region
-            attn += self.mask
+            if self.training:
+                attn += self.mask
+            else:
+                # flexible input size, so we need to recalculate the attention mask
+                h = self.in_hw[0]
+                nr_patches = x.shape[1]
+                w = nr_patches // h
+                mask = self.create_local_attention_mask([h, w])
+                attn += mask.to(attn.device)
         attn = torch.softmax(attn, dim=-1)
         attn = self.attn_dropout(attn)
         # multiply the attentions with V (the value matrix)
