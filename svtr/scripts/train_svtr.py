@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from svtr.data_pipeline.mnist import ConcatenatedMNISTDataset
-from svtr.model.model import SVTR
+from svtr.model.svtr import SVTR
 from svtr.model.utils import print_model_parameters
 from svtr.model.crnn import CRNN
 from svtr.model.ctc_decoder import CTCDecoder
