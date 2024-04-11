@@ -4,7 +4,7 @@ import pandas as pd
 import torch
 from tqdm import tqdm
 
-from svtr.model.model import save_model
+from svtr.model.utils import save_model
 from svtr.model.ctc_loss import CTCLoss
 from svtr.model.metrics import NormalizedEditDistance
 from svtr.model.ctc_decoder import CTCDecoder

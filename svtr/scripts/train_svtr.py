@@ -5,7 +5,9 @@ import torch
 from torch.utils.data import DataLoader
 
 from svtr.data_pipeline.mnist import ConcatenatedMNISTDataset
-from svtr.model.model import SVTR, print_model_parameters
+from svtr.model.model import SVTR
+from svtr.model.utils import print_model_parameters
+from svtr.model.crnn import CRNN
 from svtr.model.ctc_decoder import CTCDecoder
 from svtr.model.training import train
 from svtr.constants import EXPERIMENTS_DIR
@@ -20,7 +22,8 @@ def main(architecture='tiny'):
     dataloader_train = DataLoader(dataset=dataset_train, batch_size=32, shuffle=True)
     dataloader_test = DataLoader(dataset=dataset_test, batch_size=64, shuffle=False)
     # create model and corresponding decoder
-    model_svtr = SVTR(architecture=architecture, img_shape=[1, 32, 160], vocab_size=dataset_train.vocab_size)
+    # model_svtr = SVTR(architecture=architecture, img_shape=[1, 32, 160], vocab_size=dataset_train.vocab_size)
+    model_svtr = CRNN(img_shape=[1, 32, 160], vocab_size=dataset_train.vocab_size)
     model_svtr = model_svtr.to(device)
     decoder = CTCDecoder(dataset_train.vocab)
     print_model_parameters(model_svtr)
