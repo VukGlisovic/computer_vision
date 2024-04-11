@@ -35,7 +35,7 @@ class CRNN(nn.Module):
             nn.ReLU()
         )
 
-        lstm_in_c = 256
+        lstm_in_c = 128
         lstm_out_c = 256
         self.time_dense = nn.Linear(encoder_out_c, lstm_in_c)
         self.time_act = nn.ReLU()
