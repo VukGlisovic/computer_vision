@@ -33,7 +33,8 @@ def main(architecture='tiny'):
     print_model_parameters(model)
     # create optimizer and learning rate scheduler
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.1)
+    n_epochs = 8
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=(n_epochs // 3) + 1, gamma=0.1)
     # create checkpoint directory
     output_dir = os.path.join(EXPERIMENTS_DIR, f'svtr_{architecture}')
     checkpoints_dir = os.path.join(output_dir, 'checkpoints')
@@ -46,7 +47,7 @@ def main(architecture='tiny'):
         optimizer,
         dataloader_train,
         dataloader_test,
-        n_epochs=5,
+        n_epochs=n_epochs,
         scheduler=lr_scheduler,
         ckpt_path=checkpoint_path,
         output_dir=output_dir
