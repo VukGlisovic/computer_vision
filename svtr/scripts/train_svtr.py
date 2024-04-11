@@ -36,9 +36,9 @@ def main(architecture='tiny'):
     n_epochs = 8
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=(n_epochs // 3) + 1, gamma=0.1)
     # create checkpoint directory
-    output_dir = os.path.join(EXPERIMENTS_DIR, f'svtr_{architecture}')
+    output_dir = os.path.join(EXPERIMENTS_DIR, f'model_{architecture}')
     checkpoints_dir = os.path.join(output_dir, 'checkpoints')
-    checkpoint_path = os.path.join(checkpoints_dir, 'svtr_ep{epoch:02d}.pth')
+    checkpoint_path = os.path.join(checkpoints_dir, 'ckpt_ep{epoch:02d}.pth')
     os.makedirs(checkpoints_dir, exist_ok=True)
     # execute main training function
     train(
