@@ -52,18 +52,17 @@ config_custom = {
 
 class SVTR(nn.Module):
 
-    def __init__(
-            self,
-            architecture='tiny',
-            img_shape=[3, 32, 100],
-            use_pos_emb=True,
-            mlp_ratio=4,
-            drop_rate=0.,
-            last_drop=0.1,
-            attn_drop_rate=0.,
-            out_channels=192,
-            vocab_size=11,
-            act=nn.GELU):
+    def __init__(self,
+                 architecture='tiny',
+                 img_shape=[3, 32, 100],
+                 use_pos_emb=True,
+                 mlp_ratio=4,
+                 drop_rate=0.,
+                 last_drop=0.1,
+                 attn_drop_rate=0.,
+                 out_channels=192,
+                 vocab_size=11,
+                 act=nn.GELU):
         super().__init__()
         self.architecture = architecture
         self.config = eval(f'config_{architecture}')
