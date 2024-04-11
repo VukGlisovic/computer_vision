@@ -6,8 +6,8 @@ from torch.utils.data import DataLoader
 
 from svtr.data_pipeline.mnist import ConcatenatedMNISTDataset
 from svtr.model.svtr import SVTR
-from svtr.model.utils import print_model_parameters
 from svtr.model.crnn import CRNN
+from svtr.model.utils import print_model_parameters
 from svtr.model.ctc_decoder import CTCDecoder
 from svtr.model.training import train
 from svtr.constants import EXPERIMENTS_DIR
@@ -22,13 +22,17 @@ def main(architecture='tiny'):
     dataloader_train = DataLoader(dataset=dataset_train, batch_size=32, shuffle=True)
     dataloader_test = DataLoader(dataset=dataset_test, batch_size=64, shuffle=False)
     # create model and corresponding decoder
-    # model_svtr = SVTR(architecture=architecture, img_shape=[1, 32, 160], vocab_size=dataset_train.vocab_size)
-    model_svtr = CRNN(img_shape=[1, 32, 160], vocab_size=dataset_train.vocab_size)
-    model_svtr = model_svtr.to(device)
+    if architecture.lower() == 'crnn':
+        print("Building CRNN model.")
+        model = CRNN(img_shape=[1, 32, 160], vocab_size=dataset_train.vocab_size)
+    else:
+        print(f"Building SVTR model variant: '{architecture}'.")
+        model = SVTR(architecture=architecture, img_shape=[1, 32, 160], vocab_size=dataset_train.vocab_size)
+    model = model.to(device)
     decoder = CTCDecoder(dataset_train.vocab)
-    print_model_parameters(model_svtr)
+    print_model_parameters(model)
     # create optimizer and learning rate scheduler
-    optimizer = torch.optim.Adam(model_svtr.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.1)
     # create checkpoint directory
     output_dir = os.path.join(EXPERIMENTS_DIR, f'svtr_{architecture}')
@@ -37,7 +41,7 @@ def main(architecture='tiny'):
     os.makedirs(checkpoints_dir, exist_ok=True)
     # execute main training function
     train(
-        model_svtr,
+        model,
         decoder,
         optimizer,
         dataloader_train,
@@ -52,6 +56,7 @@ def main(architecture='tiny'):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--architecture', type=str, default='tiny',
-                        help="Choose the SVTR architecture size. Options are: tiny, small, base and large.")
+                        help="Choose the SVTR architecture size. Options are: 'tiny', 'small', 'base' and 'large'. Or "
+                             "train with the CRNN model by inputting 'crnn'.")
     known_args, _ = parser.parse_known_args()
     main(known_args.architecture)
