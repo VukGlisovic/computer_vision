@@ -1,0 +1,14 @@
+name: dreambooth
+channels:
+  - defaults
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - ipykernel=6.28.0
+  - matplotlib=3.9.2
+  - python=3.10
+  - pip=24.2
+  - pip:
+    - autotrain-advanced==0.8.20
+    - diffusers[torch]==0.27.2
