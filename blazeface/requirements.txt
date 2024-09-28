@@ -7,4 +7,4 @@ scipy==1.10.0
 tensorflow==2.11.1
 tensorflow_datasets==4.6.0
 decord==0.6.0
-opencv-python==4.6.0.66
+opencv-python==4.8.1.78
