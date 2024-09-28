@@ -2,7 +2,7 @@ import numpy as np
 from PIL import Image
 
 
-def show_images(imgs, resize=1024):
+def show_images(imgs, resize=512):
     """Combines the list of images into one image to show.
 
     Args:
@@ -13,8 +13,8 @@ def show_images(imgs, resize=1024):
         PIL.Image.Image
     """
     n_imgs = len(imgs)
-    n_rows = int(np.ceil(n_imgs ** 0.5))
-    n_cols = int(np.ceil(n_imgs / n_rows))
+    n_cols = int(np.ceil(n_imgs ** 0.5))
+    n_rows = int(np.ceil(n_imgs / n_cols))
 
     if resize is not None:
         imgs = [img.resize((resize, resize)) for img in imgs]
