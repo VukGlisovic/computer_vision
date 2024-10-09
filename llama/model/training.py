@@ -44,9 +44,6 @@ def train(model, optimizer, dl_train, dl_val, n_epochs, scheduler=None, ckpt_pat
     Returns:
         pd.DataFrame: contains resulting metrics
     """
-    # set model in training mode
-    model.train()
-
     # Placeholder for storing losses
     metrics = {'train': [], 'val': []}
     if scheduler:
@@ -54,6 +51,8 @@ def train(model, optimizer, dl_train, dl_val, n_epochs, scheduler=None, ckpt_pat
 
     # Iterate through epochs
     for epoch in range(n_epochs):
+        # set model in training mode
+        model.train()
 
         train_losses = []
         for x, y in (pbar := tqdm(dl_train)):
