@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def spectral_entropy(fft):
+def spectral_entropy(fft: np.ndarray) -> float:
 	"""Calculates the spectral entropy of an image.
 	"""
 	magnitude_spectrum = np.abs(fft)  # calculates the magnitude via sqrt(real^2 + imag^2)
@@ -13,7 +13,22 @@ def spectral_entropy(fft):
 	return entropy
 
 
-def fft_quality(img, block_freq=60, t=10, to_gray=True, show=False):
+def fft_quality(img: np.ndarray, block_freq: int = 60, to_gray: bool = True, show: bool = False) -> float:
+	"""Calculates the spectral entropy of the input img.
+
+	Args:
+		img:
+		block_freq: which frequencies in the fft to block from spectral
+			entropy calculations.
+		t: threshold above which the img is deemed good quality
+		to_gray: whether the spectrum entropy calculation should be done
+			on the grayscale image or the RGB image.
+		show: if True, then plots the input image, the magnitude spectrum
+			and the reconstructed image.
+
+	Returns:
+		The spectral entropy value
+	"""
 	if to_gray:
 		# convert RGB image to grayscale image
 		img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -40,10 +55,12 @@ def fft_quality(img, block_freq=60, t=10, to_gray=True, show=False):
 
 	entropy = spectral_entropy(fft_filtered)
 
-	return entropy, entropy >= t
+	return entropy
 
 
-def visualize_fft_images(img, fft_shifted_filtered, fft_filtered):
+def visualize_fft_images(img: np.ndarray, fft_shifted_filtered: np.ndarray, fft_filtered: np.ndarray) -> None:
+	"""Plots the input image, the magnitude spectrum and the reconstructed image.
+	"""
 	# use fft_filtered_shifted for magnitude calculation
 	magnitude_spectrum = np.sqrt(np.abs(fft_shifted_filtered))
 	magnitude_spectrum = magnitude_spectrum.mean(axis=-1)

@@ -9,6 +9,3 @@ Create the python environment with the yaml file:
 ```shell
 conda env create -f environment.yaml
 ```
-
-
-## How to run the code

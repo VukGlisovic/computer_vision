@@ -1,3 +1,9 @@
+"""
+This script expects as input a path to a video file or a
+webcam stream, and it outputs a stream of images (video
+frames) annotated with text describing the quality of each
+frame.
+"""
 import argparse
 
 import cv2
@@ -11,23 +17,24 @@ def main(video, threshold):
 		video = int(video)
 	cap = cv2.VideoCapture(video)
 
-	# Check if the webcam is opened correctly
+	# Check if the video or webcam is opened correctly
 	if not cap.isOpened():
 		raise IOError("Cannot load video or open webcam")
 
-	# loop over the frames from the video stream
+	# Loop over the frames from the video stream
 	while True:
-		# load the next frame
+		# Load the next frame
 		ret, frame = cap.read()
 
-		# If frame is read correctly ret is True
+		# If the frame is read correctly ret is True
 		if not ret:
 			print("Error reading frame.")
 			break
 
 		frame = utils.resize(frame, size=512)
 
-		quality_score, is_good_quality = fft_quality(frame, block_freq=60, t=threshold, to_gray=True, show=False)
+		quality_score = fft_quality(frame, block_freq=60, to_gray=True, show=False)
+		is_good_quality = (quality_score >= threshold)
 
 		# annotate the image
 		frame = utils.annotate_quality_result(frame, quality_score, is_good_quality)

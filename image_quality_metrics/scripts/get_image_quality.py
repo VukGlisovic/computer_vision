@@ -1,3 +1,8 @@
+"""
+This script expects as input a path to an image, and it outputs
+the same image annotated with text describing the quality of the
+image.
+"""
 import argparse
 
 import cv2
@@ -6,13 +11,14 @@ from image_quality_metrics.quality_metrics import utils
 from image_quality_metrics.quality_metrics.fft import fft_quality
 
 
-def main(path, threshold):
+def main(path: str, threshold: float):
 	# load the image for which to check the quality
 	img = cv2.imread(path)
 	img = utils.resize(img, size=512)
 
 	# calculate the quality score
-	quality_score, is_good_quality = fft_quality(img, block_freq=40, t=threshold, to_gray=False, show=True)
+	quality_score = fft_quality(img, block_freq=40, to_gray=False, show=True)
+	is_good_quality = (quality_score >= threshold)
 
 	# annotate the image
 	img = utils.annotate_quality_result(img, quality_score, is_good_quality)
