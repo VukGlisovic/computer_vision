@@ -1,15 +1,9 @@
 import cv2
+import numpy as np
 
 
-def resize(img, size):
-	"""Resizes while preserving aspect ratio.
-
-	Args:
-		img (np.ndarray):
-		size (int):
-
-	Returns:
-		np.ndarray
+def resize(img: np.ndarray, size: int) -> np.ndarray:
+	"""Resizes the img while preserving aspect ratio.
 	"""
 	h, w, _ = img.shape
 	r = max(h / size, w / size)
@@ -18,7 +12,10 @@ def resize(img, size):
 	return img
 
 
-def annotate_quality_result(img, quality_score, is_good_quality):
+def annotate_quality_result(img: np.ndarray, quality_score: float, is_good_quality: bool) -> np.ndarray:
+	"""Adds text to an image indicating whether the image is of
+	good or bad quality.
+	"""
 	# color is in BGR format -> (0, 255, 0)=green, (0, 0, 255)=red
 	color = (0, 255, 0) if is_good_quality else (0, 0, 255)
 	text = f"Good quality ({quality_score:.4f})" if is_good_quality else f"Bad quality ({quality_score:.4f})"
