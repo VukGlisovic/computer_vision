@@ -36,7 +36,7 @@ def plot_quality_scores(quality_scores: List[float], output_dir: str):
 	plt.savefig(os.path.join(output_dir, 'quality_scores.jpg'))
 
 
-def main(video: str, nr_frames: int, output_dir: str) -> None:
+def main(video: str, nr_frames: int, block_freq: int, output_dir: str) -> None:
 	cap = cv2.VideoCapture(video)
 
 	# Check if the webcam is opened correctly
@@ -56,7 +56,7 @@ def main(video: str, nr_frames: int, output_dir: str) -> None:
 
 		# calculate quality and annotate frame
 		frame = utils.resize(frame, size=512)
-		quality_score = fft_quality(frame, block_freq=40, to_gray=True, show=False)
+		quality_score = fft_quality(frame, block_freq=block_freq, to_gray=True, show=False)
 		frame = utils.annotate_quality_result(frame, quality_score, is_good_quality=True)
 
 		# save results
@@ -76,12 +76,14 @@ def main(video: str, nr_frames: int, output_dir: str) -> None:
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-v", "--video", type=str, help="Specify a path to a video file.")
-	parser.add_argument("-n", "--nr_frames", type=int, default=5, help="Number of frames to extract.")
+	parser.add_argument("-n", "--nr_frames", type=int, default=10, help="Number of frames to extract.")
+	parser.add_argument("-b", "--block_freq", type=int, default=20, help="The number of lower frequencies to block.")
 	parser.add_argument("-o", "--output_dir", type=str, default="extracted_frames/", help="Where to store the extracted frames.")
 	known_args, _ = parser.parse_known_args()
 
 	main(
 		known_args.video,
 		known_args.nr_frames,
+		known_args.block_freq,
 		known_args.output_dir
 	)
