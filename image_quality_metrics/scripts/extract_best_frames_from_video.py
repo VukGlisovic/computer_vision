@@ -5,27 +5,29 @@ extracts the highest quality frames from the video stream.
 import os
 import argparse
 import heapq
+from typing import List
 
 import cv2
+import numpy as np
 import matplotlib.pyplot as plt
 
 from image_quality_metrics.quality_metrics import utils
 from image_quality_metrics.quality_metrics.fft import fft_quality
 
 
-def get_top_n_indices(data: list, n: int, higher_is_better: bool = True) -> list:
+def get_top_n_indices(data: List, n: int, higher_is_better: bool = True) -> list:
 	method = heapq.nlargest if higher_is_better else heapq.nsmallest
 	return [index for index, _ in method(n, enumerate(data), key=lambda x: x[1])]
 
 
-def save_top_frames(quality_scores, frames, nr_frames, output_dir, higher_is_better=True):
+def save_top_frames(quality_scores: List[float], frames: List[np.ndarray], nr_frames: int, output_dir: str, higher_is_better: bool = True) -> None:
 	top_indices = get_top_n_indices(quality_scores, nr_frames, higher_is_better)
 	best_worst = 'best' if higher_is_better else 'worst'
 	for i in top_indices:
 		cv2.imwrite(os.path.join(output_dir, f'{best_worst}_frame_{i:04d}.jpg'), frames[i])
 
 
-def plot_quality_scores(quality_scores, output_dir):
+def plot_quality_scores(quality_scores: List[float], output_dir: str):
 	fig, ax = plt.subplots(figsize=(15, 4))
 	ax.plot(range(len(quality_scores)), quality_scores)
 	ax.grid(lw=0.5, ls='--', alpha=0.5)
