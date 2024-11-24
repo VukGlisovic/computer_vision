@@ -17,6 +17,14 @@ def get_top_n_indices(data: list, n: int) -> list:
 	return [index for index, _ in heapq.nlargest(n, enumerate(data), key=lambda x: x[1])]
 
 
+def plot_quality_scores(quality_scores, output_dir):
+	fig, ax = plt.subplots(figsize=(15, 4))
+	ax.plot(range(len(quality_scores)), quality_scores)
+	ax.grid(lw=0.5, ls='--', alpha=0.5)
+	ax.set_xlabel('frame number', fontsize=14)
+	ax.set_ylabel('quality score', fontsize=14)
+	plt.savefig(os.path.join(output_dir, 'quality_scores.jpg'))
+
 
 def main(video: str, nr_frames: int, output_dir: str) -> None:
 	cap = cv2.VideoCapture(video)
@@ -28,14 +36,12 @@ def main(video: str, nr_frames: int, output_dir: str) -> None:
 	# Loop over the frames from the video stream
 	frames = []
 	quality_scores = []
-	i = 0
 	while True:
 		# Load the next frame
 		ret, frame = cap.read()
 
 		# If the frame is read correctly ret is True
 		if not ret:
-			print(f"Error reading frame number {i}.")
 			break
 
 		# calculate quality and annotate frame
@@ -47,21 +53,15 @@ def main(video: str, nr_frames: int, output_dir: str) -> None:
 		frames.append(frame)
 		quality_scores.append(quality_score)
 
-		# update index
-		i += 1
-
 	cap.release()
 
+	# save best frames and plot quality score timeseries
 	os.makedirs(output_dir, exist_ok=True)
 	top_indices = get_top_n_indices(quality_scores, nr_frames)
 	for i in top_indices:
-		plt.imsave(os.path.join(output_dir, f'frame_{i:04d}.jpg'), frames[i])
-	fig, ax = plt.subplots(figsize=(15, 4))
-	ax.plot(range(len(quality_scores)), quality_scores)
-	ax.grid(lw=0.5, ls='--', alpha=0.5)
-	ax.set_xlabel('frame number', fontsize=14)
-	ax.set_ylabel('quality score', fontsize=14)
-	plt.savefig(os.path.join(output_dir, 'quality_scores.jpg'))
+		cv2.imwrite(os.path.join(output_dir, f'frame_{i:04d}.jpg'), frames[i])
+	plot_quality_scores(quality_scores, output_dir)
+	print("Finished extracting frames!")
 
 
 if __name__ == '__main__':
