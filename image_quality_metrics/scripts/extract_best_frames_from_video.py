@@ -1,6 +1,7 @@
 """
 This script expects as input a path to video file. It
-extracts the highest quality frames from the video stream.
+extracts the highest/lowest quality frames from the video
+stream.
 """
 import os
 import argparse
@@ -16,11 +17,15 @@ from image_quality_metrics.quality_metrics.fft import fft_quality
 
 
 def get_top_n_indices(data: List, n: int, higher_is_better: bool = True) -> list:
+	"""Gets the indices of the highest/lowest values in the data.
+	"""
 	method = heapq.nlargest if higher_is_better else heapq.nsmallest
 	return [index for index, _ in method(n, enumerate(data), key=lambda x: x[1])]
 
 
 def save_top_frames(quality_scores: List[float], frames: List[np.ndarray], nr_frames: int, output_dir: str, higher_is_better: bool = True) -> None:
+	"""Extracts the best frames and stores them to disk.
+	"""
 	top_indices = get_top_n_indices(quality_scores, nr_frames, higher_is_better)
 	best_worst = 'best' if higher_is_better else 'worst'
 	for i in top_indices:
@@ -28,6 +33,8 @@ def save_top_frames(quality_scores: List[float], frames: List[np.ndarray], nr_fr
 
 
 def plot_quality_scores(quality_scores: List[float], output_dir: str):
+	"""Plots a timeseries of the quality scores and saves the figure to disk.
+	"""
 	fig, ax = plt.subplots(figsize=(15, 4))
 	ax.plot(range(len(quality_scores)), quality_scores)
 	ax.grid(lw=0.5, ls='--', alpha=0.5)
@@ -52,20 +59,21 @@ def main(video: str, nr_frames: int, block_freq: int, output_dir: str) -> None:
 
 		# If the frame is read correctly ret is True
 		if not ret:
+			# Break at the end of the video
 			break
 
-		# calculate quality and annotate frame
+		# Calculate quality and annotate frame
 		frame = utils.resize(frame, size=512)
 		quality_score = fft_quality(frame, block_freq=block_freq, to_gray=True, show=False)
 		frame = utils.annotate_quality_result(frame, quality_score, is_good_quality=True)
 
-		# save results
+		# Save results
 		frames.append(frame)
 		quality_scores.append(quality_score)
 
 	cap.release()
 
-	# save best frames and plot quality score timeseries
+	# Save best/worst frames and plot quality score timeseries
 	os.makedirs(output_dir, exist_ok=True)
 	save_top_frames(quality_scores, frames, nr_frames, output_dir, higher_is_better=True)
 	save_top_frames(quality_scores, frames, nr_frames, output_dir, higher_is_better=False)
