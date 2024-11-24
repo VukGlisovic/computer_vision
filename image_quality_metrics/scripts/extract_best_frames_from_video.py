@@ -13,8 +13,16 @@ from image_quality_metrics.quality_metrics import utils
 from image_quality_metrics.quality_metrics.fft import fft_quality
 
 
-def get_top_n_indices(data: list, n: int) -> list:
-	return [index for index, _ in heapq.nlargest(n, enumerate(data), key=lambda x: x[1])]
+def get_top_n_indices(data: list, n: int, higher_is_better: bool = True) -> list:
+	method = heapq.nlargest if higher_is_better else heapq.nsmallest
+	return [index for index, _ in method(n, enumerate(data), key=lambda x: x[1])]
+
+
+def save_top_frames(quality_scores, frames, nr_frames, output_dir, higher_is_better=True):
+	top_indices = get_top_n_indices(quality_scores, nr_frames, higher_is_better)
+	best_worst = 'best' if higher_is_better else 'worst'
+	for i in top_indices:
+		cv2.imwrite(os.path.join(output_dir, f'{best_worst}_frame_{i:04d}.jpg'), frames[i])
 
 
 def plot_quality_scores(quality_scores, output_dir):
@@ -46,7 +54,7 @@ def main(video: str, nr_frames: int, output_dir: str) -> None:
 
 		# calculate quality and annotate frame
 		frame = utils.resize(frame, size=512)
-		quality_score = fft_quality(frame, block_freq=60, to_gray=True, show=False)
+		quality_score = fft_quality(frame, block_freq=40, to_gray=True, show=False)
 		frame = utils.annotate_quality_result(frame, quality_score, is_good_quality=True)
 
 		# save results
@@ -57,9 +65,8 @@ def main(video: str, nr_frames: int, output_dir: str) -> None:
 
 	# save best frames and plot quality score timeseries
 	os.makedirs(output_dir, exist_ok=True)
-	top_indices = get_top_n_indices(quality_scores, nr_frames)
-	for i in top_indices:
-		cv2.imwrite(os.path.join(output_dir, f'frame_{i:04d}.jpg'), frames[i])
+	save_top_frames(quality_scores, frames, nr_frames, output_dir, higher_is_better=True)
+	save_top_frames(quality_scores, frames, nr_frames, output_dir, higher_is_better=False)
 	plot_quality_scores(quality_scores, output_dir)
 	print("Finished extracting frames!")
 
