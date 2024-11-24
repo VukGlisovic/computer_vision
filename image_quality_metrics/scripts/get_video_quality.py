@@ -12,7 +12,7 @@ from image_quality_metrics.quality_metrics import utils
 from image_quality_metrics.quality_metrics.fft import fft_quality
 
 
-def main(video, threshold):
+def main(video: str, block_freq: int, threshold: float):
 	if video.isdigit():
 		video = int(video)
 	cap = cv2.VideoCapture(video)
@@ -28,15 +28,13 @@ def main(video, threshold):
 
 		# If the frame is read correctly ret is True
 		if not ret:
-			print("Error reading frame.")
+			# Break at the end of the video
 			break
 
+		# Calculate quality and annotate frame
 		frame = utils.resize(frame, size=512)
-
-		quality_score = fft_quality(frame, block_freq=60, to_gray=True, show=False)
+		quality_score = fft_quality(frame, block_freq=block_freq, to_gray=True, show=False)
 		is_good_quality = (quality_score >= threshold)
-
-		# annotate the image
 		frame = utils.annotate_quality_result(frame, quality_score, is_good_quality)
 
 		# show the output frame
@@ -52,10 +50,12 @@ def main(video, threshold):
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-v", "--video", type=str, default='0', help="Specify a path to a video file or point to a webcam. Usually 0 is the webcam.")
+	parser.add_argument("-b", "--block_freq", type=int, default=20, help="The number of lower frequencies to block.")
 	parser.add_argument("-t", "--threshold", type=float, default=12., help="If above the threshold, the image will be considered of good quality.")
 	known_args, _ = parser.parse_known_args()
 
 	main(
 		known_args.video,
+		known_args.block_freq,
 		known_args.threshold
 	)
