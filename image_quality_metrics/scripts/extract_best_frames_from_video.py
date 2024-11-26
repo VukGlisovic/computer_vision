@@ -32,20 +32,23 @@ def get_top_n_indices(data: List, n: int, higher_is_better: bool = True) -> List
 	return [index for index, _ in method(n, enumerate(data), key=lambda x: x[1])]
 
 
-def save_top_frames(quality_scores: List[float], frames: List[np.ndarray], nr_frames: int, output_dir: str, higher_is_better: bool = True) -> None:
+def save_frames(frames: List[np.ndarray], indices: List[int], output_dir: str, higher_is_better: bool = True) -> None:
 	"""Extracts the best frames and stores them to disk.
 	"""
-	top_indices = get_top_n_indices(quality_scores, nr_frames, higher_is_better)
 	best_worst = 'best' if higher_is_better else 'worst'
-	for i in top_indices:
+	for i in indices:
 		cv2.imwrite(os.path.join(output_dir, f'{best_worst}_frame_{i:04d}.jpg'), frames[i])
 
 
-def plot_quality_scores(quality_scores: List[float], output_dir: str):
+def plot_quality_scores(quality_scores: List[float], output_dir: str, top_indices: list = None, worst_indices: list = None) -> None:
 	"""Plots a timeseries of the quality scores and saves the figure to disk.
 	"""
 	fig, ax = plt.subplots(figsize=(15, 4))
 	ax.plot(range(len(quality_scores)), quality_scores)
+	if top_indices:
+		ax.plot(top_indices, [quality_scores[i] for i in top_indices], 'x', color='green')
+	if worst_indices:
+		ax.plot(worst_indices, [quality_scores[i] for i in worst_indices], 'x', color='red')
 	ax.grid(lw=0.5, ls='--', alpha=0.5)
 	ax.set_xlabel('frame number', fontsize=14)
 	ax.set_ylabel('quality score', fontsize=14)
@@ -84,9 +87,13 @@ def main(video: str, nr_frames: int, block_freq: int, output_dir: str) -> None:
 
 	# Save best/worst frames and plot quality score timeseries
 	os.makedirs(output_dir, exist_ok=True)
-	save_top_frames(quality_scores, frames, nr_frames, output_dir, higher_is_better=True)
-	save_top_frames(quality_scores, frames, nr_frames, output_dir, higher_is_better=False)
-	plot_quality_scores(quality_scores, output_dir)
+	# find local maxima for best frames
+	best_indices = find_local_extrema(quality_scores, comparator=np.greater, order=12)
+	save_frames(frames, best_indices, output_dir, higher_is_better=True)
+	# find minima for worst frames
+	worst_indices = get_top_n_indices(quality_scores, nr_frames, higher_is_better=False)
+	save_frames(frames, worst_indices, output_dir, higher_is_better=False)
+	plot_quality_scores(quality_scores, output_dir, best_indices, worst_indices)
 	print("Finished extracting frames!")
 
 
