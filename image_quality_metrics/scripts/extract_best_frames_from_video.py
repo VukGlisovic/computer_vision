@@ -7,16 +7,25 @@ import os
 import argparse
 import heapq
 from typing import List
+from collections.abc import Callable
 
 import cv2
 import numpy as np
+from scipy.signal import argrelextrema
 import matplotlib.pyplot as plt
 
 from image_quality_metrics.quality_metrics import utils
 from image_quality_metrics.quality_metrics.fft import fft_quality
 
 
-def get_top_n_indices(data: List, n: int, higher_is_better: bool = True) -> list:
+def find_local_extrema(data: List[float], comparator: Callable = np.greater, order: int = 10) -> List[int]:
+	"""Finds the indices of local extrema based on the comparator.
+	"""
+	local_maxima_indices = argrelextrema(np.array(data), comparator=comparator, order=order)[0]
+	return local_maxima_indices.tolist()
+
+
+def get_top_n_indices(data: List, n: int, higher_is_better: bool = True) -> List[int]:
 	"""Gets the indices of the highest/lowest values in the data.
 	"""
 	method = heapq.nlargest if higher_is_better else heapq.nsmallest

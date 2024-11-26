@@ -20,7 +20,6 @@ def fft_quality(img: np.ndarray, block_freq: int = 60, to_gray: bool = True, sho
 		img:
 		block_freq: which frequencies in the fft to block from spectral
 			entropy calculations.
-		t: threshold above which the img is deemed good quality
 		to_gray: whether the spectrum entropy calculation should be done
 			on the grayscale image or the RGB image.
 		show: if True, then plots the input image, the magnitude spectrum
