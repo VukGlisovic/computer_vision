@@ -32,12 +32,13 @@ def get_top_n_indices(data: List, n: int, higher_is_better: bool = True) -> List
 	return [index for index, _ in method(n, enumerate(data), key=lambda x: x[1])]
 
 
-def save_frames(frames: List[np.ndarray], indices: List[int], output_dir: str, higher_is_better: bool = True) -> None:
+def save_frames(frames: List[np.ndarray], quality_scores: List[float], indices: List[int], output_dir: str, higher_is_better: bool = True) -> None:
 	"""Extracts the best frames and stores them to disk.
 	"""
-	best_worst = 'best' if higher_is_better else 'worst'
+	best_worst, is_good_quality = ('best', True) if higher_is_better else ('worst', False)
 	for i in indices:
-		cv2.imwrite(os.path.join(output_dir, f'{best_worst}_frame_{i:04d}.jpg'), frames[i])
+		frame = utils.annotate_quality_result(frames[i], quality_scores[i], is_good_quality=is_good_quality)
+		cv2.imwrite(os.path.join(output_dir, f'{best_worst}_frame_{i:04d}.jpg'), frame)
 
 
 def plot_quality_scores(quality_scores: List[float], output_dir: str, top_indices: list = None, worst_indices: list = None) -> None:
@@ -77,7 +78,6 @@ def main(video: str, nr_frames: int, block_freq: int, output_dir: str) -> None:
 		# Calculate quality and annotate frame
 		frame = utils.resize(frame, size=512)
 		quality_score = fft_quality(frame, block_freq=block_freq, to_gray=True, show=False)
-		frame = utils.annotate_quality_result(frame, quality_score, is_good_quality=True)
 
 		# Save results
 		frames.append(frame)
@@ -89,10 +89,10 @@ def main(video: str, nr_frames: int, block_freq: int, output_dir: str) -> None:
 	os.makedirs(output_dir, exist_ok=True)
 	# find local maxima for best frames
 	best_indices = find_local_extrema(quality_scores, comparator=np.greater, order=12)
-	save_frames(frames, best_indices, output_dir, higher_is_better=True)
+	save_frames(frames, quality_scores, best_indices, output_dir, higher_is_better=True)
 	# find minima for worst frames
 	worst_indices = get_top_n_indices(quality_scores, nr_frames, higher_is_better=False)
-	save_frames(frames, worst_indices, output_dir, higher_is_better=False)
+	save_frames(frames, quality_scores, worst_indices, output_dir, higher_is_better=False)
 	plot_quality_scores(quality_scores, output_dir, best_indices, worst_indices)
 	print("Finished extracting frames!")
 
