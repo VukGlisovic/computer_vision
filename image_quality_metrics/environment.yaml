@@ -1,0 +1,10 @@
+name: image_quality
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+    - matplotlib==3.9.2
+    - opencv-python==4.10.0.84
