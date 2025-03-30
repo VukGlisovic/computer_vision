@@ -34,7 +34,7 @@ class Net(nn.Module):
 
 class CouplingBijection1D(nn.Module):
 
-    def __init__(self, input_dim, hidden_dim=64, n_hidden_layers=3):
+    def __init__(self, input_dim, hidden_dim=128, n_hidden_layers=1):
         super().__init__()
         assert input_dim % 2 == 0, "Must provide an even number of input features."
         self.input_dim = input_dim
@@ -79,7 +79,7 @@ class ReverseBijection1D(nn.Module):
 
 class CouplingFlow1D(nn.Module):
 
-    def __init__(self, input_dim, hidden_dim=64, n_hidden_layers=1, n_coupling_layers=4, device='cpu'):
+    def __init__(self, input_dim, hidden_dim=128, n_hidden_layers=1, n_coupling_layers=4, device='cpu'):
         """
         Initialize a multi-layer coupling flow model.
         
@@ -119,7 +119,7 @@ class CouplingFlow1D(nn.Module):
             tuple: (transformed_x, total_log_det_jacobian)
         """
         z = x
-        total_log_det = 0
+        total_log_det = torch.zeros(x.shape[0], device=self.device)
         
         for layer in self.layers:
             z, log_det = layer(z)
