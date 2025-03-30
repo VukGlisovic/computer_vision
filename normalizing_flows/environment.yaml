@@ -1,0 +1,11 @@
+name: flows
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.13
+  - pip
+  - pip:
+    - matplotlib==3.10.1
+    - scikit-learn==1.6.1
+    - torch==2.6.0
