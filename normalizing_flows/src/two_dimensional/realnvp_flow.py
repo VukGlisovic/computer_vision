@@ -8,26 +8,29 @@ from torch.distributions import Normal
 class Net(nn.Module):
     """Simple CNN for generating scale and shift parameters in 2D.
     """
-    def __init__(self, in_channels: int, hidden_channels: int, out_channels: int, n_hidden_layers: int = 1, act: Any = nn.GELU):
+    def __init__(self, in_channels: int, out_channels: int, hidden_channels: int, n_hidden_layers: int = 1, act: Any = nn.ReLU):
         super().__init__()
         self.in_channels = in_channels
-        self.hidden_channels = hidden_channels
         self.out_channels = out_channels
+        self.hidden_channels = hidden_channels
         self.n_hidden_layers = n_hidden_layers
         self.act = act
+
+        self.kernel_size = 3
+        self.padding = 'same'
         self.net = self.build_network()
 
     def build_network(self):
         layers = [
-            nn.Conv2d(self.in_channels, self.hidden_channels, kernel_size=3, padding=1),
+            nn.Conv2d(self.in_channels, self.hidden_channels, kernel_size=self.kernel_size, padding=self.padding),
             self.act()
         ]
         for _ in range(self.n_hidden_layers):
             layers += [
-                nn.Conv2d(self.hidden_channels, self.hidden_channels, kernel_size=3, padding=1),
+                nn.Conv2d(self.hidden_channels, self.hidden_channels, kernel_size=self.kernel_size, padding=self.padding),
                 self.act()
             ]
-        layers.append(nn.Conv2d(self.hidden_channels, self.out_channels, kernel_size=3, padding=1))
+        layers.append(nn.Conv2d(self.hidden_channels, self.out_channels, kernel_size=self.kernel_size, padding=self.padding))
         return nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
