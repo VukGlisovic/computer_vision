@@ -30,14 +30,14 @@ class Squeeze(nn.Module):
         super(Squeeze, self).__init__()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        bs, c, h, w = x.shape()
+        bs, c, h, w = x.shape
         x = x.reshape(bs, c, c//2, 2, w//2, 2)
         x = x.permute(0, 1, 3, 5, 2, 4)
         x = x.reshape(bs, c*4, h//2, w//2)
         return x
     
     def inverse(self, x: torch.Tensor) -> torch.Tensor:
-        bs, c, h, w = x.shape()
+        bs, c, h, w = x.shape
         x = x.reshape(bs, c//4, 2, 2, h, w)
         x = x.permute(0, 1, 4, 2, 5, 3)
         x = x.reshape(bs, c//4, h*2, w*2)
@@ -47,13 +47,13 @@ class Squeeze(nn.Module):
 class CouplingBijection2D(nn.Module):
     """RealNVP coupling layer for 2D data with checkerboard masking.
     """
-    def __init__(self, in_channels: int, hidden_channels: int = 64, n_hidden_layers: int = 1, mask_type: str = 'checkerboard', mask_reverse=False):
+    def __init__(self, in_channels: int, hidden_channels: int = 64, n_hidden_layers: int = 1, mask_type: str = 'checkerboard', reverse_mask=False):
         super().__init__()
         self.in_channels = in_channels
         self.hidden_channels = hidden_channels
         self.n_hidden_layers = n_hidden_layers
         self.mask_type = mask_type  # options: 'checkerboard' or 'channelwise'
-        self.mask_reverse = mask_reverse
+        self.reverse_mask = reverse_mask
         
         # Neural network for computing scaling and translation parameters
         self.resnet = ResNet(
@@ -65,13 +65,12 @@ class CouplingBijection2D(nn.Module):
         self.rescale = Rescale(in_channels)
 
     def _create_checkerboard_mask(self, shape: Tuple[int, int, int, int]) -> torch.Tensor:
-        _, c, h, w = shape
+        _, _, h, w = shape
         # Create base 2x2 checkerboard pattern
-        mask = torch.zeros(1, c, h, w)
         base_mask = torch.zeros(1, 1, 2, 2)
         base_mask[0, 0, 0, 0] = 1
         base_mask[0, 0, 1, 1] = 1
-        if self.mask_reverse:
+        if self.reverse_mask:
             base_mask = 1 - base_mask
         
         # Calculate number of repetitions needed
@@ -86,7 +85,7 @@ class CouplingBijection2D(nn.Module):
         _, c, h, w = shape
         # Create a channelwise mask where we either mask the first or last half of the channels
         mask = torch.cat([torch.ones(1, c//2, h, w), torch.zeros(1, c//2, h, w)], dim=1)
-        if self.mask_reverse:
+        if self.reverse_mask:
             mask = 1 - mask
         return mask
     
