@@ -31,7 +31,7 @@ class Squeeze(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         bs, c, h, w = x.shape
-        x = x.reshape(bs, c, c//2, 2, w//2, 2)
+        x = x.reshape(bs, c, h//2, 2, w//2, 2)
         x = x.permute(0, 1, 3, 5, 2, 4)
         x = x.reshape(bs, c*4, h//2, w//2)
         return x
@@ -124,6 +124,57 @@ class CouplingBijection2D(nn.Module):
         x = z * torch.exp(-log_s_masked) - t_masked
         
         return x
+
+
+class BlockBijection2D(nn.Module):
+    """RealNVP block for 2D data with checkerboard masking.
+    """
+    def __init__(self, in_channels: int, hidden_channels: int = 64, n_hidden_layers: int = 1):
+        super().__init__()
+        self.in_channels = in_channels
+        self.hidden_channels = hidden_channels
+        self.n_hidden_layers = n_hidden_layers
+
+        self.coupling_layers_checkerboard = nn.ModuleList([
+            CouplingBijection2D(in_channels, hidden_channels, n_hidden_layers, 'checkerboard', reverse_mask=False),
+            CouplingBijection2D(in_channels, hidden_channels, n_hidden_layers, 'checkerboard', reverse_mask=True),
+            CouplingBijection2D(in_channels, hidden_channels, n_hidden_layers, 'checkerboard', reverse_mask=False)
+        ])
+
+        self.squeeze = Squeeze()
+
+        self.coupling_layers_channelwise = nn.ModuleList([
+            CouplingBijection2D(4 * in_channels, 2 * hidden_channels, n_hidden_layers, 'channelwise', reverse_mask=False),
+            CouplingBijection2D(4 * in_channels, 2 * hidden_channels, n_hidden_layers, 'channelwise', reverse_mask=True),
+            CouplingBijection2D(4 * in_channels, 2 * hidden_channels, n_hidden_layers, 'channelwise', reverse_mask=False)
+        ])
+    
+    def forward(self, x):
+        ldj = 0
+
+        for layer in self.coupling_layers_checkerboard:
+            x, sldj = layer(x)
+            ldj += sldj
+        
+        x = self.squeeze(x)
+
+        for layer in self.coupling_layers_channelwise:
+            x, sldj = layer(x)
+            ldj += sldj
+
+        return x, ldj
+    
+    @torch.no_grad()
+    def inverse(self, z: torch.Tensor) -> torch.Tensor:
+        for layer in reversed(self.coupling_layers_channelwise):
+            z = layer.inverse(z)
+        
+        z = self.squeeze.inverse(z)
+
+        for layer in reversed(self.coupling_layers_checkerboard):
+            z = layer.inverse(z)
+
+        return z
 
 
 class RealNVPFlow(nn.Module):
