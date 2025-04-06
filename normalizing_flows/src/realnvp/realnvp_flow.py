@@ -44,14 +44,15 @@ class Squeeze(nn.Module):
         return x
 
 
-class RealNVPBijection(nn.Module):
+class CouplingBijection2D(nn.Module):
     """RealNVP coupling layer for 2D data with checkerboard masking.
     """
-    def __init__(self, in_channels: int, hidden_channels: int = 64, n_hidden_layers: int = 1, mask_reverse=False):
+    def __init__(self, in_channels: int, hidden_channels: int = 64, n_hidden_layers: int = 1, mask_type: str = 'checkerboard', mask_reverse=False):
         super().__init__()
         self.in_channels = in_channels
         self.hidden_channels = hidden_channels
         self.n_hidden_layers = n_hidden_layers
+        self.mask_type = mask_type  # options: 'checkerboard' or 'channelwise'
         self.mask_reverse = mask_reverse
         
         # Neural network for computing scaling and translation parameters
@@ -63,8 +64,10 @@ class RealNVPBijection(nn.Module):
         )
         self.rescale = Rescale(in_channels)
 
-    def _create_checkerboard_mask(self, height: int, width: int) -> torch.Tensor:
+    def _create_checkerboard_mask(self, shape: Tuple[int, int, int, int]) -> torch.Tensor:
+        _, c, h, w = shape
         # Create base 2x2 checkerboard pattern
+        mask = torch.zeros(1, c, h, w)
         base_mask = torch.zeros(1, 1, 2, 2)
         base_mask[0, 0, 0, 0] = 1
         base_mask[0, 0, 1, 1] = 1
@@ -72,16 +75,29 @@ class RealNVPBijection(nn.Module):
             base_mask = 1 - base_mask
         
         # Calculate number of repetitions needed
-        h_repeats = height // 2
-        w_repeats = width // 2
+        h_repeats = h // 2
+        w_repeats = w // 2
         
         # Repeat the pattern to match input dimensions
         mask = base_mask.repeat(1, 1, h_repeats, w_repeats)
         return mask
+
+    def _create_channelwise_mask(self, shape: Tuple[int, int, int, int]) -> torch.Tensor:
+        _, c, h, w = shape
+        # Create a channelwise mask where we either mask the first or last half of the channels
+        mask = torch.cat([torch.ones(1, c//2, h, w), torch.zeros(1, c//2, h, w)], dim=1)
+        if self.mask_reverse:
+            mask = 1 - mask
+        return mask
     
     def get_scale_and_shift(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         # Input shape: (batch_size, channels, height, width)
-        mask = self._create_checkerboard_mask(x.shape[2], x.shape[3])
+        if self.mask_type == 'checkerboard':
+            mask = self._create_checkerboard_mask(x.shape)
+        elif self.mask_type == 'channelwise':
+            mask = self._create_channelwise_mask(x.shape)
+        else:
+            raise ValueError(f"Invalid mask type: {self.mask_type}")
         params = self.resnet(x * mask)
         log_s, t = torch.chunk(params, 2, dim=1)  # chunk along channel dimension
         log_s = self.rescale(torch.tanh(log_s))
@@ -141,7 +157,7 @@ class RealNVPFlow(nn.Module):
     def build_model(self) -> nn.ModuleList:
         layers = []
         for _ in range(self.n_coupling_layers):
-            layers.append(RealNVPBijection(
+            layers.append(CouplingBijection2D(
                 in_channels=self.in_channels,
                 hidden_channels=self.hidden_channels,
                 n_hidden_layers=self.n_hidden_layers,
