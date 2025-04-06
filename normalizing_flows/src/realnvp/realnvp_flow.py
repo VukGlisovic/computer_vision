@@ -23,6 +23,27 @@ class Rescale(nn.Module):
         return x
 
 
+class Squeeze(nn.Module):
+    """Squeezes a C x H x W tensor into a 4C x H/2 x W/2 tensor.
+    """
+    def __init__(self):
+        super(Squeeze, self).__init__()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        bs, c, h, w = x.shape()
+        x = x.reshape(bs, c, c//2, 2, w//2, 2)
+        x = x.permute(0, 1, 3, 5, 2, 4)
+        x = x.reshape(bs, c*4, h//2, w//2)
+        return x
+    
+    def inverse(self, x: torch.Tensor) -> torch.Tensor:
+        bs, c, h, w = x.shape()
+        x = x.reshape(bs, c//4, 2, 2, h, w)
+        x = x.permute(0, 1, 4, 2, 5, 3)
+        x = x.reshape(bs, c//4, h*2, w*2)
+        return x
+
+
 class RealNVPBijection(nn.Module):
     """RealNVP coupling layer for 2D data with checkerboard masking.
     """
