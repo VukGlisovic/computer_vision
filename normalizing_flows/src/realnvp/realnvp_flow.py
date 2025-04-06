@@ -52,6 +52,7 @@ class CouplingBijection2D(nn.Module):
         self.in_channels = in_channels
         self.hidden_channels = hidden_channels
         self.n_hidden_layers = n_hidden_layers
+        self.out_channels = self.in_channels
         self.mask_type = mask_type  # options: 'checkerboard' or 'channelwise'
         self.reverse_mask = reverse_mask
         
@@ -134,6 +135,7 @@ class BlockBijection2D(nn.Module):
         self.in_channels = in_channels
         self.hidden_channels = hidden_channels
         self.n_hidden_layers = n_hidden_layers
+        self.out_channels = self.in_channels * 4
 
         self.coupling_layers_checkerboard = nn.ModuleList([
             CouplingBijection2D(in_channels, hidden_channels, n_hidden_layers, 'checkerboard', reverse_mask=False),
@@ -177,44 +179,40 @@ class BlockBijection2D(nn.Module):
         return z
 
 
-class RealNVPFlow(nn.Module):
+class RealNVP(nn.Module):
     """RealNVP flow model for 2D data.
     """
     def __init__(
         self,
         in_channels: int,
-        height: int = 32,
-        width: int = 32,
+        size: int = 32,  # Height and width; must be square input
         hidden_channels: int = 64,
         n_hidden_layers: int = 1,
-        n_coupling_layers: int = 4
+        final_size: int = 4
     ):
         super().__init__()
         self.in_channels = in_channels
-        self.height = height
-        self.width = width
+        self.size = size
         self.hidden_channels = hidden_channels
         self.n_hidden_layers = n_hidden_layers
-        self.n_coupling_layers = n_coupling_layers
-        
-        # Initialize base distribution parameters
-        self.register_buffer('loc', torch.zeros(in_channels, height, width))
-        self.register_buffer('scale', torch.ones(in_channels, height, width))
-        
-        # Build the flow
-        self.layers = self.build_model()
+        self.final_size = final_size
+
+        self.blocks = self.build_model()
 
     def build_model(self) -> nn.ModuleList:
-        layers = []
-        for _ in range(self.n_coupling_layers):
-            layers.append(CouplingBijection2D(
-                in_channels=self.in_channels,
+        blocks = []
+        in_channels = self.in_channels
+        size = self.size
+        while size > self.final_size:
+            block = BlockBijection2D(
+                in_channels=in_channels,
                 hidden_channels=self.hidden_channels,
-                n_hidden_layers=self.n_hidden_layers,
-                height=self.height,
-                width=self.width
-            ))
-        return nn.ModuleList(layers)
+                n_hidden_layers=1
+            )
+            in_channels = block.out_channels  # in_channels for next block
+            size = size // 2
+            blocks.append(block)
+        return nn.ModuleList(blocks)
 
     @property
     def base_dist(self) -> Normal:
@@ -232,9 +230,9 @@ class RealNVPFlow(nn.Module):
         z = x
         total_log_det = torch.zeros(x.shape[0], device=x.device)
 
-        for layer in self.layers:
-            z, log_det = layer(z)
-            total_log_det = total_log_det + log_det
+        for block in self.blocks:
+            z, log_det = block(z)
+            total_log_det += log_det
 
         return z, total_log_det
 
@@ -249,8 +247,8 @@ class RealNVPFlow(nn.Module):
             torch.Tensor: Reconstructed input
         """
         x = z
-        for layer in reversed(self.layers):
-            x = layer.inverse(x)
+        for block in reversed(self.blocks):
+            x = block.inverse(x)
         return x
 
     def log_prob(self, x: torch.Tensor) -> torch.Tensor:
