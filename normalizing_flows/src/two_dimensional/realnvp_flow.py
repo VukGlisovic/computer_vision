@@ -5,8 +5,8 @@ import torch.nn as nn
 from torch.distributions import Normal
 
 
-class Net(nn.Module):
-    """Simple CNN for generating scale and shift parameters in 2D.
+class ResNet(nn.Module):
+    """Simple Residual CNN for generating scale and shift parameters in 2D.
     """
     def __init__(self, in_channels: int, out_channels: int, hidden_channels: int, n_hidden_layers: int = 1, act: Any = nn.ReLU):
         super().__init__()
@@ -18,23 +18,46 @@ class Net(nn.Module):
 
         self.kernel_size = 3
         self.padding = 'same'
-        self.net = self.build_network()
+        
+        # Initial projection if needed
+        self.proj = None
+        if in_channels != hidden_channels:
+            self.proj = nn.Conv2d(in_channels, hidden_channels, kernel_size=1)
+
+        # Build main network
+        self.residual_blocks = self.build_network()
+        
+        # Final layer with zero initialization
+        self.final_layer = nn.Conv2d(hidden_channels, out_channels, kernel_size=self.kernel_size, padding=self.padding)
+        nn.init.zeros_(self.final_layer.weight)
+        nn.init.zeros_(self.final_layer.bias)
 
     def build_network(self):
-        layers = [
-            nn.Conv2d(self.in_channels, self.hidden_channels, kernel_size=self.kernel_size, padding=self.padding),
-            self.act()
-        ]
+        layers = []
+        # Residual blocks
         for _ in range(self.n_hidden_layers):
-            layers += [
-                nn.Conv2d(self.hidden_channels, self.hidden_channels, kernel_size=self.kernel_size, padding=self.padding),
-                self.act()
-            ]
-        layers.append(nn.Conv2d(self.hidden_channels, self.out_channels, kernel_size=self.kernel_size, padding=self.padding))
-        return nn.Sequential(*layers)
+            layers.append(
+                nn.Sequential(
+                    nn.Conv2d(self.hidden_channels, self.hidden_channels, kernel_size=self.kernel_size, padding=self.padding),
+                    self.act(),
+                    nn.Conv2d(self.hidden_channels, self.hidden_channels, kernel_size=self.kernel_size, padding=self.padding)
+                )
+            )
+        return nn.ModuleList(layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.net(x)
+        # Initial projection if needed
+        h = self.proj(x) if self.proj is not None else x
+        
+        # Residual blocks
+        for rb in self.residual_blocks:
+            identity = h
+            h = rb(h)
+            h = h + identity
+            h = self.act()(h)
+        
+        # Final layer with zero-init
+        return self.final_layer(h)
 
 
 class RealNVPBijection(nn.Module):
@@ -50,7 +73,7 @@ class RealNVPBijection(nn.Module):
         self.register_buffer('mask', self._create_checkerboard_mask(height, width))
         
         # Neural network for computing scaling and translation parameters
-        self.net = Net(
+        self.resnet = ResNet(
             in_channels=in_channels,
             hidden_channels=hidden_channels,
             out_channels=in_channels * 2,  # scale and shift for each channel
@@ -76,7 +99,7 @@ class RealNVPBijection(nn.Module):
         x_masked = x * self.mask
         
         # Get scale and shift parameters
-        params = self.net(x_masked)
+        params = self.resnet(x_masked)
         log_s, t = torch.chunk(params, 2, dim=1)
         
         # Apply transformation
@@ -93,7 +116,7 @@ class RealNVPBijection(nn.Module):
         x = z * self.mask
         
         # Get scale and shift parameters
-        params = self.net(x)
+        params = self.resnet(x)
         log_s, t = torch.chunk(params, 2, dim=1)
         
         # Apply inverse transformation
