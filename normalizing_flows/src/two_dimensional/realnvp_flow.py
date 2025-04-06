@@ -110,41 +110,35 @@ class RealNVPBijection(nn.Module):
         # Repeat the pattern to match input dimensions
         mask = base_mask.repeat(1, 1, h_repeats, w_repeats)
         return mask
-
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    
+    def get_scale_and_shift(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         # Input shape: (batch_size, channels, height, width)
         mask = self._create_checkerboard_mask(x.shape[2], x.shape[3])
-
-        # Apply checkerboard mask
-        x_masked = x * mask
-        
-        # Get scale and shift parameters
-        params = self.resnet(x_masked)
+        params = self.resnet(x * mask)
         log_s, t = torch.chunk(params, 2, dim=1)  # chunk along channel dimension
         log_s = self.rescale(torch.tanh(log_s))
         # we want to apply the scale and shift only to the non-masked values
         log_s = log_s * (1 - mask)
         t = t * (1 - mask)
+        return log_s, t
+
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        log_s_masked, t_masked = self.get_scale_and_shift(x)
         
         # Apply transformation
-        z = x * torch.exp(log_s) + t
+        z = x * torch.exp(log_s_masked) + t_masked
         
         # Compute log determinant
-        log_det = log_s.sum(dim=[1, 2, 3])
+        log_det = log_s_masked.sum(dim=[1, 2, 3])
         
         return z, log_det
 
     @torch.no_grad()
     def inverse(self, z: torch.Tensor) -> torch.Tensor:
-        # Apply checkerboard mask
-        x = z * self.mask
-        
-        # Get scale and shift parameters
-        params = self.resnet(x)
-        log_s, t = torch.chunk(params, 2, dim=1)
+        log_s_masked, t_masked = self.get_scale_and_shift(z)
         
         # Apply inverse transformation
-        x = x * self.mask + (1 - self.mask) * ((x - t) * torch.exp(-log_s))
+        x = z * torch.exp(-log_s_masked) - t_masked
         
         return x
 
