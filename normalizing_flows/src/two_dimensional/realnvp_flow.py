@@ -79,14 +79,12 @@ class Rescale(nn.Module):
 class RealNVPBijection(nn.Module):
     """RealNVP coupling layer for 2D data with checkerboard masking.
     """
-    def __init__(self, in_channels: int, hidden_channels: int = 64, n_hidden_layers: int = 1, height: int = 32, width: int = 32):
+    def __init__(self, in_channels: int, hidden_channels: int = 64, n_hidden_layers: int = 1, mask_reverse=False):
         super().__init__()
         self.in_channels = in_channels
         self.hidden_channels = hidden_channels
         self.n_hidden_layers = n_hidden_layers
-        
-        # Create checkerboard mask with specified dimensions
-        self.register_buffer('mask', self._create_checkerboard_mask(height, width))
+        self.mask_reverse = mask_reverse
         
         # Neural network for computing scaling and translation parameters
         self.resnet = ResNet(
@@ -95,12 +93,15 @@ class RealNVPBijection(nn.Module):
             out_channels=in_channels * 2,  # scale and shift for each channel
             n_hidden_layers=n_hidden_layers
         )
+        self.rescale = Rescale(in_channels)
 
     def _create_checkerboard_mask(self, height: int, width: int) -> torch.Tensor:
         # Create base 2x2 checkerboard pattern
         base_mask = torch.zeros(1, 1, 2, 2)
         base_mask[0, 0, 0, 0] = 1
         base_mask[0, 0, 1, 1] = 1
+        if self.mask_reverse:
+            base_mask = 1 - base_mask
         
         # Calculate number of repetitions needed
         h_repeats = height // 2
@@ -111,18 +112,25 @@ class RealNVPBijection(nn.Module):
         return mask
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        # Input shape: (batch_size, channels, height, width)
+        mask = self._create_checkerboard_mask(x.shape[2], x.shape[3])
+
         # Apply checkerboard mask
-        x_masked = x * self.mask
+        x_masked = x * mask
         
         # Get scale and shift parameters
         params = self.resnet(x_masked)
-        log_s, t = torch.chunk(params, 2, dim=1)
+        log_s, t = torch.chunk(params, 2, dim=1)  # chunk along channel dimension
+        log_s = self.rescale(torch.tanh(log_s))
+        # we want to apply the scale and shift only to the non-masked values
+        log_s = log_s * (1 - mask)
+        t = t * (1 - mask)
         
         # Apply transformation
-        z = x_masked + (1 - self.mask) * (x * torch.exp(log_s) + t)
+        z = x * torch.exp(log_s) + t
         
         # Compute log determinant
-        log_det = ((1 - self.mask) * log_s).sum(dim=[1, 2, 3])
+        log_det = log_s.sum(dim=[1, 2, 3])
         
         return z, log_det
 
