@@ -208,6 +208,9 @@ class BlockBijection2D(nn.Module):
     
     @torch.no_grad()
     def inverse(self, z: torch.Tensor) -> torch.Tensor:
+        z = self.squeeze_permute.inverse(z)
+        z = self.squeeze(z)
+
         for layer in reversed(self.coupling_layers_channelwise):
             z = layer.inverse(z)
         
@@ -287,9 +290,23 @@ class RealNVP(nn.Module):
         z = x
         total_log_det = torch.zeros(x.shape[0], device=x.device)
 
+        # Run through all intermediate blocks (with downsampling)
+        z_out = []
         for block in self.blocks:
             z, log_det = block(z)
+            z, z_split = torch.chunk(z, 2, dim=1)
             total_log_det += log_det
+            z_out.append(z_split)
+        
+        # Run through final block (no downsampling)
+        for layer in self.final_layers:
+            z, log_det = layer(z)
+            total_log_det += log_det
+
+        # Construct overall z
+        for block, z_split in reversed(list(zip(self.blocks, z_out))):
+            z = torch.cat((z, z_split), dim=1)  # concat along channel dimension
+            z = block.squeeze_permute.inverse(z)
 
         return z, total_log_det
 
