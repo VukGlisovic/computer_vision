@@ -363,6 +363,5 @@ class RealNVP(nn.Module):
             torch.Tensor: Generated samples
         """
         z = self.base_dist.sample((n_samples,))
-        for layer in reversed(self.layers):
-            z = layer.inverse(z)
-        return z 
+        x = self.inverse(z)
+        return x
