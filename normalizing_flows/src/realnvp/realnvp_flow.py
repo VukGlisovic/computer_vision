@@ -171,7 +171,7 @@ class BlockBijection2D(nn.Module):
         self.in_channels = in_channels
         self.hidden_channels = hidden_channels
         self.n_hidden_layers = n_hidden_layers
-        self.out_channels = self.in_channels * 4
+        self.out_channels = self.in_channels * 2  # half of channels continue, other half are done
 
         self.coupling_layers_checkerboard = nn.ModuleList([
             CouplingBijection2D(in_channels, hidden_channels, n_hidden_layers, 'checkerboard', reverse_mask=False),
@@ -179,13 +179,14 @@ class BlockBijection2D(nn.Module):
             CouplingBijection2D(in_channels, hidden_channels, n_hidden_layers, 'checkerboard', reverse_mask=False)
         ])
 
-        self.squeeze = Squeeze()
-
         self.coupling_layers_channelwise = nn.ModuleList([
             CouplingBijection2D(4 * in_channels, 2 * hidden_channels, n_hidden_layers, 'channelwise', reverse_mask=False),
             CouplingBijection2D(4 * in_channels, 2 * hidden_channels, n_hidden_layers, 'channelwise', reverse_mask=True),
             CouplingBijection2D(4 * in_channels, 2 * hidden_channels, n_hidden_layers, 'channelwise', reverse_mask=False)
         ])
+
+        self.squeeze = Squeeze()
+        self.squeeze_permute = SqueezePermute(in_channels)
     
     def forward(self, x):
         ldj = 0
@@ -199,6 +200,9 @@ class BlockBijection2D(nn.Module):
         for layer in self.coupling_layers_channelwise:
             x, sldj = layer(x)
             ldj += sldj
+
+        x = self.squeeze.inverse(x)
+        x = self.squeeze_permute(x)
 
         return x, ldj
     
