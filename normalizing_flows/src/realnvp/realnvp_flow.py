@@ -54,16 +54,18 @@ class SqueezePermute(nn.Module):
     
     def _create_perm_weight(self) -> torch.Tensor:
         c = self.in_channels
-        # Defines permutation of input channels (shape is (4, 1, 2, 2)).
+        # Define a permutation of input channels with shape is [4, 1, 2, 2]
         squeeze_matrix = torch.tensor(
             [[[[1., 0.], [0., 0.]]],
             [[[0., 0.], [0., 1.]]],
             [[[0., 1.], [0., 0.]]],
             [[[0., 0.], [1., 0.]]]]
         )
-        perm_weight = torch.zeros((4 * c, c, 2, 2))
+        perm_weight = torch.zeros((4 * c, c, 2, 2))  # shape [4c, c, 2, 2]
+        # Insert the squeeze matrix into every channel index
         for c_idx in range(c):
             perm_weight[c_idx * 4: (c_idx + 1) * 4, c_idx: c_idx + 1, :, :] = squeeze_matrix
+        # Shuffle the permutation matrix
         shuffle_channels = torch.tensor(
             [c_idx * 4 for c_idx in range(c)]
             + [c_idx * 4 + 1 for c_idx in range(c)]
