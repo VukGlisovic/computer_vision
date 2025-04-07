@@ -153,7 +153,5 @@ class CouplingFlow1D(nn.Module):
 	@torch.no_grad()
 	def sample(self, n_samples: int):
 		z = self.base_dist.sample((n_samples,))
-		for layer in reversed(self.layers):
-			z = layer.inverse(z)
-		x = z  # for completeness, we'll add this mapping
+		x = self.inverse(z)
 		return x
