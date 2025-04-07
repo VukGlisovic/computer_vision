@@ -101,10 +101,10 @@ class CouplingBijection2D(nn.Module):
         )
         self.rescale = Rescale(in_channels)
 
-    def _create_checkerboard_mask(self, shape: Tuple[int, int, int, int]) -> torch.Tensor:
+    def _create_checkerboard_mask(self, shape: Tuple[int, int, int, int], device: torch.device) -> torch.Tensor:
         _, _, h, w = shape
         # Create base 2x2 checkerboard pattern
-        base_mask = torch.zeros(1, 1, 2, 2)
+        base_mask = torch.zeros(1, 1, 2, 2, device=device)
         base_mask[0, 0, 0, 0] = 1
         base_mask[0, 0, 1, 1] = 1
         if self.reverse_mask:
@@ -118,10 +118,10 @@ class CouplingBijection2D(nn.Module):
         mask = base_mask.repeat(1, 1, h_repeats, w_repeats)
         return mask
 
-    def _create_channelwise_mask(self, shape: Tuple[int, int, int, int]) -> torch.Tensor:
+    def _create_channelwise_mask(self, shape: Tuple[int, int, int, int], device: torch.device) -> torch.Tensor:
         _, c, h, w = shape
         # Create a channelwise mask where we either mask the first or last half of the channels
-        mask = torch.cat([torch.ones(1, c//2, h, w), torch.zeros(1, c//2, h, w)], dim=1)
+        mask = torch.cat([torch.ones(1, c//2, h, w, device=device), torch.zeros(1, c//2, h, w, device=device)], dim=1)
         if self.reverse_mask:
             mask = 1 - mask
         return mask
@@ -129,9 +129,9 @@ class CouplingBijection2D(nn.Module):
     def get_scale_and_shift(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         # Input shape: (batch_size, channels, height, width)
         if self.mask_type == 'checkerboard':
-            mask = self._create_checkerboard_mask(x.shape)
+            mask = self._create_checkerboard_mask(x.shape, x.device)
         elif self.mask_type == 'channelwise':
-            mask = self._create_channelwise_mask(x.shape)
+            mask = self._create_channelwise_mask(x.shape, x.device)
         else:
             raise ValueError(f"Invalid mask type: {self.mask_type}")
         params = self.resnet(x * mask)
