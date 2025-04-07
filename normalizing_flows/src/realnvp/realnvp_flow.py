@@ -226,33 +226,50 @@ class RealNVP(nn.Module):
         self,
         in_channels: int,
         size: int = 32,  # Height and width; must be square input
-        hidden_channels: int = 64,
+        hidden_channels: int = 32,  # is doubled each block
         n_hidden_layers: int = 1,
         final_size: int = 4
     ):
         super().__init__()
         self.in_channels = in_channels
         self.size = size
-        self.hidden_channels = hidden_channels
         self.n_hidden_layers = n_hidden_layers
         self.final_size = final_size
 
-        self.blocks = self.build_model()
+        self.loc = nn.Parameter(torch.zeros((in_channels, size, size)), requires_grad=False)
+        self.scale = nn.Parameter(torch.ones((in_channels, size, size)), requires_grad=False)
 
-    def build_model(self) -> nn.ModuleList:
+        # Create intermediate blocks
+        self.blocks = self.build_intermediate_blocks(hidden_channels)
+
+        # Create final block
+        in_channels = self.blocks[-1].out_channels
+        hidden_channels *= 2 ** len(self.blocks)
+        self.final_layers = self.build_final_block(in_channels, hidden_channels, n_layers=4)
+
+    def build_intermediate_blocks(self, hidden_channels: int) -> nn.ModuleList:
         blocks = []
         in_channels = self.in_channels
         size = self.size
         while size > self.final_size:
             block = BlockBijection2D(
                 in_channels=in_channels,
-                hidden_channels=self.hidden_channels,
+                hidden_channels=hidden_channels,
                 n_hidden_layers=1
             )
             in_channels = block.out_channels  # in_channels for next block
+            hidden_channels *= 2
             size = size // 2
             blocks.append(block)
         return nn.ModuleList(blocks)
+    
+    def build_final_block(self, in_channels: int, hidden_channels: int, n_layers: int) -> nn.Module:
+        layers = []
+        reverse_mask = False
+        for _ in range(n_layers):
+            layers.append(CouplingBijection2D(in_channels, hidden_channels, self.n_hidden_layers, 'checkerboard', reverse_mask=reverse_mask))
+            reverse_mask = not reverse_mask
+        return nn.ModuleList(layers)
 
     @property
     def base_dist(self) -> Normal:
