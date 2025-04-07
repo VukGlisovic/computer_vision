@@ -44,6 +44,42 @@ class Squeeze(nn.Module):
         return x
 
 
+class SqueezePermute(nn.Module):
+    """Squeezes a C x H x W tensor into a 4C x H/2 x W/2 tensor and permutes the channels.
+    """
+    def __init__(self, in_channels: int):
+        super(SqueezePermute, self).__init__()
+        self.in_channels = in_channels
+        self.perm_weight = nn.Parameter(self._create_perm_weight(), requires_grad=False)
+    
+    def _create_perm_weight(self) -> torch.Tensor:
+        c = self.in_channels
+        # Defines permutation of input channels (shape is (4, 1, 2, 2)).
+        squeeze_matrix = torch.tensor(
+            [[[[1., 0.], [0., 0.]]],
+            [[[0., 0.], [0., 1.]]],
+            [[[0., 1.], [0., 0.]]],
+            [[[0., 0.], [1., 0.]]]]
+        )
+        perm_weight = torch.zeros((4 * c, c, 2, 2))
+        for c_idx in range(c):
+            perm_weight[c_idx * 4: (c_idx + 1) * 4, c_idx: c_idx + 1, :, :] = squeeze_matrix
+        shuffle_channels = torch.tensor(
+            [c_idx * 4 for c_idx in range(c)]
+            + [c_idx * 4 + 1 for c_idx in range(c)]
+            + [c_idx * 4 + 2 for c_idx in range(c)]
+            + [c_idx * 4 + 3 for c_idx in range(c)]
+        )
+        perm_weight = perm_weight[shuffle_channels, :, :, :]
+        return perm_weight
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return torch.nn.functional.conv2d(x, self.perm_weight, stride=2)
+    
+    def inverse(self, x: torch.Tensor) -> torch.Tensor:
+        return torch.nn.functional.conv_transpose2d(x, self.perm_weight, stride=2)
+
+
 class CouplingBijection2D(nn.Module):
     """RealNVP coupling layer for 2D data with checkerboard masking.
     """
