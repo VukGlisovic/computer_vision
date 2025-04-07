@@ -320,9 +320,23 @@ class RealNVP(nn.Module):
         Returns:
             torch.Tensor: Reconstructed input
         """
-        x = z
-        for block in reversed(self.blocks):
-            x = block.inverse(x)
+        # Extract individual z components
+        z_out = []
+        for block in self.blocks:
+            z = block.squeeze_permute(z)
+            z, z_split = torch.chunk(z, 2, dim=1)
+            z_out.append(z_split)
+        
+        # Run through final block (no downsampling)
+        for layer in reversed(self.final_layers):
+            z = layer.inverse(z)
+
+        # Run through all intermediate blocks (with downsampling)
+        for block, z_split in reversed(list(zip(self.blocks, z_out))):
+            z = torch.cat((z, z_split), dim=1)
+            z = block.inverse(z)
+        
+        x = z  # for completeness
         return x
 
     def log_prob(self, x: torch.Tensor) -> torch.Tensor:
