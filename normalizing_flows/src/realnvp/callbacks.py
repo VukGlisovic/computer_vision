@@ -1,5 +1,8 @@
 import os
+
 import torch
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 class EarlyStopping:
@@ -91,3 +94,74 @@ class ModelCheckpoint:
 			raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
 			
 		model.load_state_dict(torch.load(checkpoint_path))
+
+
+class SampleGeneration:
+	"""A callback to generate and save sample images from the model at the end of each epoch.
+	Uses fixed latent vectors z to track model evolution over time.
+	
+	Args:
+		save_dir: Directory to save generated samples
+		n_samples: Number of samples to generate
+	"""
+
+	def __init__(self, save_dir: str, n_samples: int = 25):
+		self.save_dir = save_dir
+		self.n_samples = n_samples
+
+		os.makedirs(save_dir, exist_ok=True)
+		self.fixed_z = None
+
+	def _initialize_fixed_z(self, model):
+		"""Initialize fixed z values from the model's base distribution."""
+		device = next(model.parameters()).device
+		self.fixed_z = model.base_dist.sample((self.n_samples,)).to(device)
+
+	def _save_image_grid(self, samples: torch.Tensor, epoch: int) -> None:
+		"""Save samples as a grid image.
+		
+		Args:
+			samples: Tensor of shape (n_samples, 3, height, width)
+			epoch: Current epoch number
+		"""
+		# Convert to numpy and clip
+		samples = samples.cpu().numpy()
+		samples = np.clip(samples, 0, 1)
+
+		# Create grid
+		n_rows = int(np.sqrt(self.n_samples))
+		n_cols = int(np.ceil(self.n_samples / n_rows))
+
+		fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 2, n_rows * 2))
+		axes = axes.flatten()
+
+		for i, (ax, img) in enumerate(zip(axes, samples)):
+			if i < self.n_samples:
+				ax.imshow(np.transpose(img, (1, 2, 0)))
+			ax.axis('off')
+
+		# Remove empty subplots
+		for i in range(self.n_samples, len(axes)):
+			axes[i].axis('off')
+
+		plt.tight_layout()
+		save_path = os.path.join(self.save_dir, f'samples_epoch_{epoch:03d}.png')
+		plt.savefig(save_path)
+		plt.close()
+
+	def generate_and_plot_images(self, model, epoch: int) -> None:
+		"""Generate and save samples at the end of an epoch using fixed z values.
+		
+		Args:
+			model: The model to generate samples from
+			epoch: Current epoch number
+		"""
+		# Initialize fixed z values if not already done
+		if self.fixed_z is None:
+			self._initialize_fixed_z(model)
+
+		# Generate samples using fixed z values
+		samples = model.inverse(self.fixed_z)
+
+		# Save samples as grid image
+		self._save_image_grid(samples, epoch)
