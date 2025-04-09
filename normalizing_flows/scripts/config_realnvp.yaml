@@ -1,0 +1,19 @@
+training:
+  n_epochs: 100
+  lr: 0.001
+
+callbacks:
+  reduce_lr_on_plateau:
+    factor: 0.5
+    patience: 4
+    threshold: 0.01
+    threshold_mode: abs
+  early_stopping:
+    patience: 8
+    threshold: 0.01
+  model_checkpoint:
+    save_dir: ../data/realnvp_checkpoints
+    filename: realnvp_{epoch:03d}_{score:.3f}.pt
+    save_best_only: True
+  sample_generation:
+    save_dir: ../data/realnvp_generated_samples
