@@ -3,12 +3,12 @@ import math
 from typing import Union, Tuple
 
 
-def bits_per_dim(log_prob: torch.Tensor, input_shape: Union[torch.Size, Tuple[int, ...]]) -> float:
+def bits_per_dim(nll: torch.Tensor, input_shape: Union[torch.Size, Tuple[int, ...]]) -> float:
     """
     Calculate bits per dimension metric for a batch of samples.
     
     Args:
-        log_prob: Tensor of shape (batch_size,) containing log probabilities
+        nll: Tensor of shape (batch_size,) containing negative log-likelihoods
         input_shape: Shape of the input tensor (batch_size, channels, height, width)
     
     Returns:
@@ -18,10 +18,12 @@ def bits_per_dim(log_prob: torch.Tensor, input_shape: Union[torch.Size, Tuple[in
     num_dims = math.prod(input_shape[1:])
     
     # Convert log_prob to bits (divide by log(2))
-    bits = -log_prob / math.log(2)
+    bits = nll / math.log(2)
     
     # Calculate bits per dimension
-    bits_per_dim = bits / num_dims
-    
-    # Return average across batch
-    return bits_per_dim.mean().item()
+    bpd = bits / num_dims
+
+    # Correct for dequantization step (256 bins in the image pixels)
+    bpd = bpd.mean().item() + math.log(256, 2)
+
+    return bpd
