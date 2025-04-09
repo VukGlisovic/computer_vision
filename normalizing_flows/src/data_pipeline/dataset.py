@@ -1,9 +1,9 @@
 from typing import List, Tuple, Optional
 import random
 
+import numpy as np
 import torch
 import torchvision
-from torchvision import transforms
 from torch.utils.data import Dataset
 
 
@@ -84,7 +84,7 @@ class RandomSubsetDataset(Dataset):
     # Create base dataset
     base_dataset = CelebADataset(root='./data', split='train')
     
-    # Create random subset dataset that samples 1000 random examples per epoch
+    # Create random subset dataset that samples 1000 random examples
     dataset = RandomSubsetDataset(base_dataset, subset_size=1000)
     
     dataloader = DataLoader(
@@ -94,6 +94,14 @@ class RandomSubsetDataset(Dataset):
         collate_fn=collate_fn
     )
 
+    # First iteration with first random subset
+    for images, _ in dataloader:
+        pass
+        
+    # Get new random subset
+    dataset.new_random_subset()
+    
+    # Second iteration with new random subset
     for images, _ in dataloader:
         pass
     ```
@@ -102,17 +110,17 @@ class RandomSubsetDataset(Dataset):
         """
         Args:
             dataset: The base dataset to sample from
-            subset_size: Number of samples to randomly select per epoch
+            subset_size: Number of samples to randomly select
             seed: Optional random seed for reproducibility
         """
         self.dataset = dataset
         self.subset_size = min(subset_size, len(dataset))
         self.seed = seed
         self._indices = None
-        self._reset_indices()
+        self.new_random_subset()
         
-    def _reset_indices(self):
-        """Resets the random indices for the next epoch."""
+    def new_random_subset(self):
+        """Generate a new random subset of indices."""
         if self.seed is not None:
             random.seed(self.seed)
         self._indices = random.sample(range(len(self.dataset)), self.subset_size)
@@ -121,6 +129,43 @@ class RandomSubsetDataset(Dataset):
         return self.subset_size
         
     def __getitem__(self, idx):
-        if idx == 0:
-            self._reset_indices()  # Reset indices at the start of each epoch
-        return self.dataset[self._indices[idx]] 
+        return self.dataset[self._indices[idx]]
+
+
+class ChunkedDataset(Dataset):
+    """
+    A dataset wrapper that provides chunking of all the data such that you can evaluate
+    more frequently.
+    """
+    def __init__(self, dataset: Dataset, n_chunks: int):
+        """
+        Args:
+            dataset: The base dataset to sample from
+            n_chunks: Number of chunks to split the dataset into
+        """
+        self.dataset = dataset
+        self.n_chunks = n_chunks
+
+        self.n = len(dataset)
+        self.chunk_size = int(np.ceil(self.n / n_chunks))
+        print(f"Number of samples in one chunk: {self.chunk_size}")
+        self.chunk_nr = 0
+        self._indices = []
+        self._next_indices()
+        
+    def _next_indices(self):
+        """Selects the next set of indices for the next chunk."""
+        start_idx = self.chunk_nr * self.chunk_size
+        end_idx = min((self.chunk_nr + 1) * self.chunk_size, self.n)
+        self._indices = list(range(start_idx, end_idx))
+        
+    def advance_chunk(self):
+        """Manually advance to the next chunk."""
+        self.chunk_nr = (self.chunk_nr + 1) % self.n_chunks
+        self._next_indices()
+        
+    def __len__(self):
+        return len(self._indices)
+        
+    def __getitem__(self, idx):
+        return self.dataset[self._indices[idx]]
