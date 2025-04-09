@@ -28,8 +28,6 @@ class ResNet(nn.Module):
         
         # Final layer with zero initialization
         self.final_layer = nn.Conv2d(hidden_channels, out_channels, kernel_size=self.kernel_size, padding=self.padding)
-        nn.init.zeros_(self.final_layer.weight)
-        nn.init.zeros_(self.final_layer.bias)
 
     def build_network(self):
         layers = []
@@ -54,6 +52,5 @@ class ResNet(nn.Module):
             h = rb(h)
             h = h + identity
             h = self.act()(h)
-        
-        # Final layer with zero-init
+
         return self.final_layer(h)
