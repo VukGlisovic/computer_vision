@@ -14,7 +14,7 @@ model:
   final_size: 4
   n_cb_couplings: 3  # Number of checkerboard couplings at the start of a block
   n_cw_couplings: 3  # Number of channelwise couplings at the end of a block
-  n_final_couplings: 3  # Number of coupling layers at the end of the network
+  n_final_couplings: 4  # Number of coupling layers at the end of the network
   resnet_starting_hidden_channels: 32
   resnet_n_residual_blocks: 1
 
