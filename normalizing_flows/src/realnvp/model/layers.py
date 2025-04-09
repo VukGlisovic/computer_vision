@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-from normalizing_flows.src.realnvp.resnet import ResNet
+from normalizing_flows.src.realnvp.model.resnet import ResNet
 
 
 class PreprocessImages(nn.Module):

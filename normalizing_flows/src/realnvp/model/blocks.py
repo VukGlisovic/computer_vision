@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from normalizing_flows.src.realnvp.layers import CouplingBijection2D, Squeeze, SqueezePermute
+from normalizing_flows.src.realnvp.model.layers import CouplingBijection2D, Squeeze, SqueezePermute
 
 
 class BlockBijection2D(nn.Module):
