@@ -62,6 +62,7 @@ def create_model(m_config):
 		n_residual_blocks=m_config['resnet_n_residual_blocks']
 	)
 	model = model.to(device)
+	print(f"Number of model parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,d}")
 	return model
 
 
