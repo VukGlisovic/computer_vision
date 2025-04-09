@@ -7,24 +7,30 @@ from normalizing_flows.src.realnvp.model.layers import CouplingBijection2D, Sque
 class BlockBijection2D(nn.Module):
     """RealNVP block for 2D data with checkerboard masking.
     """
-    def __init__(self, in_channels: int, hidden_channels: int = 64, n_hidden_layers: int = 1):
+    def __init__(self, in_channels: int, hidden_channels: int = 32, n_cb_bijections: int = 3, n_cw_bijections: int = 3, n_residual_blocks: int = 1):
         super().__init__()
         self.in_channels = in_channels
-        self.hidden_channels = hidden_channels
-        self.n_hidden_layers = n_hidden_layers
         self.out_channels = self.in_channels * 2  # half of channels continue, other half are done
 
-        self.coupling_layers_checkerboard = nn.ModuleList([
-            CouplingBijection2D(in_channels, hidden_channels, n_hidden_layers, 'checkerboard', reverse_mask=False),
-            CouplingBijection2D(in_channels, hidden_channels, n_hidden_layers, 'checkerboard', reverse_mask=True),
-            CouplingBijection2D(in_channels, hidden_channels, n_hidden_layers, 'checkerboard', reverse_mask=False)
-        ])
+        # Create checkerboard coupling layers
+        coupling_layers_checkerboard = []
+        reverse_mask = False
+        for i in range(n_cb_bijections):
+            coupling_layers_checkerboard.append(
+                CouplingBijection2D(in_channels, hidden_channels, n_residual_blocks, 'checkerboard', reverse_mask=reverse_mask)
+            )
+            reverse_mask = not reverse_mask
+        self.coupling_layers_checkerboard = nn.ModuleList(coupling_layers_checkerboard)
 
-        self.coupling_layers_channelwise = nn.ModuleList([
-            CouplingBijection2D(4 * in_channels, 2 * hidden_channels, n_hidden_layers, 'channelwise', reverse_mask=False),
-            CouplingBijection2D(4 * in_channels, 2 * hidden_channels, n_hidden_layers, 'channelwise', reverse_mask=True),
-            CouplingBijection2D(4 * in_channels, 2 * hidden_channels, n_hidden_layers, 'channelwise', reverse_mask=False)
-        ])
+        # Create channelwise coupling layers
+        coupling_layers_channelwise = []
+        reverse_mask = False
+        for i in range(n_cw_bijections):
+            coupling_layers_channelwise.append(
+                CouplingBijection2D(4 * in_channels, 2 * hidden_channels, n_residual_blocks, 'channelwise', reverse_mask=reverse_mask)
+            )
+            reverse_mask = not reverse_mask
+        self.coupling_layers_channelwise = nn.ModuleList(coupling_layers_channelwise)
 
         self.squeeze = Squeeze()
         self.squeeze_permute = SqueezePermute(in_channels)

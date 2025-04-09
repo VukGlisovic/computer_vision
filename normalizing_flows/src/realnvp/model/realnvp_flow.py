@@ -15,15 +15,18 @@ class RealNVP(nn.Module):
         self,
         in_channels: int,
         size: int = 32,  # Height and width; must be square input
-        hidden_channels: int = 32,  # is doubled each block
-        n_hidden_layers: int = 1,
-        final_size: int = 4
+        final_size: int = 4,
+        n_cb_bijections: int = 3,
+        n_cw_bijections: int = 3,
+        n_final_bijections: int = 4,
+        hidden_channels: int = 32,  # ResNet hidden channels (is doubled each block)
+        n_residual_blocks: int = 1  # ResNet number of hidden layers
     ):
         super().__init__()
         self.in_channels = in_channels
         self.size = size
-        self.n_hidden_layers = n_hidden_layers
         self.final_size = final_size
+        self.n_final_bijections = n_final_bijections
 
         self.loc = nn.Parameter(torch.zeros((in_channels, size, size)), requires_grad=False)
         self.scale = nn.Parameter(torch.ones((in_channels, size, size)), requires_grad=False)
@@ -32,14 +35,14 @@ class RealNVP(nn.Module):
         self.preprocess_images = PreprocessImages(alpha=0.05)
 
         # Create intermediate blocks
-        self.blocks = self.build_intermediate_blocks(hidden_channels)
+        self.blocks = self.build_intermediate_blocks(hidden_channels, n_residual_blocks, n_cb_bijections, n_cw_bijections)
 
         # Create final block
         in_channels = self.blocks[-1].out_channels
         hidden_channels *= 2 ** len(self.blocks)
-        self.final_layers = self.build_final_block(in_channels, hidden_channels, n_bijections=4)
+        self.final_layers = self.build_final_block(in_channels, hidden_channels, n_residual_blocks, n_bijections=n_final_bijections)
 
-    def build_intermediate_blocks(self, hidden_channels: int) -> nn.ModuleList:
+    def build_intermediate_blocks(self, hidden_channels: int, n_residual_blocks: int, n_cb_bijections: int, n_cw_bijections: int) -> nn.ModuleList:
         blocks = []
         in_channels = self.in_channels
         size = self.size
@@ -47,7 +50,9 @@ class RealNVP(nn.Module):
             block = BlockBijection2D(
                 in_channels=in_channels,
                 hidden_channels=hidden_channels,
-                n_hidden_layers=1
+                n_cb_bijections=n_cb_bijections,
+                n_cw_bijections=n_cw_bijections,
+                n_residual_blocks=n_residual_blocks
             )
             in_channels = block.out_channels  # in_channels for next block
             hidden_channels *= 2
@@ -55,11 +60,11 @@ class RealNVP(nn.Module):
             blocks.append(block)
         return nn.ModuleList(blocks)
     
-    def build_final_block(self, in_channels: int, hidden_channels: int, n_bijections: int) -> nn.Module:
+    def build_final_block(self, in_channels: int, hidden_channels: int, n_residual_blocks: int, n_bijections: int) -> nn.Module:
         layers = []
         reverse_mask = False
         for _ in range(n_bijections):
-            layers.append(CouplingBijection2D(in_channels, hidden_channels, self.n_hidden_layers, 'checkerboard', reverse_mask=reverse_mask))
+            layers.append(CouplingBijection2D(in_channels, hidden_channels, n_residual_blocks, 'checkerboard', reverse_mask=reverse_mask))
             reverse_mask = not reverse_mask
         return nn.ModuleList(layers)
 

@@ -113,11 +113,9 @@ class SqueezePermute(nn.Module):
 class CouplingBijection2D(nn.Module):
     """RealNVP coupling layer for 2D data with checkerboard masking.
     """
-    def __init__(self, in_channels: int, hidden_channels: int = 64, n_hidden_layers: int = 1, mask_type: str = 'checkerboard', reverse_mask=False):
+    def __init__(self, in_channels: int, hidden_channels: int = 64, n_residual_blocks: int = 1, mask_type: str = 'checkerboard', reverse_mask=False):
         super().__init__()
         self.in_channels = in_channels
-        self.hidden_channels = hidden_channels
-        self.n_hidden_layers = n_hidden_layers
         self.out_channels = self.in_channels
         self.mask_type = mask_type  # options: 'checkerboard' or 'channelwise'
         self.reverse_mask = reverse_mask
@@ -127,7 +125,7 @@ class CouplingBijection2D(nn.Module):
             in_channels=in_channels,
             hidden_channels=hidden_channels,
             out_channels=in_channels * 2,  # scale and shift for each channel
-            n_hidden_layers=n_hidden_layers
+            n_residual_blocks=n_residual_blocks
         )
         self.rescale = Rescale(in_channels)
 

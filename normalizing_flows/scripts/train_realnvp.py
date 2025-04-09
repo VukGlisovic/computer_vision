@@ -18,11 +18,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 
-def create_celeba_dataset():
+def create_celeba_dataset(ds_config):
 	# Define image transformations
 	transform = transforms.Compose([
-		transforms.CenterCrop(size=128),
-		transforms.Resize((32, 32)),
+		transforms.CenterCrop(size=ds_config['center_crop_size']),
+		transforms.Resize((ds_config['img_resize'], ds_config['img_resize'])),
 		transforms.ToTensor(),
 	])
 
@@ -34,13 +34,13 @@ def create_celeba_dataset():
 		download=True,
 		transform=transform
 	)
-	ds = ChunkedDataset(ds, n_chunks=6)
+	ds = ChunkedDataset(ds, n_chunks=ds_config['n_chunks_dataset'])
 
 	# Create dataloader
 	dl = DataLoader(
 		ds,
-		batch_size=32,
-		num_workers=4,
+		batch_size=ds_config['batch_size'],
+		num_workers=ds_config['num_workers'],
 		collate_fn=ds.dataset.collate_fn_skip_errors
 	)
 
@@ -50,13 +50,16 @@ def create_celeba_dataset():
 	return ds, dl
 
 
-def create_model():
+def create_model(m_config):
 	model = RealNVP(
 		in_channels=3,  # RGB images
-		size=32,
-		hidden_channels=32,
-		n_hidden_layers=1,
-		final_size=4
+		size=m_config['size'],
+		final_size=m_config['final_size'],
+		n_cb_bijections=m_config['n_cb_couplings'],
+		n_cw_bijections=m_config['n_cw_couplings'],
+		n_final_bijections=m_config['n_final_couplings'],
+		hidden_channels=m_config['resnet_starting_hidden_channels'],
+		n_residual_blocks=m_config['resnet_n_residual_blocks']
 	)
 	model = model.to(device)
 	return model
@@ -69,8 +72,8 @@ def train(config):
 	lr = tr_config['lr']
 
 	# Init dataloader, model and optimizer
-	ds_train, dl_train = create_celeba_dataset()
-	model = create_model()
+	ds_train, dl_train = create_celeba_dataset(config['dataset'])
+	model = create_model(config['model'])
 	model = model.train()
 	optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 

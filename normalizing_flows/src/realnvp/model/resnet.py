@@ -7,12 +7,12 @@ import torch.nn as nn
 class ResNet(nn.Module):
     """Simple Residual CNN for generating scale and shift parameters in 2D.
     """
-    def __init__(self, in_channels: int, out_channels: int, hidden_channels: int, n_hidden_layers: int = 1, act: Any = nn.ReLU):
+    def __init__(self, in_channels: int, out_channels: int, hidden_channels: int, n_residual_blocks: int = 1, act: Any = nn.ReLU):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.hidden_channels = hidden_channels
-        self.n_hidden_layers = n_hidden_layers
+        self.n_residual_blocks = n_residual_blocks
         self.act = act
 
         self.kernel_size = 3
@@ -32,7 +32,7 @@ class ResNet(nn.Module):
     def build_network(self):
         layers = []
         # Residual blocks
-        for _ in range(self.n_hidden_layers):
+        for _ in range(self.n_residual_blocks):
             layers.append(
                 nn.Sequential(
                     nn.Conv2d(self.hidden_channels, self.hidden_channels, kernel_size=self.kernel_size, padding=self.padding),
