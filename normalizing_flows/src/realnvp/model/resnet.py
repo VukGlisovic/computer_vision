@@ -21,13 +21,13 @@ class ResNet(nn.Module):
         # Initial projection if needed
         self.proj = None
         if in_channels != hidden_channels:
-            self.proj = nn.Conv2d(in_channels, hidden_channels, kernel_size=1)
+            self.proj = weight_norm(nn.Conv2d(in_channels, hidden_channels, kernel_size=1))
 
         # Build main network
         self.residual_blocks = self.build_network()
         
         # Final layer with zero initialization
-        self.final_layer = nn.Conv2d(hidden_channels, out_channels, kernel_size=self.kernel_size, padding=self.padding)
+        self.final_layer = weight_norm(nn.Conv2d(hidden_channels, out_channels, kernel_size=self.kernel_size, padding=self.padding))
 
     def build_network(self):
         layers = []
@@ -35,9 +35,11 @@ class ResNet(nn.Module):
         for _ in range(self.n_residual_blocks):
             layers.append(
                 nn.Sequential(
-                    nn.Conv2d(self.hidden_channels, self.hidden_channels, kernel_size=self.kernel_size, padding=self.padding),
+                    weight_norm(nn.Conv2d(self.hidden_channels, self.hidden_channels, kernel_size=self.kernel_size, padding=self.padding)),
+                    nn.BatchNorm2d(self.hidden_channels),
                     self.act(),
-                    nn.Conv2d(self.hidden_channels, self.hidden_channels, kernel_size=self.kernel_size, padding=self.padding)
+                    weight_norm(nn.Conv2d(self.hidden_channels, self.hidden_channels, kernel_size=self.kernel_size, padding=self.padding)),
+                    nn.BatchNorm2d(self.hidden_channels)
                 )
             )
         return nn.ModuleList(layers)
@@ -54,3 +56,15 @@ class ResNet(nn.Module):
             h = self.act()(h)
 
         return self.final_layer(h)
+
+
+def weight_norm(layer: Any) -> Any:
+    """The reason this method exists, is for documentation. The idea is taken from:
+
+    "Weight Normalization: A Simple Reparameterization to Accelerate Training of Deep Neural Networks" - https://arxiv.org/abs/1602.07868
+
+    The idea is that it stabilizes training by decomposing the weights into a
+    direction vector and a magnitude scalar. These individual components are then
+    updated through backpropagation.
+    """
+    return nn.utils.parametrizations.weight_norm(layer)

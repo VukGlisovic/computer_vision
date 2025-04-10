@@ -115,10 +115,12 @@ class CouplingBijection2D(nn.Module):
     """
     def __init__(self, in_channels: int, hidden_channels: int = 64, n_residual_blocks: int = 1, mask_type: str = 'checkerboard', reverse_mask=False):
         super().__init__()
+        assert mask_type in ['checkerboard', 'channelwise'], "Only accepting mask types: 'checkerboard' or 'channelwise'."
         self.in_channels = in_channels
         self.out_channels = self.in_channels
         self.mask_type = mask_type  # options: 'checkerboard' or 'channelwise'
         self.reverse_mask = reverse_mask
+        self.mask_factor = 2. if mask_type == 'checkerboard' else 1.
         
         # Neural network for computing scaling and translation parameters
         self.resnet = ResNet(
@@ -162,7 +164,7 @@ class CouplingBijection2D(nn.Module):
             mask = self._create_channelwise_mask(x.shape, x.device)
         else:
             raise ValueError(f"Invalid mask type: {self.mask_type}")
-        params = self.resnet(x * mask)
+        params = self.resnet(x * mask * self.mask_factor)
         log_s, t = torch.chunk(params, 2, dim=1)  # chunk along channel dimension
         log_s = self.rescale(torch.tanh(log_s))
         # we want to apply the scale and shift only to the non-masked values
