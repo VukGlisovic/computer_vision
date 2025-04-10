@@ -1,3 +1,4 @@
+from typing import Dict, Tuple, Any
 import os
 import argparse
 
@@ -5,6 +6,9 @@ import torch
 import torchvision
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from normalizing_flows.src.utils import load_config
@@ -18,7 +22,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 
-def create_celeba_dataset(ds_config):
+def create_celeba_dataset(ds_config: Dict) -> Tuple[Any, Any]:
 	# Define image transformations
 	transform = transforms.Compose([
 		transforms.CenterCrop(size=ds_config['center_crop_size']),
@@ -50,7 +54,7 @@ def create_celeba_dataset(ds_config):
 	return ds, dl
 
 
-def create_model(m_config):
+def create_model(m_config: Dict) -> Any:
 	model = RealNVP(
 		in_channels=3,  # RGB images
 		size=m_config['size'],
@@ -66,9 +70,33 @@ def create_model(m_config):
 	return model
 
 
-def train(config):
+def save_metrics(df: pd.DataFrame, output_dir: str) -> None:
+	df.to_csv(os.path.join(output_dir, 'metrics.csv'), index=False)
+
+	fig, [ax1, ax2] = plt.subplots(2, 1, figsize=(14, 10))
+
+	kwargs = {'lw': 2, 'alpha': 0.7}
+	def plot_metric(ax, metric):
+		ax.set_title(metric, fontsize=20)
+		df[metric].plot(label=metric, ax=ax, **kwargs)
+		ax.grid(lw=0.5, ls='--', alpha=0.5, color='black')
+		low, high = df[metric].min(), df[metric].quantile(0.95) * 1.1
+		ax.set_ylim(low - np.sign(low) * low * 0.1, high + np.sign(high) * high * 0.1)
+		ax.set_xlabel('epoch', fontsize=14)
+
+	plot_metric(ax1, 'nll')
+	plot_metric(ax2, 'bpd')
+
+	plt.tight_layout()
+	save_path = os.path.join(output_dir, 'metrics.jpeg')
+	plt.savefig(save_path)
+	plt.close()
+
+
+def train(config: Dict) -> None:
 	# Training configuration
 	tr_config = config['training']
+	output_dir = tr_config['output_dir']
 	n_epochs = tr_config['n_epochs']
 	lr = tr_config['lr']
 
@@ -80,11 +108,14 @@ def train(config):
 
 	# Init callbacks
 	cb_config = config['callbacks']
+	cb_config['model_checkpoint']['save_dir'] = os.path.join(output_dir, cb_config['model_checkpoint']['save_dir'])
+	cb_config['sample_generation']['save_dir'] = os.path.join(output_dir, cb_config['sample_generation']['save_dir'])
 	reduce_lr_on_plateau = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, **cb_config['reduce_lr_on_plateau'])
 	early_stopping = EarlyStopping(**cb_config['early_stopping'])
 	model_checkpoint = ModelCheckpoint(**cb_config['model_checkpoint'])
 	sample_generation = SampleGeneration(**cb_config['sample_generation'])
 
+	df_metrics = pd.DataFrame(columns=['nll', 'bpd'])
 	for ep in range(n_epochs):
 		# Reset nll loss and bps metric to zero
 		nll_loss_sum = 0
@@ -110,6 +141,8 @@ def train(config):
 		nll_loss_avg = nll_loss_sum / len(dl_train)
 		bpd_avg = bpd_sum / len(dl_train)
 		print(f"Epoch {ep + 1}/{n_epochs}, nll_loss: {nll_loss_avg:.4f}, bpd: {bpd_avg}, lr: {reduce_lr_on_plateau.get_last_lr()[0]}")
+		df_metrics.loc[ep, ['nll', 'bpd']] = [nll_loss_avg, bpd_avg]
+		save_metrics(df_metrics, output_dir)
 
 		# Execute callbacks
 		model_checkpoint.save(model, score=bpd_avg, epoch=ep)

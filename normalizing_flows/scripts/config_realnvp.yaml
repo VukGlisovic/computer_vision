@@ -1,11 +1,12 @@
 training:
+  output_dir: ../experiments/realnvp
   n_epochs: 100
   lr: 0.001
 
 dataset:
   center_crop_size: 128
   img_resize: &s 32  # Will be resized to a square image
-  n_chunks_dataset: 3
+  n_chunks_dataset: 36
   batch_size: 32
   num_workers: 4
 
@@ -28,8 +29,8 @@ callbacks:
     patience: 8
     threshold: 0.01
   model_checkpoint:
-    save_dir: ../data/realnvp_checkpoints
+    save_dir: checkpoints  # Is used with output_dir: os.path.join(output_dir, save_dir)
     filename: realnvp_{epoch:03d}_{score:.3f}.pt
     save_best_only: True
   sample_generation:
-    save_dir: ../data/realnvp_generated_samples
+    save_dir: generated_samples  # Is used with output_dir: os.path.join(output_dir, save_dir)
