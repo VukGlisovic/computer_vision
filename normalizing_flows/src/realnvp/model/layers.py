@@ -5,6 +5,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 from normalizing_flows.src.realnvp.model.resnet import ResNet
+from normalizing_flows.src.realnvp.model.layer_utils import weight_norm
 
 
 class PreprocessImages(nn.Module):
@@ -120,16 +121,16 @@ class CouplingBijection2D(nn.Module):
         self.out_channels = self.in_channels
         self.mask_type = mask_type  # options: 'checkerboard' or 'channelwise'
         self.reverse_mask = reverse_mask
-        self.mask_factor = 2. if mask_type == 'checkerboard' else 1.
         
         # Neural network for computing scaling and translation parameters
         self.resnet = ResNet(
             in_channels=in_channels,
             hidden_channels=hidden_channels,
             out_channels=in_channels * 2,  # scale and shift for each channel
-            n_residual_blocks=n_residual_blocks
+            n_residual_blocks=n_residual_blocks,
+            in_factor=2. if mask_type == 'checkerboard' else 1.
         )
-        self.rescale = Rescale(in_channels)
+        self.rescale = weight_norm(Rescale(in_channels))
 
     def _create_checkerboard_mask(self, shape: Tuple[int, int, int, int], device: torch.device) -> torch.Tensor:
         _, _, h, w = shape
@@ -164,7 +165,7 @@ class CouplingBijection2D(nn.Module):
             mask = self._create_channelwise_mask(x.shape, x.device)
         else:
             raise ValueError(f"Invalid mask type: {self.mask_type}")
-        params = self.resnet(x * mask * self.mask_factor)
+        params = self.resnet(x * mask)
         log_s, t = torch.chunk(params, 2, dim=1)  # chunk along channel dimension
         log_s = self.rescale(torch.tanh(log_s))
         # we want to apply the scale and shift only to the non-masked values
@@ -188,6 +189,6 @@ class CouplingBijection2D(nn.Module):
         log_s_masked, t_masked = self.get_scale_and_shift(z)
         
         # Apply inverse transformation
-        x = z * torch.exp(-log_s_masked) - t_masked
+        x = (z - t_masked) * torch.exp(-log_s_masked)
         
         return x

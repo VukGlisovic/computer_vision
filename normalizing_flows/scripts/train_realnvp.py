@@ -103,7 +103,6 @@ def train(config: Dict) -> None:
 	# Init dataloader, model and optimizer
 	ds_train, dl_train = create_celeba_dataset(config['dataset'])
 	model = create_model(config['model'])
-	model = model.train()
 	optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
 	# Init callbacks
@@ -117,6 +116,9 @@ def train(config: Dict) -> None:
 
 	df_metrics = pd.DataFrame(columns=['nll', 'bpd'])
 	for ep in range(n_epochs):
+		# Make model trainable
+		model = model.train()
+
 		# Reset nll loss and bps metric to zero
 		nll_loss_sum = 0
 		bpd_sum = 0
@@ -145,6 +147,7 @@ def train(config: Dict) -> None:
 		save_metrics(df_metrics, output_dir)
 
 		# Execute callbacks
+		model = model.eval()
 		model_checkpoint.save(model, score=bpd_avg, epoch=ep)
 		sample_generation.generate_and_plot_images(model, epoch=ep)
 		if early_stopping(bpd_avg):
