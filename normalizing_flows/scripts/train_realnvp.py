@@ -158,9 +158,7 @@ def train(config: Dict) -> None:
 		# Go to the next chunk of the training dataset; this will update the dataset in dl_train by reference
 		ds_train.advance_chunk()
 
-	best_path = os.path.join('checkpoints', os.listdir('checkpoints')[-1])
-	print(f"Loading best model from checkpoint: {best_path}.")
-	model_checkpoint.load(model, best_path)
+	print("End of training!")
 
 
 if __name__ == '__main__':
