@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from normalizing_flows.src.realnvp.model.layers import CouplingBijection2D, Squeeze, SqueezePermute
+from normalizing_flows.src.realnvp.model.layers import CheckerboardBijection2D, ChannelwiseBijection2D, Squeeze, SqueezePermute
 
 
 class BlockBijection2D(nn.Module):
@@ -17,7 +17,7 @@ class BlockBijection2D(nn.Module):
         reverse_mask = False
         for i in range(n_cb_bijections):
             coupling_layers_checkerboard.append(
-                CouplingBijection2D(in_channels, hidden_channels, n_residual_blocks, 'checkerboard', reverse_mask=reverse_mask)
+                CheckerboardBijection2D(in_channels, hidden_channels, n_residual_blocks, reverse_mask=reverse_mask)
             )
             reverse_mask = not reverse_mask
         self.coupling_layers_checkerboard = nn.ModuleList(coupling_layers_checkerboard)
@@ -27,7 +27,7 @@ class BlockBijection2D(nn.Module):
         reverse_mask = False
         for i in range(n_cw_bijections):
             coupling_layers_channelwise.append(
-                CouplingBijection2D(4 * in_channels, 2 * hidden_channels, n_residual_blocks, 'channelwise', reverse_mask=reverse_mask)
+                ChannelwiseBijection2D(4 * in_channels, 2 * hidden_channels, n_residual_blocks, reverse_mask=reverse_mask)
             )
             reverse_mask = not reverse_mask
         self.coupling_layers_channelwise = nn.ModuleList(coupling_layers_channelwise)

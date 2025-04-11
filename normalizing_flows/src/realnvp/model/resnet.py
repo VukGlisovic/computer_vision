@@ -31,7 +31,7 @@ class ResNet(nn.Module):
         
         # Final layer with zero initialization
         self.final_layer = nn.Sequential(
-            nn.BatchNorm2d(self.hidden_channels),
+            nn.BatchNorm2d(hidden_channels),
             self.act(),
             weight_norm(nn.Conv2d(hidden_channels, out_channels, kernel_size=self.kernel_size, padding=self.padding))
         )

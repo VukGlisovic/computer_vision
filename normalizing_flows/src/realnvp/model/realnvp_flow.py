@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.distributions import Normal
 
-from normalizing_flows.src.realnvp.model.layers import CouplingBijection2D, PreprocessImages
+from normalizing_flows.src.realnvp.model.layers import CheckerboardBijection2D, PreprocessImages
 from normalizing_flows.src.realnvp.model.blocks import BlockBijection2D
 
 
@@ -64,7 +64,7 @@ class RealNVP(nn.Module):
         layers = []
         reverse_mask = False
         for _ in range(n_bijections):
-            layers.append(CouplingBijection2D(in_channels, hidden_channels, n_residual_blocks, 'checkerboard', reverse_mask=reverse_mask))
+            layers.append(CheckerboardBijection2D(in_channels, hidden_channels, n_residual_blocks, reverse_mask=reverse_mask))
             reverse_mask = not reverse_mask
         return nn.ModuleList(layers)
 

@@ -111,15 +111,13 @@ class SqueezePermute(nn.Module):
         return torch.nn.functional.conv_transpose2d(x, self.perm_weight, stride=2)
 
 
-class CouplingBijection2D(nn.Module):
-    """RealNVP coupling layer for 2D data with checkerboard masking.
+class CheckerboardBijection2D(nn.Module):
+    """Checkerboard coupling layer for 2D data.
     """
-    def __init__(self, in_channels: int, hidden_channels: int = 64, n_residual_blocks: int = 1, mask_type: str = 'checkerboard', reverse_mask=False):
+    def __init__(self, in_channels: int, hidden_channels: int = 64, n_residual_blocks: int = 1, reverse_mask=False):
         super().__init__()
-        assert mask_type in ['checkerboard', 'channelwise'], "Only accepting mask types: 'checkerboard' or 'channelwise'."
         self.in_channels = in_channels
         self.out_channels = self.in_channels
-        self.mask_type = mask_type  # options: 'checkerboard' or 'channelwise'
         self.reverse_mask = reverse_mask
         
         # Neural network for computing scaling and translation parameters
@@ -128,7 +126,7 @@ class CouplingBijection2D(nn.Module):
             hidden_channels=hidden_channels,
             out_channels=in_channels * 2,  # scale and shift for each channel
             n_residual_blocks=n_residual_blocks,
-            in_factor=2. if mask_type == 'checkerboard' else 1.
+            in_factor=2.  # checkerboard masks out half of the values for the conv layer, multiply by 2 to correct
         )
         self.rescale = weight_norm(Rescale(in_channels))
 
@@ -148,23 +146,10 @@ class CouplingBijection2D(nn.Module):
         # Repeat the pattern to match input dimensions
         mask = base_mask.repeat(1, 1, h_repeats, w_repeats)
         return mask
-
-    def _create_channelwise_mask(self, shape: Tuple[int, int, int, int], device: torch.device) -> torch.Tensor:
-        _, c, h, w = shape
-        # Create a channelwise mask where we either mask the first or last half of the channels
-        mask = torch.cat([torch.ones(1, c//2, h, w, device=device), torch.zeros(1, c//2, h, w, device=device)], dim=1)
-        if self.reverse_mask:
-            mask = 1 - mask
-        return mask
     
     def get_scale_and_shift(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         # Input shape: (batch_size, channels, height, width)
-        if self.mask_type == 'checkerboard':
-            mask = self._create_checkerboard_mask(x.shape, x.device)
-        elif self.mask_type == 'channelwise':
-            mask = self._create_channelwise_mask(x.shape, x.device)
-        else:
-            raise ValueError(f"Invalid mask type: {self.mask_type}")
+        mask = self._create_checkerboard_mask(x.shape, x.device)
         params = self.resnet(x * mask)
         log_s, t = torch.chunk(params, 2, dim=1)  # chunk along channel dimension
         log_s = self.rescale(torch.tanh(log_s))
@@ -191,4 +176,68 @@ class CouplingBijection2D(nn.Module):
         # Apply inverse transformation
         x = (z - t_masked) * torch.exp(-log_s_masked)
         
+        return x
+
+
+class ChannelwiseBijection2D(nn.Module):
+    """Channelwise coupling layer for 2D data.
+    """
+    def __init__(self, in_channels: int, hidden_channels: int = 64, n_residual_blocks: int = 1, reverse_mask=False):
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = self.in_channels
+        self.reverse_mask = reverse_mask
+
+        # Neural network for computing scaling and translation parameters
+        self.resnet = ResNet(
+            in_channels=in_channels // 2,  # chopping off half of the channels
+            hidden_channels=hidden_channels,
+            out_channels=in_channels,  # scale and shift for each value
+            n_residual_blocks=n_residual_blocks,
+            in_factor=1.  # no correction needed for channelwise masking
+        )
+        self.rescale = weight_norm(Rescale(in_channels // 2))
+
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Implementation is with torch.chunk instead of with a mask as is described in
+        the RealNVP paper to make this layer more efficient.
+        """
+        if self.reverse_mask:
+            z_update, z_id = torch.chunk(x, 2, dim=1)
+        else:
+            z_id, z_update = torch.chunk(x, 2, dim=1)
+        params = self.resnet(z_id)
+        log_s, t = torch.chunk(params, 2, dim=1)  # chunk along channel dimension
+        log_s = self.rescale(torch.tanh(log_s))
+
+        # Apply transformation
+        z_update = z_update * torch.exp(log_s) + t
+        if self.reverse_mask:
+            z = torch.cat([z_update, z_id], dim=1)
+        else:
+            z = torch.cat([z_id, z_update], dim=1)
+
+        # Compute log determinant
+        log_det = log_s.sum(dim=[1, 2, 3])
+
+        return z, log_det
+
+    @torch.no_grad()
+    def inverse(self, z: torch.Tensor) -> torch.Tensor:
+        if self.reverse_mask:
+            x_update, x_id = torch.chunk(z, 2, dim=1)
+        else:
+            x_id, x_update = torch.chunk(z, 2, dim=1)
+        params = self.resnet(x_id)
+        log_s, t = torch.chunk(params, 2, dim=1)  # chunk along channel dimension
+        log_s = self.rescale(torch.tanh(log_s))
+
+        # Apply inverse transformation
+        x_update = (x_update - t) * torch.exp(-log_s)
+        if self.reverse_mask:
+            x = torch.cat([x_update, x_id], dim=1)
+        else:
+            x = torch.cat([x_id, x_update], dim=1)
+
         return x
