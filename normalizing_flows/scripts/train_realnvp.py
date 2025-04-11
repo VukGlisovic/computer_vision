@@ -1,6 +1,7 @@
 from typing import Dict, Tuple, Any
 import os
 import argparse
+from datetime import datetime
 
 import torch
 import torchvision
@@ -66,7 +67,9 @@ def create_model(m_config: Dict) -> Any:
 		n_residual_blocks=m_config['resnet_n_residual_blocks']
 	)
 	model = model.to(device)
-	print(f"Number of model parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,d}")
+	print(f"Number of trainable / non-trainable model parameters: "
+	      f"{sum(p.numel() for p in model.parameters() if p.requires_grad):,d} / "
+	      f"{sum(p.numel() for p in model.parameters() if not p.requires_grad):,d}")
 	return model
 
 
@@ -75,8 +78,8 @@ def save_metrics(df: pd.DataFrame, output_dir: str) -> None:
 
 	fig, [ax1, ax2] = plt.subplots(2, 1, figsize=(14, 10))
 
-	kwargs = {'lw': 2, 'alpha': 0.7}
 	def plot_metric(ax, metric):
+		kwargs = {'lw': 2, 'alpha': 0.7}
 		ax.set_title(metric, fontsize=20)
 		df[metric].plot(label=metric, ax=ax, **kwargs)
 		ax.grid(lw=0.5, ls='--', alpha=0.5, color='black')
@@ -114,7 +117,7 @@ def train(config: Dict) -> None:
 	model_checkpoint = ModelCheckpoint(**cb_config['model_checkpoint'])
 	sample_generation = SampleGeneration(**cb_config['sample_generation'])
 
-	df_metrics = pd.DataFrame(columns=['nll', 'bpd'])
+	df_metrics = pd.DataFrame(columns=['timestamp', 'nll', 'bpd'])
 	for ep in range(n_epochs):
 		# Make model trainable
 		model = model.train()
@@ -143,7 +146,7 @@ def train(config: Dict) -> None:
 		nll_loss_avg = nll_loss_sum / len(dl_train)
 		bpd_avg = bpd_sum / len(dl_train)
 		print(f"Epoch {ep + 1}/{n_epochs}, nll_loss: {nll_loss_avg:.4f}, bpd: {bpd_avg}, lr: {reduce_lr_on_plateau.get_last_lr()[0]}")
-		df_metrics.loc[ep, ['nll', 'bpd']] = [nll_loss_avg, bpd_avg]
+		df_metrics.loc[ep, ['timestamp', 'nll', 'bpd']] = [datetime.now(), nll_loss_avg, bpd_avg]
 		save_metrics(df_metrics, output_dir)
 
 		# Execute callbacks
