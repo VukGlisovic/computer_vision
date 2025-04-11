@@ -4,10 +4,10 @@ training:
   lr: 0.001
 
 dataset:
-  center_crop_size: 128
-  img_resize: &s 32  # Will be resized to a square image
-  n_chunks_dataset: 36
-  batch_size: 32
+  center_crop_size: 148
+  img_resize: &s 64  # Will be resized to a square image
+  n_chunks_dataset: 1
+  batch_size: 64
   num_workers: 4
 
 model:
@@ -17,16 +17,16 @@ model:
   n_cw_couplings: 3  # Number of channelwise couplings at the end of a block
   n_final_couplings: 4  # Number of coupling layers at the end of the network
   resnet_starting_hidden_channels: 32
-  resnet_n_residual_blocks: 1
+  resnet_n_residual_blocks: 2
 
 callbacks:
   reduce_lr_on_plateau:
     factor: 0.5
-    patience: 4
+    patience: 3
     threshold: 0.01
     threshold_mode: abs
   early_stopping:
-    patience: 8
+    patience: 6
     threshold: 0.01
   model_checkpoint:
     save_dir: checkpoints  # Is used with output_dir: os.path.join(output_dir, save_dir)
