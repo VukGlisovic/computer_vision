@@ -12,6 +12,9 @@ Every folder is basically a project. Every project has a readme that explains ho
 for that particular project. If there is no explanation in the readme, just create the environment with 
 `conda env create -f environment.yaml`. If there is no readme, then I guess there's not much to say, just create the
 environment and run the code.
+A small disclaimer: in the earlier projects I tried to use one environment yaml for all the projects. I realized that
+was a bad idea and started creating an environment per project. This means that the environment yamls from some of the 
+earlier projects might not work out of the box.
 
 I am playing around a bit with environment yamls and requirements.txt files. Also, in every project I either user 
 tensorflow or pytorch. My earlier projects mainly use tensorflow, but I started liking pytorch more and more.
