@@ -9,8 +9,10 @@ from normalizing_flows.src.realnvp.model.blocks import BlockBijection2D
 
 
 class RealNVP(nn.Module):
-    """RealNVP flow model for 2D data.
     """
+    RealNVP flow model for 2D data.
+    """
+
     def __init__(
         self,
         in_channels: int,
@@ -60,7 +62,7 @@ class RealNVP(nn.Module):
             blocks.append(block)
         return nn.ModuleList(blocks)
     
-    def build_final_block(self, in_channels: int, hidden_channels: int, n_residual_blocks: int, n_bijections: int) -> nn.Module:
+    def build_final_block(self, in_channels: int, hidden_channels: int, n_residual_blocks: int, n_bijections: int) -> nn.ModuleList:
         layers = []
         reverse_mask = False
         for _ in range(n_bijections):
@@ -73,14 +75,6 @@ class RealNVP(nn.Module):
         return Normal(loc=self.loc, scale=self.scale)
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Forward pass through all coupling layers.
-
-        Args:
-            x (torch.Tensor): Input tensor of shape (batch_size, channels, height, width)
-
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]: (transformed_x, total_log_det_jacobian)
-        """
         total_log_det = torch.zeros(x.shape[0], device=x.device)
 
         # Preprocess images
@@ -109,14 +103,6 @@ class RealNVP(nn.Module):
 
     @torch.no_grad()
     def inverse(self, z: torch.Tensor) -> torch.Tensor:
-        """Inverse pass through all coupling layers.
-
-        Args:
-            z (torch.Tensor): Input tensor of shape (batch_size, channels, height, width)
-
-        Returns:
-            torch.Tensor: Reconstructed input
-        """
         # Extract individual z components
         z_out = []
         for block in self.blocks:
@@ -137,28 +123,12 @@ class RealNVP(nn.Module):
         return x
 
     def log_prob(self, x: torch.Tensor) -> torch.Tensor:
-        """Compute log probability of input samples.
-
-        Args:
-            x (torch.Tensor): Input tensor of shape (batch_size, channels, height, width)
-
-        Returns:
-            torch.Tensor: Log probabilities
-        """
         z, total_log_det = self.forward(x)
         log_prob = self.base_dist.log_prob(z).sum(dim=[1, 2, 3]) + total_log_det
         return log_prob
 
     @torch.no_grad()
     def sample(self, n_samples: int) -> torch.Tensor:
-        """Generate samples from the model.
-
-        Args:
-            n_samples (int): Number of samples to generate
-
-        Returns:
-            torch.Tensor: Generated samples
-        """
         z = self.base_dist.sample((n_samples,))
         x = self.inverse(z)
         return x

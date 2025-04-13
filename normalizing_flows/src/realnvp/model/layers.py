@@ -9,6 +9,11 @@ from normalizing_flows.src.realnvp.model.layer_utils import weight_norm
 
 
 class PreprocessImages(nn.Module):
+    """
+    Preprocess the input images:
+    1. Dequantization; make pixel values continuous (instead of descrete).
+    2. Convert to logits.
+    """
 
     def __init__(self, alpha=0.05):
         super(PreprocessImages, self).__init__()
@@ -31,18 +36,20 @@ class PreprocessImages(nn.Module):
         return y, sldj
 
     def inverse(self, y: torch.Tensor) -> torch.Tensor:
-        # The inverse of the logic function, is the sigmoid function
+        # The inverse of the logit function, is the sigmoid function
         x = torch.sigmoid(y)
         return x
 
 
 class Rescale(nn.Module):
-    """Per-channel rescaling. Need a proper `nn.Module` so we can wrap it
+    """
+    Per-channel rescaling. Need a proper `nn.Module` so we can wrap it
     with `torch.nn.utils.weight_norm`.
 
     Args:
         num_channels (int): Number of channels in the input.
     """
+
     def __init__(self, num_channels: int):
         super(Rescale, self).__init__()
         self.weight = nn.Parameter(torch.ones(num_channels, 1, 1))
@@ -53,8 +60,10 @@ class Rescale(nn.Module):
 
 
 class Squeeze(nn.Module):
-    """Squeezes a C x H x W tensor into a 4C x H/2 x W/2 tensor.
     """
+    Squeezes a [bs, C, H, W] shape tensor into a [bs, 4C, H/2, W/2] shape tensor.
+    """
+
     def __init__(self):
         super(Squeeze, self).__init__()
 
@@ -74,8 +83,11 @@ class Squeeze(nn.Module):
 
 
 class SqueezePermute(nn.Module):
-    """Squeezes a C x H x W tensor into a 4C x H/2 x W/2 tensor and permutes the channels.
     """
+    Squeezes a [bs, C, H, W] shape tensor into a [bs, 4C, H/2, W/2] shape tensor
+    but compared to Squeeze it also applies some shuffling.
+    """
+
     def __init__(self, in_channels: int):
         super(SqueezePermute, self).__init__()
         self.in_channels = in_channels
@@ -112,8 +124,10 @@ class SqueezePermute(nn.Module):
 
 
 class CheckerboardBijection2D(nn.Module):
-    """Checkerboard coupling layer for 2D data.
     """
+    Checkerboard coupling layer for 2D data.
+    """
+
     def __init__(self, in_channels: int, hidden_channels: int = 64, n_residual_blocks: int = 1, reverse_mask=False):
         super().__init__()
         self.in_channels = in_channels
@@ -180,8 +194,10 @@ class CheckerboardBijection2D(nn.Module):
 
 
 class ChannelwiseBijection2D(nn.Module):
-    """Channelwise coupling layer for 2D data.
     """
+    Channelwise coupling layer for 2D data.
+    """
+
     def __init__(self, in_channels: int, hidden_channels: int = 64, n_residual_blocks: int = 1, reverse_mask=False):
         super().__init__()
         self.in_channels = in_channels

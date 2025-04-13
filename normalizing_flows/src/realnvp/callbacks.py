@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 import torch
 import numpy as np
@@ -6,7 +7,8 @@ import matplotlib.pyplot as plt
 
 
 class EarlyStopping:
-	"""A simple implementation of the EarlyStopping algorithm.
+	"""
+	A simple implementation of the EarlyStopping algorithm.
 
 	Args:
 		mode: options are 'min' and 'max'.
@@ -41,7 +43,8 @@ class EarlyStopping:
 
 
 class ModelCheckpoint:
-	"""A callback to save and load model checkpoints.
+	"""
+	A callback to save and load model checkpoints.
 
 	Args:
 		save_dir: Directory to save model checkpoints.
@@ -84,7 +87,8 @@ class ModelCheckpoint:
 
 	@staticmethod
 	def load(model, checkpoint_path: str) -> None:
-		"""Load a model checkpoint into the provided model.
+		"""
+		Load a model checkpoint into the provided model.
 		
 		Args:
 			model: The model to load the weights into
@@ -97,7 +101,8 @@ class ModelCheckpoint:
 
 
 class SampleGeneration:
-	"""A callback to generate and save sample images from the model at the end of each epoch.
+	"""
+	A callback to generate and save sample images from the model at the end of each epoch.
 	Uses fixed latent vectors z to track model evolution over time.
 	
 	Args:
@@ -112,14 +117,13 @@ class SampleGeneration:
 		os.makedirs(save_dir, exist_ok=True)
 		self.fixed_z = None
 
-	def _initialize_fixed_z(self, model):
+	def _initialize_fixed_z(self, model: Any) -> None:
 		"""Initialize fixed z values from the model's base distribution."""
 		device = next(model.parameters()).device
 		self.fixed_z = model.base_dist.sample((self.n_samples,)).to(device)
 
 	def _save_image_grid(self, samples: torch.Tensor, epoch: int) -> None:
-		"""Save samples as a grid image.
-		
+		"""
 		Args:
 			samples: Tensor of shape (n_samples, 3, height, width)
 			epoch: Current epoch number
@@ -149,8 +153,9 @@ class SampleGeneration:
 		plt.savefig(save_path)
 		plt.close()
 
-	def generate_and_plot_images(self, model, epoch: int) -> None:
-		"""Generate and save samples at the end of an epoch using fixed z values.
+	def generate_and_plot_images(self, model: Any, epoch: int) -> None:
+		"""
+		Generate and save samples at the end of an epoch using fixed z values.
 		
 		Args:
 			model: The model to generate samples from

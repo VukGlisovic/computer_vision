@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 import torch.nn as nn
 
@@ -5,8 +7,13 @@ from normalizing_flows.src.realnvp.model.layers import CheckerboardBijection2D, 
 
 
 class BlockBijection2D(nn.Module):
-    """RealNVP block for 2D data with checkerboard masking.
     """
+    RealNVP block containing the following transformations:
+    1. Configurable number of checkerboard coupling layers.
+    2. Squeeze to reduce height/width.
+    3. Configurable number of channelwise coupling layers.
+    """
+
     def __init__(self, in_channels: int, hidden_channels: int = 32, n_cb_bijections: int = 3, n_cw_bijections: int = 3, n_residual_blocks: int = 1):
         super().__init__()
         self.in_channels = in_channels
@@ -35,7 +42,7 @@ class BlockBijection2D(nn.Module):
         self.squeeze = Squeeze()
         self.squeeze_permute = SqueezePermute(in_channels)
     
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         ldj = 0
 
         for layer in self.coupling_layers_checkerboard:

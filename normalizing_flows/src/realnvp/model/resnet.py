@@ -7,9 +7,22 @@ from normalizing_flows.src.realnvp.model.layer_utils import weight_norm
 
 
 class ResNet(nn.Module):
-    """Simple Residual CNN for generating scale and shift parameters in 2D.
     """
+    Simple Residual CNN for generating scale and shift parameters in 2D.
+    """
+
     def __init__(self, in_channels: int, out_channels: int, hidden_channels: int, n_residual_blocks: int = 1, in_factor: float = 1., act: Any = nn.ReLU):
+        """
+
+        Args:
+            in_channels: Number of channels going into the network.
+            out_channels: Number of channels that should go out of the network.
+            hidden_channels: Number of channels in intermeditate layers.
+            n_residual_blocks: Number of residual blocks
+            in_factor: Multiplication factor after input batch normalization; can be useful to
+                counter masking out of features (e.g. with checkerboard masking).
+            act: Activation function.
+        """
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -27,7 +40,7 @@ class ResNet(nn.Module):
         self.proj = weight_norm(nn.Conv2d(2 * in_channels, hidden_channels, kernel_size=1))
 
         # Build main network
-        self.residual_blocks = self.build_network()
+        self.residual_blocks = self.build_residual_blocks()
         
         # Final layer with zero initialization
         self.final_layer = nn.Sequential(
@@ -36,7 +49,7 @@ class ResNet(nn.Module):
             weight_norm(nn.Conv2d(hidden_channels, out_channels, kernel_size=self.kernel_size, padding=self.padding))
         )
 
-    def build_network(self):
+    def build_residual_blocks(self) -> nn.ModuleList:
         layers = []
         # Residual blocks
         for _ in range(self.n_residual_blocks):

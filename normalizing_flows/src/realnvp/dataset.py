@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Union, Optional, Callable
 import random
 
 import numpy as np
@@ -8,7 +8,8 @@ from torch.utils.data import Dataset
 
 
 class CelebADataset(torchvision.datasets.CelebA):
-    """Dataset class for CelebA images with error handling in __getitem__.
+    """
+    Dataset class for CelebA images with error handling in __getitem__.
     
     Usage example:
     ```
@@ -27,7 +28,7 @@ class CelebADataset(torchvision.datasets.CelebA):
         pass
     ```
     """
-    def __init__(self, root='./data', split='train', download=True, transform=None):
+    def __init__(self, root: str = './data', split: str = 'train', download: bool = True, transform: Optional[Callable] = None):
         super().__init__(
             root=root,
             split=split,
@@ -35,20 +36,20 @@ class CelebADataset(torchvision.datasets.CelebA):
             transform=transform
         )
 
-    def __getitem__(self, index):
-        """Returns (image, None) for compatibility with collate_fn.
-        Returns None if loading fails.
-        """
+    def __getitem__(self, index: int) -> Union[Tuple[torch.Tensor, torch.Tensor], None]:
         try:
             image, labels = super().__getitem__(index)
             return image, labels
         except Exception as e:
             print(f"Error loading sample at index {index}: {str(e)}")
-            return None 
+            # collate_fn can take care of None values
+            return None
     
     @staticmethod
     def collate_fn_skip_errors(batch: List[Tuple[torch.Tensor, torch.Tensor]]) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Custom collate function that filters out failed samples and creates a batch with the remaining valid samples.
+        """
+        Custom collate function that filters out failed samples and creates a batch
+        with the remaining valid samples.
         
         Args:
             batch: List of tuples containing (image, target) pairs. Some pairs may be None if loading failed.
@@ -74,7 +75,8 @@ class CelebADataset(torchvision.datasets.CelebA):
 
 
 class RandomSubsetDataset(Dataset):
-    """A dataset wrapper that provides random sampling of a subset of the original dataset.
+    """
+    A dataset wrapper that provides random sampling of a subset of the original dataset.
     
     Usage example:
     ```
@@ -106,6 +108,7 @@ class RandomSubsetDataset(Dataset):
         pass
     ```
     """
+
     def __init__(self, dataset: Dataset, subset_size: int, seed: Optional[int] = None):
         """
         Args:
@@ -137,6 +140,7 @@ class ChunkedDataset(Dataset):
     A dataset wrapper that provides chunking of all the data such that you can evaluate
     more frequently.
     """
+
     def __init__(self, dataset: Dataset, n_chunks: int):
         """
         Args:

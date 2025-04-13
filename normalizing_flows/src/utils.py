@@ -1,7 +1,9 @@
+from typing import Dict
+
 import yaml
 
 
-def load_config(config_path):
+def load_config(config_path: str) -> Dict:
     """
 	Args:
 		config_path (str):
