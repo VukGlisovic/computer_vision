@@ -50,7 +50,7 @@ class ResNet(nn.Module):
         )
 
     def build_residual_blocks(self) -> nn.ModuleList:
-        layers = []
+        layers = nn.ModuleList()
         # Residual blocks
         for _ in range(self.n_residual_blocks):
             layers.append(
@@ -62,7 +62,7 @@ class ResNet(nn.Module):
                     nn.BatchNorm2d(self.hidden_channels)
                 )
             )
-        return nn.ModuleList(layers)
+        return layers
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Apply layers to input before residual blocks

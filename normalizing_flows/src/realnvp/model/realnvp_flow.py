@@ -110,11 +110,11 @@ class RealNVP(nn.Module):
             z, z_split = torch.chunk(z, 2, dim=1)
             z_out.append(z_split)
         
-        # Run through final block (no downsampling)
+        # Run through final block (no upsampling)
         for layer in reversed(self.final_layers):
             z = layer.inverse(z)
 
-        # Run through all intermediate blocks (with downsampling)
+        # Run through all intermediate blocks (with upsampling)
         for block, z_split in reversed(list(zip(self.blocks, z_out))):
             z = torch.cat((z, z_split), dim=1)
             z = block.inverse(z)
