@@ -17,7 +17,7 @@ class PreprocessImages(nn.Module):
 
     def __init__(self, alpha=0.05):
         super(PreprocessImages, self).__init__()
-        self.alpha = nn.Parameter(torch.tensor(alpha), requires_grad=False)
+        self.register_buffer('alpha', torch.tensor(alpha))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -91,7 +91,7 @@ class SqueezePermute(nn.Module):
     def __init__(self, in_channels: int):
         super(SqueezePermute, self).__init__()
         self.in_channels = in_channels
-        self.perm_weight = nn.Parameter(self._create_perm_weight(), requires_grad=False)
+        self.register_buffer('perm_weight', self._create_perm_weight())
     
     def _create_perm_weight(self) -> torch.Tensor:
         c = self.in_channels

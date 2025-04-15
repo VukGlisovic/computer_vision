@@ -23,11 +23,11 @@ callbacks:
   reduce_lr_on_plateau:
     factor: 0.5
     patience: 3
-    threshold: 0.01
+    threshold: 0.005
     threshold_mode: abs
   early_stopping:
     patience: 6
-    threshold: 0.01
+    threshold: 0.005
   model_checkpoint:
     save_dir: checkpoints  # Is used with output_dir: os.path.join(output_dir, save_dir)
     filename: realnvp_{epoch:03d}_{score:.3f}.pt

@@ -30,8 +30,8 @@ class RealNVP(nn.Module):
         self.final_size = final_size
         self.n_final_bijections = n_final_bijections
 
-        self.loc = nn.Parameter(torch.zeros((in_channels, size, size)), requires_grad=False)
-        self.scale = nn.Parameter(torch.ones((in_channels, size, size)), requires_grad=False)
+        self.register_buffer('loc', torch.zeros((in_channels, size, size)))
+        self.register_buffer('scale', torch.ones((in_channels, size, size)))
 
         # Create image preprocessing layer
         self.preprocess_images = PreprocessImages(alpha=0.05)
