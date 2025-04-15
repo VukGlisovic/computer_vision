@@ -37,7 +37,7 @@ class FlowStep(nn.Module):
 
 class SqueezeFlowStep(nn.Module):
 
-    def __init__(self, in_channels: int, n_flow_steps: int = 1):
+    def __init__(self, in_channels: int, n_flow_steps: int = 32):
         super().__init__()
         self.in_channels = in_channels
         self.n_flow_steps = n_flow_steps
