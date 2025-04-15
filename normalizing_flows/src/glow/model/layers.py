@@ -44,6 +44,7 @@ class ActNorm(nn.Module):
 
 		return self.scale * (x - self.loc), logdet
 
+	@torch.no_grad()
 	def inverse(self, z: torch.Tensor) -> torch.Tensor:
 		return z / self.scale + self.loc
 
@@ -105,6 +106,7 @@ class InvertibleConv2d(nn.Module):
 
 		return out, logdet
 
+	@torch.no_grad()
 	def inverse(self, z: torch.Tensor) -> torch.Tensor:
 		weight = self.get_weight()
 		weight = weight.inverse().unsqueeze(2).unsqueeze(3)
@@ -149,6 +151,7 @@ class AffineCoupling(nn.Module):
 
 		return torch.cat([z_id, z_update], 1), logdet
 
+	@torch.no_grad()
 	def inverse(self, z: torch.Tensor) -> torch.Tensor:
 		z_id, z_update = torch.chunk(z, 2, dim=1)
 

@@ -27,6 +27,7 @@ class FlowStep(nn.Module):
         logdet = ldj1 + ldj2 + ldj3
         return z, logdet
 
+    @torch.no_grad()
     def inverse(self, z: torch.Tensor) -> torch.Tensor:
         x = self.coupling.inverse(z)
         x = self.invconv.inverse(x)
@@ -36,7 +37,7 @@ class FlowStep(nn.Module):
 
 class SqueezeFlowStep(nn.Module):
 
-    def __init__(self, in_channels: int, n_flow_steps: int):
+    def __init__(self, in_channels: int, n_flow_steps: int = 1):
         super().__init__()
         self.in_channels = in_channels
         self.n_flow_steps = n_flow_steps
@@ -55,6 +56,7 @@ class SqueezeFlowStep(nn.Module):
         
         return z, logdet
 
+    @torch.no_grad()
     def inverse(self, z: torch.Tensor) -> torch.Tensor:
         for flow in reversed(self.flow_steps):
             z = flow.inverse(z)
