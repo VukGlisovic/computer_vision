@@ -13,7 +13,7 @@ class FlowStep(nn.Module):
     A single step in the Glow flow.
     """
 
-    def __init__(self, in_channels):
+    def __init__(self, in_channels: int):
         super().__init__()
         self.in_channels = in_channels
         self.actnorm = ActNorm(in_channels)
@@ -36,15 +36,16 @@ class FlowStep(nn.Module):
 
 class SqueezeFlowStep(nn.Module):
 
-    def __init__(self, in_channels, n_flow_steps):
+    def __init__(self, in_channels: int, n_flow_steps: int):
         super().__init__()
         self.in_channels = in_channels
         self.n_flow_steps = n_flow_steps
+        self.out_channels = in_channels * 4
 
         self.squeeze = Squeeze()
         self.flow_steps = nn.ModuleList(FlowStep(in_channels * 4) for _ in range(n_flow_steps))
 
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         z = self.squeeze(x)
 
         logdet = 0
