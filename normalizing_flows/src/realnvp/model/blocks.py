@@ -20,24 +20,22 @@ class BlockBijection2D(nn.Module):
         self.out_channels = self.in_channels * 2  # half of channels continue, other half are done
 
         # Create checkerboard coupling layers
-        coupling_layers_checkerboard = []
+        self.coupling_layers_checkerboard = nn.ModuleList()
         reverse_mask = False
         for i in range(n_cb_bijections):
-            coupling_layers_checkerboard.append(
+            self.coupling_layers_checkerboard.append(
                 CheckerboardBijection2D(in_channels, hidden_channels, n_residual_blocks, reverse_mask=reverse_mask)
             )
             reverse_mask = not reverse_mask
-        self.coupling_layers_checkerboard = nn.ModuleList(coupling_layers_checkerboard)
 
         # Create channelwise coupling layers
-        coupling_layers_channelwise = []
+        self.coupling_layers_channelwise = nn.ModuleList()
         reverse_mask = False
         for i in range(n_cw_bijections):
-            coupling_layers_channelwise.append(
+            self.coupling_layers_channelwise.append(
                 ChannelwiseBijection2D(4 * in_channels, 2 * hidden_channels, n_residual_blocks, reverse_mask=reverse_mask)
             )
             reverse_mask = not reverse_mask
-        self.coupling_layers_channelwise = nn.ModuleList(coupling_layers_channelwise)
 
         self.squeeze = Squeeze()
         self.squeeze_permute = SqueezePermute(in_channels)

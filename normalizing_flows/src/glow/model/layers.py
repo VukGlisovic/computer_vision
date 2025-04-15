@@ -138,7 +138,7 @@ class AffineCoupling(nn.Module):
 		)
 
 	def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-		# Because of the invertable convolutions that shuffle the channels, we can always split in the same way
+		# Because of the invertible convolutions that shuffle the channels, we can always split in the same way
 		z_id, z_update = torch.chunk(x, 2, dim=1)
 
 		params = self.net(z_id)

@@ -45,7 +45,7 @@ class RealNVP(nn.Module):
         self.final_layers = self.build_final_block(in_channels, hidden_channels, n_residual_blocks, n_bijections=n_final_bijections)
 
     def build_intermediate_blocks(self, hidden_channels: int, n_residual_blocks: int, n_cb_bijections: int, n_cw_bijections: int) -> nn.ModuleList:
-        blocks = []
+        blocks = nn.ModuleList()
         in_channels = self.in_channels
         size = self.size
         while size > self.final_size:
@@ -60,15 +60,15 @@ class RealNVP(nn.Module):
             hidden_channels *= 2
             size = size // 2
             blocks.append(block)
-        return nn.ModuleList(blocks)
+        return blocks
     
     def build_final_block(self, in_channels: int, hidden_channels: int, n_residual_blocks: int, n_bijections: int) -> nn.ModuleList:
-        layers = []
+        layers = nn.ModuleList()
         reverse_mask = False
         for _ in range(n_bijections):
             layers.append(CheckerboardBijection2D(in_channels, hidden_channels, n_residual_blocks, reverse_mask=reverse_mask))
             reverse_mask = not reverse_mask
-        return nn.ModuleList(layers)
+        return layers
 
     @property
     def base_dist(self) -> Normal:
