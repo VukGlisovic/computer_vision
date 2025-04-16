@@ -6,6 +6,9 @@ from torch.nn import functional as F
 import numpy as np
 from scipy import linalg as la
 
+from normalizing_flows.src.realnvp.model.layers import Rescale
+from normalizing_flows.src.realnvp.model.layer_utils import weight_norm
+
 
 class ActNorm(nn.Module):
 
@@ -131,13 +134,14 @@ class AffineCoupling(nn.Module):
 
 		# Network for retrieving scale and shift parameters as described in the paper
 		self.net = nn.Sequential(
-			nn.Conv2d(in_channels // 2, hidden_channels, kernel_size=3, padding='same'),
+			weight_norm(nn.Conv2d(in_channels // 2, hidden_channels, kernel_size=3, padding='same')),
 			nn.ReLU(),
-			nn.Conv2d(hidden_channels, hidden_channels, kernel_size=1),
+			weight_norm(nn.Conv2d(hidden_channels, hidden_channels, kernel_size=1)),
 			nn.ReLU(),
 			Conv2dZeroInit(hidden_channels, in_channels, kernel_size=3, padding='same')
-			# zero init to have scale=1 and shift=0
+			# Zero init to have scale=1 and shift=0. Cannot weight norm however due to decomposition resulting in division by zero.
 		)
+		self.rescale = weight_norm(Rescale(in_channels // 2))
 
 	def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 		# Because of the invertible convolutions that shuffle the channels, we can always split in the same way
@@ -145,6 +149,7 @@ class AffineCoupling(nn.Module):
 
 		params = self.net(z_id)
 		log_s, t = torch.chunk(params, 2, dim=1)  # chunk along channel dimension
+		log_s = self.rescale(torch.tanh(log_s))
 		z_update = z_update * torch.exp(log_s) + t
 
 		logdet = log_s.sum(dim=[1, 2, 3])
@@ -156,6 +161,7 @@ class AffineCoupling(nn.Module):
 		z_id, z_update = torch.chunk(z, 2, dim=1)
 
 		log_s, t = self.net(z_id).chunk(2, 1)
+		log_s = self.rescale(torch.tanh(log_s))
 		z_update = (z_update - t) * torch.exp(-log_s)
 
 		return torch.cat([z_id, z_update], dim=1)
