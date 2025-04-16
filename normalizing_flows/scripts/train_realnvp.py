@@ -15,6 +15,7 @@ from tqdm import tqdm
 from normalizing_flows.src.utils import load_config
 from normalizing_flows.src.realnvp.dataset import CelebADataset, ChunkedDataset
 from normalizing_flows.src.realnvp.model.realnvp_flow import RealNVP
+from normalizing_flows.src.glow.model.glow_flow import Glow
 from normalizing_flows.src.realnvp.metrics import bits_per_dim
 from normalizing_flows.src.realnvp.callbacks import EarlyStopping, ModelCheckpoint, SampleGeneration
 
@@ -56,16 +57,29 @@ def create_celeba_dataset(ds_config: Dict) -> Tuple[Any, Any]:
 
 
 def create_model(m_config: Dict) -> Any:
-	model = RealNVP(
-		in_channels=3,  # RGB images
-		size=m_config['size'],
-		final_size=m_config['final_size'],
-		n_cb_bijections=m_config['n_cb_couplings'],
-		n_cw_bijections=m_config['n_cw_couplings'],
-		n_final_bijections=m_config['n_final_couplings'],
-		hidden_channels=m_config['resnet_starting_hidden_channels'],
-		n_residual_blocks=m_config['resnet_n_residual_blocks']
-	)
+	if m_config['use_model'] == 'realnvp':
+		m_config = m_config['realnvp']
+		model = RealNVP(
+			in_channels=3,  # RGB images
+			size=m_config['size'],
+			final_size=m_config['final_size'],
+			n_cb_bijections=m_config['n_cb_couplings'],
+			n_cw_bijections=m_config['n_cw_couplings'],
+			n_final_bijections=m_config['n_final_couplings'],
+			hidden_channels=m_config['resnet_starting_hidden_channels'],
+			n_residual_blocks=m_config['resnet_n_residual_blocks']
+		)
+	elif m_config['use_model'] == 'glow':
+		m_config = m_config['glow']
+		model = Glow(
+			in_channels=3,
+			size=m_config['size'],
+			final_size=m_config['final_size'],
+			hidden_channels=m_config['hidden_channels'],
+			n_flow_steps=m_config['n_flow_steps']
+		)
+	else:
+		raise ValueError(f"Unknown model '{m_config['use_model']}'")
 	model = model.to(device)
 	print(f"Number of trainable / non-trainable model parameters: "
 	      f"{sum(p.numel() for p in model.parameters() if p.requires_grad):,d} / "
