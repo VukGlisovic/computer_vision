@@ -13,7 +13,8 @@ class Glow(nn.Module):
 
     def __init__(
         self, 
-        in_channels: int, 
+        in_channels: int,
+        hidden_channels: int,
         size: int, 
         final_size: int, 
         n_flow_steps: int
@@ -33,7 +34,7 @@ class Glow(nn.Module):
         self.squeeze_steps = nn.ModuleList()
         n_channels = in_channels
         while size > final_size:
-            squeeze_step = SqueezeFlowStep(n_channels, n_flow_steps)
+            squeeze_step = SqueezeFlowStep(n_channels, hidden_channels, n_flow_steps)
             self.squeeze_steps.append(squeeze_step)
             size //= 2
             n_channels = squeeze_step.out_channels // 2  # half of latent continue, other half is split off

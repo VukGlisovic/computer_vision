@@ -13,12 +13,12 @@ class FlowStep(nn.Module):
     A single step in the Glow flow.
     """
 
-    def __init__(self, in_channels: int):
+    def __init__(self, in_channels: int, hidden_channels: int):
         super().__init__()
         self.in_channels = in_channels
         self.actnorm = ActNorm(in_channels)
         self.invconv = InvertibleConv2d(in_channels)
-        self.coupling = AffineCoupling(in_channels, hidden_channels=512)
+        self.coupling = AffineCoupling(in_channels, hidden_channels)
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         z, ldj1 = self.actnorm(x)
@@ -37,14 +37,14 @@ class FlowStep(nn.Module):
 
 class SqueezeFlowStep(nn.Module):
 
-    def __init__(self, in_channels: int, n_flow_steps: int = 32):
+    def __init__(self, in_channels: int, hidden_channels: int, n_flow_steps: int = 32):
         super().__init__()
         self.in_channels = in_channels
         self.n_flow_steps = n_flow_steps
         self.out_channels = in_channels * 4
 
         self.squeeze = Squeeze()
-        self.flow_steps = nn.ModuleList(FlowStep(in_channels * 4) for _ in range(n_flow_steps))
+        self.flow_steps = nn.ModuleList(FlowStep(in_channels * 4, hidden_channels) for _ in range(n_flow_steps))
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         z = self.squeeze(x)
