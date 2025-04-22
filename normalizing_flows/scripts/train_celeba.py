@@ -96,7 +96,7 @@ def evaluate_model(model, dl):
 	nll_loss_sum = 0
 	bpd_sum = 0
 
-	for i, (x, _) in tqdm(enumerate(dl), total=len(dl)):
+	for i, (x, _) in tqdm(enumerate(dl), total=len(dl), desc=f"Evaluation"):
 		# Get batch
 		x = x.to(device)
 
@@ -172,7 +172,7 @@ def train(config: Dict) -> None:
 		nll_loss_sum = 0
 		bpd_sum = 0
 
-		for i, (x, _) in tqdm(enumerate(dl_train), total=len(dl_train), desc=f"Epoch {ep:03d}"):
+		for i, (x, _) in tqdm(enumerate(dl_train), total=len(dl_train), desc=f"Epoch {ep:03d} (train)"):
 			# Get batch
 			x = x.to(device)
 
