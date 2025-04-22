@@ -152,7 +152,6 @@ class ChunkedDataset(Dataset):
 
         self.n = len(dataset)
         self.chunk_size = int(np.ceil(self.n / n_chunks))
-        print(f"Number of samples in one chunk: {self.chunk_size}")
         self.chunk_nr = 0
         self._indices = []
         self._next_indices()

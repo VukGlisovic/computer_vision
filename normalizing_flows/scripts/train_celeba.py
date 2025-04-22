@@ -24,7 +24,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 
-def create_celeba_dataset(ds_config: Dict) -> Tuple[Any, Any]:
+def create_celeba_dataset(split: str, n_chunks: int, ds_config: Dict) -> Tuple[Any, Any]:
 	# Define image transformations
 	transform = transforms.Compose([
 		transforms.CenterCrop(size=ds_config['center_crop_size']),
@@ -35,12 +35,12 @@ def create_celeba_dataset(ds_config: Dict) -> Tuple[Any, Any]:
 	# Load CelebA dataset
 	ds = CelebADataset(
 		root='../data',
-		split='train',
+		split=split,
 		# if you have trouble downloading the images, download them manually and move the zip file to ../data/celeba/
 		download=True,
 		transform=transform
 	)
-	ds = ChunkedDataset(ds, n_chunks=ds_config['n_chunks_dataset'])
+	ds = ChunkedDataset(ds, n_chunks=n_chunks)
 
 	# Create dataloader
 	dl = DataLoader(
@@ -51,7 +51,7 @@ def create_celeba_dataset(ds_config: Dict) -> Tuple[Any, Any]:
 	)
 
 	# Print dataset information
-	print(f"Train dataset size: {len(ds)}")
+	print(f"Dataset size: {len(ds)}")
 	print(f"Number of batches: {len(dl)}")
 	return ds, dl
 
@@ -118,7 +118,9 @@ def train(config: Dict) -> None:
 	lr = tr_config['lr']
 
 	# Init dataloader, model and optimizer
-	ds_train, dl_train = create_celeba_dataset(config['dataset'])
+	ds_config = config['dataset']
+	ds_train, dl_train = create_celeba_dataset('train', ds_config['n_chunks_dataset'], ds_config)
+	_, dl_test = create_celeba_dataset('test', 1, ds_config)
 	model = create_model(config['model'])
 	optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
