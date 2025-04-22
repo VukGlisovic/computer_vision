@@ -87,6 +87,32 @@ def create_model(m_config: Dict) -> Any:
 	return model
 
 
+@torch.no_grad()
+def evaluate_model(model, dl):
+	# Set model to evaluation mode
+	model = model.eval()
+
+	# Init nll loss and bps metric to zero
+	nll_loss_sum = 0
+	bpd_sum = 0
+
+	for i, (x, _) in tqdm(enumerate(dl), total=len(dl)):
+		# Get batch
+		x = x.to(device)
+
+		# Perform forward pass through model and run backpropagation
+		nll_loss = -model.log_prob(x)  # shape (bs,)
+
+		# Keep track of metrics
+		nll_loss = nll_loss.detach().cpu()  # shape (bs,)
+		nll_loss_sum += nll_loss.mean().item()
+		bpd_sum += bits_per_dim(nll_loss, x.shape)
+
+	nll_loss_avg = nll_loss_sum / len(dl)
+	bpd_avg = bpd_sum / len(dl)
+	return nll_loss_avg, bpd_avg
+
+
 def save_metrics(df: pd.DataFrame, output_dir: str) -> None:
 	df.to_csv(os.path.join(output_dir, 'metrics.csv'), index=False)
 
@@ -95,11 +121,15 @@ def save_metrics(df: pd.DataFrame, output_dir: str) -> None:
 	def plot_metric(ax, metric):
 		kwargs = {'lw': 2, 'alpha': 0.7}
 		ax.set_title(metric, fontsize=20)
-		df[metric].plot(label=metric, ax=ax, **kwargs)
+		metric_train = f'{metric}_train'
+		metric_test = f'{metric}_test'
+		df[metric_train].plot(label=metric_train, ax=ax, **kwargs)
+		df[metric_test].plot(label=metric_test, ax=ax, **kwargs)
 		ax.grid(lw=0.5, ls='--', alpha=0.5, color='black')
-		low, high = df[metric].min(), df[metric].quantile(0.95) * 1.1
+		low, high = df[metric_train].min(), df[metric_train].quantile(0.95) * 1.1
 		ax.set_ylim(low - np.sign(low) * low * 0.1, high + np.sign(high) * high * 0.1)
 		ax.set_xlabel('epoch', fontsize=14)
+		ax.legend(fontsize=13)
 
 	plot_metric(ax1, 'nll')
 	plot_metric(ax2, 'bpd')
@@ -158,21 +188,24 @@ def train(config: Dict) -> None:
 			nll_loss_sum += nll_loss.mean().item()
 			bpd_sum += bits_per_dim(nll_loss, x.shape)
 
+		# Evaluate on test split
+		nll_loss_test, bpd_test = evaluate_model(model, dl_test)
+
 		# Calculate average metrics and log
-		nll_loss_avg = nll_loss_sum / len(dl_train)
-		bpd_avg = bpd_sum / len(dl_train)
-		print(f"Epoch {ep + 1}/{n_epochs}, nll_loss: {nll_loss_avg:.4f}, bpd: {bpd_avg}, lr: {reduce_lr_on_plateau.get_last_lr()[0]}")
-		df_metrics.loc[ep, ['timestamp', 'nll', 'bpd']] = [datetime.now(), nll_loss_avg, bpd_avg]
+		nll_loss_train = nll_loss_sum / len(dl_train)
+		bpd_train = bpd_sum / len(dl_train)
+		print(f"Epoch {ep + 1}/{n_epochs}, nll_loss train/val: {nll_loss_train:.4f}/{nll_loss_test:.4f}, bpd train/val: {bpd_train:.3f}/{bpd_test:.3f}, lr: {reduce_lr_on_plateau.get_last_lr()[0]}")
+		df_metrics.loc[ep, ['timestamp', 'nll_train', 'bpd_train', 'nll_test', 'bpd_test']] = [datetime.now(), nll_loss_train, bpd_train, nll_loss_test, bpd_test]
 		save_metrics(df_metrics, output_dir)
 
 		# Execute callbacks
 		model = model.eval()
-		model_checkpoint.save(model, score=bpd_avg, epoch=ep)
+		model_checkpoint.save(model, score=bpd_test, epoch=ep)
 		sample_generation.generate_and_plot_images(model, epoch=ep)
-		if early_stopping(bpd_avg):
+		if early_stopping(bpd_train):
 			print(f'EarlyStopping activated. Ending training now.')
 			break
-		reduce_lr_on_plateau.step(bpd_avg)
+		reduce_lr_on_plateau.step(bpd_train)
 
 		# Go to the next chunk of the training dataset; this will update the dataset in dl_train by reference
 		ds_train.advance_chunk()
