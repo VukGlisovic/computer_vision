@@ -1,10 +1,10 @@
 from typing import Dict, Tuple, Any
 import os
+import shutil
 import argparse
 from datetime import datetime
 
 import torch
-import torchvision
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import numpy as np
@@ -140,7 +140,11 @@ def save_metrics(df: pd.DataFrame, output_dir: str) -> None:
 	plt.close()
 
 
-def train(config: Dict) -> None:
+def train(config_path: str) -> None:
+	# Load configuration file and save a copy
+	config = load_config(config_path)
+	shutil.copyfile(config_path, os.path.join(config['training']['output_dir'], os.path.basename(config_path)))
+
 	# Training configuration
 	tr_config = config['training']
 	output_dir = tr_config['output_dir']
@@ -218,6 +222,4 @@ if __name__ == '__main__':
 	parser.add_argument('-c', '--config_path', default='config_realnvp.yaml', type=str, help='Path to yaml file.')
 	known_args, _ = parser.parse_known_args()
 
-	train(
-		load_config(known_args.config_path)
-	)
+	train(known_args.config_path)
