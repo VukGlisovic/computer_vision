@@ -143,6 +143,7 @@ def save_metrics(df: pd.DataFrame, output_dir: str) -> None:
 def train(config_path: str) -> None:
 	# Load configuration file and save a copy
 	config = load_config(config_path)
+	os.makedirs(config['training']['output_dir'], exist_ok=True)
 	shutil.copyfile(config_path, os.path.join(config['training']['output_dir'], os.path.basename(config_path)))
 
 	# Training configuration
