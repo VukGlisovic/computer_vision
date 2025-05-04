@@ -5,6 +5,7 @@ import argparse
 from datetime import datetime
 
 import torch
+from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import numpy as np
@@ -151,6 +152,8 @@ def train(config_path: str) -> None:
 	output_dir = tr_config['output_dir']
 	n_epochs = tr_config['n_epochs']
 	lr = tr_config['lr']
+	use_mixed_precision = tr_config.get('use_mixed_precision', False)
+	print(f"Using mixed precision: {use_mixed_precision}")
 
 	# Init dataloader, model and optimizer
 	ds_config = config['dataset']
@@ -158,6 +161,9 @@ def train(config_path: str) -> None:
 	_, dl_test = create_celeba_dataset('test', 1, ds_config)
 	model = create_model(config['model'])
 	optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+	
+	# Initialize gradient scaler for mixed precision training if enabled
+	scaler = GradScaler() if use_mixed_precision else None
 
 	# Init callbacks
 	cb_config = config['callbacks']
@@ -183,10 +189,25 @@ def train(config_path: str) -> None:
 
 			# Perform forward pass through model and run backpropagation
 			optimizer.zero_grad()
-			nll_loss = -model.log_prob(x)  # shape (bs,)
-			nll_loss.mean().backward()
-			torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-			optimizer.step()
+			
+			if use_mixed_precision:
+				# Mixed precision training
+				with autocast():
+					nll_loss = -model.log_prob(x)  # shape (bs,)
+					loss = nll_loss.mean()
+				
+				# Scale loss and backpropagate
+				scaler.scale(loss).backward()
+				scaler.unscale_(optimizer)  # Unscales the gradients of optimizer's assigned params in-place
+				torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # Since the gradients of optimizer's assigned params are unscaled, clips as usual
+				scaler.step(optimizer)
+				scaler.update()
+			else:
+				# Regular precision training
+				nll_loss = -model.log_prob(x)  # shape (bs,)
+				nll_loss.mean().backward()
+				torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+				optimizer.step()
 
 			# Keep track of metrics
 			nll_loss = nll_loss.detach().cpu()  # shape (bs,)

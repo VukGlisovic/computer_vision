@@ -2,6 +2,7 @@ training:
   output_dir: ../experiments/realnvp
   n_epochs: 100
   lr: 0.001
+  use_mixed_precision: False
 
 dataset:
   center_crop_size: 148
