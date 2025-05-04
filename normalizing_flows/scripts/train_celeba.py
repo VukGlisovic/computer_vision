@@ -5,7 +5,7 @@ import argparse
 from datetime import datetime
 
 import torch
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import numpy as np
@@ -192,7 +192,7 @@ def train(config_path: str) -> None:
 			
 			if use_mixed_precision:
 				# Mixed precision training
-				with autocast():
+				with autocast(device_type=device.type):
 					nll_loss = -model.log_prob(x)  # shape (bs,)
 					loss = nll_loss.mean()
 				
