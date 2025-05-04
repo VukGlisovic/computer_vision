@@ -117,11 +117,11 @@ class InvertibleConv2d(nn.Module):
 		return F.conv2d(z, weight)
 
 
-class Conv2dZeroInit(nn.Conv2d):
+class Conv2dNormalInit(nn.Conv2d):
 
-	def __init__(self, in_channels: int, out_channels: int, kernel_size: int = 3, padding: str = 'same'):
+	def __init__(self, std: float, in_channels: int, out_channels: int, kernel_size: int = 3, padding: str = 'same'):
 		super().__init__(in_channels, out_channels, kernel_size=kernel_size, padding=padding)
-		self.weight.data.zero_()
+		self.weight.data.normal_(0, std)
 		self.bias.data.zero_()
 
 
@@ -134,12 +134,12 @@ class AffineCoupling(nn.Module):
 
 		# Network for retrieving scale and shift parameters as described in the paper
 		self.net = nn.Sequential(
-			weight_norm(nn.Conv2d(in_channels // 2, hidden_channels, kernel_size=3, padding='same')),
+			weight_norm(Conv2dNormalInit(0.05, in_channels // 2, hidden_channels, kernel_size=3, padding='same')),
 			nn.ReLU(),
-			weight_norm(nn.Conv2d(hidden_channels, hidden_channels, kernel_size=1)),
+			weight_norm(Conv2dNormalInit(0.05, hidden_channels, hidden_channels, kernel_size=1)),
 			nn.ReLU(),
-			Conv2dZeroInit(hidden_channels, in_channels, kernel_size=3, padding='same')
-			# Zero init to have scale=1 and shift=0. Cannot weight norm however due to decomposition resulting in division by zero.
+			Conv2dNormalInit(0., hidden_channels, in_channels, kernel_size=3, padding='same')
+			# Last conv zero init to have scale=1 and shift=0. Cannot weight norm however due to decomposition resulting in division by zero.
 		)
 		self.rescale = weight_norm(Rescale(in_channels // 2))
 
