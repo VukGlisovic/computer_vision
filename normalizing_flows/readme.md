@@ -12,6 +12,11 @@ conda env create -f environment.yaml
 ```
 
 
+## Train a model
+Under the `scripts` folder, you can find a `train_celeba.py` script. In `config_train_celeba.yaml` you can choose to 
+train a realnvp or a glow model. Configure it however you like.
+
+
 ## Experiments with glow models
 As part of this topic, I wanted to train a couple of glow models to understand a bit how they work and if the trainings
 would converge to something nice. I wanted to train on 128x128 sized celebA images. I trained the following glow models (which I'll name in order from glow_1 to glow_6).
