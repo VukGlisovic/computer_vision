@@ -1,5 +1,5 @@
 training:
-  output_dir: ../experiments/realnvp
+  output_dir: ../experiments/glow
   n_epochs: 100
   lr: 0.001
   use_mixed_precision: False
@@ -7,12 +7,12 @@ training:
 dataset:
   center_crop_size: 148
   img_resize: &s 64  # Will be resized to a square image
-  n_chunks_dataset: 1
-  batch_size: 64
-  num_workers: 4
+  n_chunks_dataset: 2  # Split the training set in n_chunks_dataset chunks for more frequent validation set evaluation
+  batch_size: 128
+  num_workers: 4  # For the dataloader
 
 model:
-  use_model: realnvp
+  use_model: glow
   realnvp:
     size: *s
     final_size: 4
