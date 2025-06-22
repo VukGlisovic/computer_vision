@@ -134,9 +134,9 @@ class AffineCoupling(nn.Module):
 
 		# Network for retrieving scale and shift parameters as described in the paper
 		self.net = nn.Sequential(
-			weight_norm(Conv2dNormalInit(0.05, in_channels // 2, hidden_channels, kernel_size=3, padding='same')),
+			weight_norm(Conv2dNormalInit(0.02, in_channels // 2, hidden_channels, kernel_size=3, padding='same')),
 			nn.ReLU(),
-			weight_norm(Conv2dNormalInit(0.05, hidden_channels, hidden_channels, kernel_size=1)),
+			weight_norm(Conv2dNormalInit(0.02, hidden_channels, hidden_channels, kernel_size=1)),
 			nn.ReLU(),
 			Conv2dNormalInit(0., hidden_channels, in_channels, kernel_size=3, padding='same')
 			# Last conv zero init to have scale=1 and shift=0. Cannot weight norm however due to decomposition resulting in division by zero.
