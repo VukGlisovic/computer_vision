@@ -1,0 +1,44 @@
+training:
+  output_dir: ../experiments/glow
+  n_epochs: 100
+  lr: 0.0002
+  use_mixed_precision: False
+
+dataset:
+  center_crop_size: 148
+  img_resize: &s 64  # Will be resized to a square image
+  n_chunks_dataset: 2  # Split the training set in n_chunks_dataset chunks for more frequent validation set evaluation
+  batch_size: 128
+  num_workers: 4  # For the dataloader
+
+model:
+  use_model: glow
+  realnvp:
+    size: *s
+    final_size: 4
+    n_cb_couplings: 3  # Number of checkerboard couplings at the start of a block
+    n_cw_couplings: 3  # Number of channelwise couplings at the end of a block
+    n_final_couplings: 4  # Number of coupling layers at the end of the network
+    resnet_starting_hidden_channels: 32
+    resnet_n_residual_blocks: 2
+  glow:
+    size: *s
+    final_size: 4
+    hidden_channels: 512
+    n_flow_steps: 32  # Number of flow steps within one block
+
+callbacks:
+  reduce_lr_on_plateau:
+    factor: 0.5
+    patience: 3
+    threshold: 0.005
+    threshold_mode: abs
+  early_stopping:
+    patience: 6
+    threshold: 0.005
+  model_checkpoint:
+    save_dir: checkpoints  # Is used with output_dir: os.path.join(output_dir, save_dir)
+    filename: realnvp_{epoch:03d}_{score:.3f}.pt
+    save_best_only: True
+  sample_generation:
+    save_dir: generated_samples  # Is used with output_dir: os.path.join(output_dir, save_dir)
