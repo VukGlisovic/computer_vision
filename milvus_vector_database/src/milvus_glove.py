@@ -2,6 +2,7 @@ from typing import Dict, Any
 import logging
 
 import numpy as np
+from tqdm import tqdm
 from pymilvus import MilvusClient
 
 from milvus_vector_database.constants import *
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 class MilvusGlove:
 
 	def __init__(self):
-		self.client = MilvusClient(DB_NAME)
+		self.client = MilvusClient(DB_PATH)
 		self.vector_dim = 100
 	
 	def create_collection(self, overwrite: bool = False):
@@ -29,7 +30,14 @@ class MilvusGlove:
 			dimension=self.vector_dim
 		)
 	
-	def insert_vectors(self, vectors: np.ndarray, ids: np.ndarray, timeout: int = 10) -> Dict[str, Any]:
+	def insert_vectors(self, vectors: np.ndarray, ids: np.ndarray, chunk_size: int = 10000, timeout: int = 10) -> None:
+		logger.info(f"Inserting vectors into collection '{COLLECTION_NAME}' in chunks of {chunk_size} vectors.")
+		for i in tqdm(range(0, len(vectors), chunk_size), desc="Inserting vectors"):
+			chunk_vectors = vectors[i:i+chunk_size]
+			chunk_ids = ids[i:i+chunk_size]
+			self.insert_vectors_chunk(chunk_vectors, chunk_ids, timeout)
+	
+	def insert_vectors_chunk(self, vectors: np.ndarray, ids: np.ndarray, timeout: int = 10) -> Dict[str, Any]:
 		data = [
 			{
 				'id': id,
@@ -42,7 +50,6 @@ class MilvusGlove:
 			data=data,
 			timeout=timeout
 		)
-		logger.info(res)
 		return res
 	
 	def search_vectors(self, query_vector: np.ndarray, k: int = 10):
