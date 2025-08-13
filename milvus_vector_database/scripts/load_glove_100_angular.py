@@ -6,12 +6,15 @@ angular dataset from Hugging Face for use with vector databases like Milvus.
 """
 from typing import Tuple
 import os
+import logging
 
 import numpy as np
 from datasets import load_dataset, DatasetDict, Dataset
 
 from milvus_vector_database.src.milvus_glove import MilvusGlove
 from milvus_vector_database.constants import PROJECT_PATH
+
+logger = logging.getLogger(__name__)
 
 
 def download_glove_dataset(force_download: bool = False) -> DatasetDict:
@@ -24,7 +27,7 @@ def download_glove_dataset(force_download: bool = False) -> DatasetDict:
     Returns:
         dict: Dictionary containing the loaded dataset splits
     """
-    print("Downloading glove-100-angular dataset from Hugging Face...")
+    logger.info("Downloading glove-100-angular dataset from Hugging Face...")
 
     # Available configs for this dataset
     configs = ['train', 'test', 'neighbors']
@@ -43,7 +46,7 @@ def download_glove_dataset(force_download: bool = False) -> DatasetDict:
         )
         dataset.update(dataset_split)
 
-    print(f"Dataset downloaded successfully!")
+    logger.info(f"Dataset downloaded successfully!")
     return dataset
 
 
@@ -58,11 +61,11 @@ def get_embeddings_and_ids(dataset_split: Dataset) -> Tuple[np.ndarray, np.ndarr
         tuple: (embeddings_array, ids_array) as numpy arrays
     """
     # Convert to numpy arrays for easier manipulation
+    logger.info(f"Extracting embeddings and IDs from dataset split and converting to numpy arrays.")
     embeddings = np.array(dataset_split['emb'])
     ids = np.array(dataset_split['idx'])
     
-    print(f"Extracted {len(embeddings)} embeddings of dimension {embeddings.shape[1]}")
-    
+    logger.info(f"Extracted {len(embeddings)} embeddings of dimension {embeddings.shape[1]}")
     return embeddings, ids
 
 
@@ -70,6 +73,15 @@ def main():
     """
     Main function to demonstrate dataset downloading and processing.
     """
+    # Configure logging to show INFO level messages in standard output
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler()  # This ensures output goes to stdout
+        ]
+    )
+    
     # Download the dataset
     dataset = download_glove_dataset()
 
@@ -78,7 +90,7 @@ def main():
     
     # Process each split
     for split_name in dataset.keys():
-        print(f"\nProcessing {split_name} split...")
+        logger.info(f"Processing {split_name} split...")
         
         # Get the actual dataset split (each config returns a DatasetDict)
         split_data = dataset[split_name]
@@ -87,7 +99,7 @@ def main():
         if split_name in ['train', 'test']:
             embeddings, ids = get_embeddings_and_ids(split_data)
             milvus_glove.insert_vectors(embeddings, ids)
-            
+
             print(f"{split_name} split summary:")
             print(f"  - Number of vectors: {len(embeddings)}")
             print(f"  - Vector dimension: {embeddings.shape[1]}")
