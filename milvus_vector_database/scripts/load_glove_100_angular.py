@@ -4,16 +4,17 @@ Script to download and load the glove-100-angular dataset from Hugging Face.
 This script provides multiple methods to download the GloVe 100-dimensional 
 angular dataset from Hugging Face for use with vector databases like Milvus.
 """
+from typing import Tuple
 import os
-from pathlib import Path
 
 import numpy as np
-from datasets import load_dataset, DatasetDict
+from datasets import load_dataset, DatasetDict, Dataset
 
+from milvus_vector_database.src.milvus_glove import MilvusGlove
 from milvus_vector_database.constants import PROJECT_PATH
 
 
-def download_glove_dataset(force_download: bool = False):
+def download_glove_dataset(force_download: bool = False) -> DatasetDict:
     """
     Download the glove-100-angular dataset from Hugging Face.
     
@@ -46,7 +47,7 @@ def download_glove_dataset(force_download: bool = False):
     return dataset
 
 
-def get_embeddings_and_ids(dataset_split):
+def get_embeddings_and_ids(dataset_split: Dataset) -> Tuple[np.ndarray, np.ndarray]:
     """
     Extract embeddings and IDs from a dataset split.
     
@@ -71,18 +72,21 @@ def main():
     """
     # Download the dataset
     dataset = download_glove_dataset()
+
+    milvus_glove = MilvusGlove()
+    milvus_glove.create_collection(overwrite=True)
     
     # Process each split
     for split_name in dataset.keys():
         print(f"\nProcessing {split_name} split...")
         
         # Get the actual dataset split (each config returns a DatasetDict)
-        split_dict = dataset[split_name]
-        split_data = split_dict[list(split_dict.keys())[0]]  # Get the first (and likely only) split
+        split_data = dataset[split_name]
         
         # For train and test splits, extract embeddings
         if split_name in ['train', 'test']:
             embeddings, ids = get_embeddings_and_ids(split_data)
+            milvus_glove.insert_vectors(embeddings, ids)
             
             print(f"{split_name} split summary:")
             print(f"  - Number of vectors: {len(embeddings)}")
