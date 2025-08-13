@@ -7,3 +7,4 @@ PROJECT_PATH = os.path.join(os.path.realpath(__file__)[:os.path.realpath(__file_
 
 
 DB_NAME = 'glove.db'
+COLLECTION_NAME = 'glove'
