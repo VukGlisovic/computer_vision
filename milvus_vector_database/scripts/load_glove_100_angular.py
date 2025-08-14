@@ -17,6 +17,22 @@ from milvus_vector_database.constants import PROJECT_PATH
 logger = logging.getLogger(__name__)
 
 
+def load_glove_split(split_name: str, force_download: bool = False) -> DatasetDict:
+    """
+    Load a specific split from the glove-100-angular dataset.
+    """
+    download_mode = "force_redownload" if force_download else "reuse_cache_if_exists"
+    cache_dir = os.path.join(PROJECT_PATH, 'data/.hf')
+
+    dataset_split = load_dataset(
+        "open-vdb/glove-100-angular",
+        name=split_name,
+        cache_dir=cache_dir,
+        download_mode=download_mode
+    )
+    return dataset_split
+
+
 def download_glove_dataset(force_download: bool = False) -> DatasetDict:
     """
     Download the glove-100-angular dataset from Hugging Face.
@@ -33,17 +49,9 @@ def download_glove_dataset(force_download: bool = False) -> DatasetDict:
     configs = ['train', 'test', 'neighbors']
     dataset = DatasetDict()  # We'll update this DatasetDict with all the dataset splits
     
-    download_mode = "force_redownload" if force_download else "reuse_cache_if_exists"
-    cache_dir = os.path.join(PROJECT_PATH, 'data/.hf')
-    
     # We need to load each config separately
     for config in configs:
-        dataset_split = load_dataset(
-            "open-vdb/glove-100-angular",
-            name=config,
-            cache_dir=cache_dir,
-            download_mode=download_mode
-        )
+        dataset_split = load_glove_split(config, force_download)
         dataset.update(dataset_split)
 
     logger.info(f"Dataset downloaded successfully!")
@@ -97,8 +105,12 @@ def main():
         
         # For train and test splits, extract embeddings
         if split_name in ['train', 'test']:
+
             embeddings, ids = get_embeddings_and_ids(split_data)
-            milvus_glove.insert_vectors(embeddings, ids)
+
+            if split_name == 'train':
+                # We only want to insert the train split into the database
+                milvus_glove.insert_vectors(embeddings, ids)
 
             print(f"{split_name} split summary:")
             print(f"  - Number of vectors: {len(embeddings)}")
