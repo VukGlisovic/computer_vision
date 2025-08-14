@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Union, List, Optional
 import logging
 
 import numpy as np
@@ -52,8 +52,19 @@ class MilvusGlove:
 		)
 		return res
 	
-	def search_vectors(self, query_vector: np.ndarray, k: int = 10):
+	def search_vectors(self, query_vector: np.ndarray, k: int = 10) -> Dict[str, Any]:
 		res = self.client.search(
 			collection_name=COLLECTION_NAME,
-			query_vector=query_vector,
-			k=k)
+			data=query_vector,
+			limit=k,
+			output_fields=["id", "vector"]
+		)
+		return res
+
+	def query_vectors_by_ids(self, ids: Union[List[int], int]) -> Dict[str, Any]:
+		res = self.client.query(
+			collection_name=COLLECTION_NAME,
+			ids=ids,
+			output_fields=["id", "vector"],
+		)
+		return res
