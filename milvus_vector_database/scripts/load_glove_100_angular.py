@@ -11,7 +11,7 @@ import logging
 import numpy as np
 from datasets import load_dataset, DatasetDict, Dataset
 
-from milvus_vector_database.src.milvus_glove import MilvusGlove
+from milvus_vector_database.src.milvus.milvus_glove import MilvusGlove
 from milvus_vector_database.constants import PROJECT_PATH
 
 logger = logging.getLogger(__name__)
