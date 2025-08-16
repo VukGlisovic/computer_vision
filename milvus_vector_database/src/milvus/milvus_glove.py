@@ -131,15 +131,15 @@ class MilvusGlove:
         self.current_index_config: Optional[IndexConfig] = None
 
     def create_collection(self, overwrite: bool = False):
-        if not overwrite and self.client.has_collection(collection_name=COLLECTION_NAME):
-            logger.info(f"Collection '{COLLECTION_NAME}' already exists, skipping creation.")
+        if not overwrite and self.client.has_collection(collection_name=COLLECTION_GLOVE):
+            logger.info(f"Collection '{COLLECTION_GLOVE}' already exists, skipping creation.")
             return
-        if overwrite and self.client.has_collection(collection_name=COLLECTION_NAME):
-            logger.info(f"Dropping existing collection '{COLLECTION_NAME}'.")
-            self.client.drop_collection(collection_name=COLLECTION_NAME)
-        logger.info(f"Creating new collection '{COLLECTION_NAME}'.")
+        if overwrite and self.client.has_collection(collection_name=COLLECTION_GLOVE):
+            logger.info(f"Dropping existing collection '{COLLECTION_GLOVE}'.")
+            self.client.drop_collection(collection_name=COLLECTION_GLOVE)
+        logger.info(f"Creating new collection '{COLLECTION_GLOVE}'.")
         self.client.create_collection(
-            collection_name=COLLECTION_NAME,
+            collection_name=COLLECTION_GLOVE,
             dimension=self.vector_dim
         )
 
@@ -159,7 +159,7 @@ class MilvusGlove:
 
         # Create the index
         self.client.create_index(
-            collection_name=COLLECTION_NAME,
+            collection_name=COLLECTION_GLOVE,
             index_params=index_params
         )
 
@@ -170,7 +170,7 @@ class MilvusGlove:
         """Drop the current index."""
         try:
             self.client.drop_index(
-                collection_name=COLLECTION_NAME,
+                collection_name=COLLECTION_GLOVE,
                 index_name=f"{field_name}_index"
             )
             self.current_index_config = None
@@ -181,7 +181,7 @@ class MilvusGlove:
     def get_index_info(self) -> Dict[str, Any]:
         """Get information about current indexes."""
         try:
-            indexes = self.client.list_indexes(collection_name=COLLECTION_NAME)
+            indexes = self.client.list_indexes(collection_name=COLLECTION_GLOVE)
             return {"indexes": indexes, "current_config": self.current_index_config}
         except Exception as e:
             logger.error(f"Failed to get index info: {e}")
@@ -210,7 +210,7 @@ class MilvusGlove:
         logger.info(f"Applied {preset_name} optimization preset")
 
     def insert_vectors(self, vectors: np.ndarray, ids: np.ndarray, chunk_size: int = 10000, timeout: int = 10) -> None:
-        logger.info(f"Inserting vectors into collection '{COLLECTION_NAME}' in chunks of {chunk_size} vectors.")
+        logger.info(f"Inserting vectors into collection '{COLLECTION_GLOVE}' in chunks of {chunk_size} vectors.")
         for i in tqdm(range(0, len(vectors), chunk_size), desc="Inserting vectors"):
             chunk_vectors = vectors[i:i+chunk_size]
             chunk_ids = ids[i:i+chunk_size]
@@ -225,7 +225,7 @@ class MilvusGlove:
             for id, vector in zip(ids, vectors)
         ]
         res = self.client.insert(
-            collection_name=COLLECTION_NAME,
+            collection_name=COLLECTION_GLOVE,
             data=data,
             timeout=timeout
         )
@@ -244,7 +244,7 @@ class MilvusGlove:
             search_params = self._get_default_search_params(self.current_index_config.index_type)
 
         res = self.client.search(
-            collection_name=COLLECTION_NAME,
+            collection_name=COLLECTION_GLOVE,
             data=query_vector,
             filter=filter,
             limit=k,
@@ -269,7 +269,7 @@ class MilvusGlove:
 
     def query_vectors_by_ids(self, ids: Union[List[int], int]) -> Dict[str, Any]:
         res = self.client.query(
-            collection_name=COLLECTION_NAME,
+            collection_name=COLLECTION_GLOVE,
             ids=ids,
             output_fields=["id", "vector"],
         )

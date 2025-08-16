@@ -35,6 +35,7 @@ results = client.search_vectors(query_vector, k=10)
 In order to use the remote version of Milvus (instead of the Lite) version, use the 
 `milvus_vector_database/docker/standalone_embed.sh` script to create a docker container with the Milvus vector database
 running inside the container. More info can be found on [milvus with docker](https://milvus.io/docs/install_standalone-docker.md).
+To access the WebUI, access http://127.0.0.1:9091/webui/.
 
 Note that the lite version of Milvus allows for only a small subset of vector indexes. So if you want to use more
 advanced indexing procedures like Google's scann, you'll have to use the remote variant.

@@ -11,4 +11,4 @@ DB_PATH = os.path.join(PROJECT_PATH, 'data/glove.db')
 # For Milvus remote from docker container
 DB_URI = 'http://localhost:19530'
 
-COLLECTION_NAME = 'glove'
+COLLECTION_GLOVE = 'glove'
