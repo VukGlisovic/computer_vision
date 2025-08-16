@@ -74,6 +74,9 @@ venv.bak/
 
 # project folders
 data/
+volumes/
+milvus_vector_database/docker/embedEtcd.yaml
+milvus_vector_database/docker/user.yaml
 checkpoints/
 experiments/
 models/
