@@ -120,8 +120,13 @@ class OptimizationPreset:
 
 class MilvusGlove:
 
-    def __init__(self):
-        self.client = MilvusClient(DB_PATH)
+    def __init__(self, remote=True):
+        self.remote = remote
+
+        db_uri = DB_URI if remote else DB_PATH
+        self.client = MilvusClient(
+            uri=db_uri
+        )
         self.vector_dim = 100
         self.current_index_config: Optional[IndexConfig] = None
 
