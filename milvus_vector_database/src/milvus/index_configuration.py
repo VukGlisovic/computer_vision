@@ -56,6 +56,22 @@ class IndexConfig:
 
 
 class IndexOptimizationPresets:
+
+    @classmethod
+    def get_preset(cls, preset_name):
+        presets = {
+            "speed": cls.speed_optimized(),
+            "memory": cls.memory_optimized(),
+            "balanced": cls.balanced(),
+            "accuracy": cls.accuracy_first(),
+            "scann": cls.scann_optimized(),
+            "gpu": cls.gpu_accelerated(),
+        }
+
+        if preset_name not in presets:
+            raise ValueError(f"Unknown preset: {preset_name}. Available presets: {list(presets.keys())}")
+
+        return presets[preset_name]
     
     @staticmethod
     def speed_optimized() -> IndexConfig:
