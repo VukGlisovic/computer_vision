@@ -134,7 +134,8 @@ class IndexOptimizationPresets:
         """
         return IndexConfig(
             index_type=IndexType.FLAT,
-            metric_type="COSINE"
+            metric_type="COSINE",
+            params={}
         )
     
     @staticmethod

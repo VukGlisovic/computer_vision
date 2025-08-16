@@ -1,5 +1,6 @@
 from typing import Dict, Any, Union, List, Optional
 import logging
+import time
 from dataclasses import dataclass
 from enum import Enum
 
@@ -77,10 +78,13 @@ class MilvusGlove:
             params=index_config.params
         )
         # Create the vector index
+        logger.info("Starting index creation...")
+        start_time = time.time()
         self.client.create_index(
             collection_name=COLLECTION_GLOVE,
             index_params=index_params
         )
+        logger.info(f"Index creation completed in {time.time() - start_time:.1f} seconds")
         self.current_index_config = index_config
         logger.info(f"Index created successfully with parameters: {index_config.params}")
 
