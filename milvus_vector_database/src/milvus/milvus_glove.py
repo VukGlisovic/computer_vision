@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 from pymilvus import MilvusClient
 
-from milvus_vector_database.src.milvus.index_configuration import IndexOptimizationPresets, SearchConfig
+from milvus_vector_database.src.milvus.index_configuration import IndexType, IndexConfig, IndexOptimizationPresets, SearchConfig
 from milvus_vector_database.constants import *
 
 
@@ -40,62 +40,58 @@ class MilvusGlove:
             dimension=self.vector_dim
         )
 
-    def drop_index(self, field_name: str = "vector") -> None:
-        """Drop the current index."""
+    def drop_index(self, index_name: str) -> None:
         try:
             self.client.drop_index(
                 collection_name=COLLECTION_GLOVE,
-                index_name=f"{field_name}_index"
+                index_name=index_name
             )
             self.current_index_config = None
-            logger.info("Index dropped successfully")
+            logger.info(f"Index '{index_name}' dropped successfully.")
         except Exception as e:
             logger.warning(f"Failed to drop index: {e}")
 
-    def create_index(self, index_config: IndexConfig, field_name: str = "vector") -> None:
-        """Create an optimized index for faster vector searches."""
-        logger.info(f"Creating {index_config.index_type.value} index with metric {index_config.metric_type}")
+    def create_vector_index(self, index_config: IndexConfig) -> None:
+        logger.info(f"Creating {index_config.index_type.name} index with metric {index_config.metric_type}")
+
+        field_name = 'vector'
+
+        # In order to create a new index, we need to have the collection released from memory
+        collection_state = self.client.get_load_state(COLLECTION_GLOVE)['state']
+        if collection_state.name != 'NotLoad':
+            self.client.release_collection(collection_name=COLLECTION_GLOVE)
+            logger.info(f"Released collection '{COLLECTION_GLOVE}'.")
+
+        # The vector field allows for only one index at a time
+        current_field_index = [idx for idx in self.client.list_indexes(COLLECTION_GLOVE) if field_name in idx]
+        for idx_name in current_field_index:
+            self.drop_index(index_name=idx_name)
 
         # Prepare index parameters
         index_params = self.client.prepare_index_params()
         index_params.add_index(
             field_name=field_name,
             index_type=index_config.index_type.value,
-            index_name=f"{field_name}_index",
+            index_name=f"{field_name}_{index_config.index_type.name}_index",
             metric_type=index_config.metric_type,
             params=index_config.params
         )
-
-        # Create the index
+        # Create the vector index
         self.client.create_index(
             collection_name=COLLECTION_GLOVE,
             index_params=index_params
         )
-
         self.current_index_config = index_config
         logger.info(f"Index created successfully with parameters: {index_config.params}")
 
-    def optimize_with_preset(self, preset_name: str) -> None:
-        """Apply a predefined optimization preset."""
-        presets = {
-            "speed": IndexOptimizationPresets.speed_optimized(),
-            "memory": IndexOptimizationPresets.memory_optimized(),
-            "balanced": IndexOptimizationPresets.balanced(),
-            "accuracy": IndexOptimizationPresets.accuracy_first(),
-            "scann": IndexOptimizationPresets.scann_optimized(),
-            "gpu": IndexOptimizationPresets.gpu_accelerated(),
-        }
+        # Load the collection back into memory
+        self.client.load_collection('glove')
+        logger.info(f"Loaded collection '{COLLECTION_GLOVE}'.")
 
-        if preset_name not in presets:
-            raise ValueError(f"Unknown preset: {preset_name}. Available: {list(presets.keys())}")
-
-        # Drop existing index if any
-        self.drop_index()
-
-        # Create new optimized index
-        config = presets[preset_name]
-        self.create_index(config)
-        logger.info(f"Applied {preset_name} optimization preset")
+    def create_vector_index_from_preset(self, preset_name: str) -> None:
+        # Use a preset to create an index
+        index_config = IndexOptimizationPresets.get_preset(preset_name)
+        self.create_vector_index(index_config)
 
     def insert_vectors_chunk(self, vectors: np.ndarray, ids: np.ndarray, timeout: int = 10) -> Dict[str, Any]:
         data = [
