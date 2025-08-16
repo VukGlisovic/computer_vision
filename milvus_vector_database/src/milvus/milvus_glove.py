@@ -210,13 +210,6 @@ class MilvusGlove:
         self.create_index(config)
         logger.info(f"Applied {preset_name} optimization preset")
 
-    def insert_vectors(self, vectors: np.ndarray, ids: np.ndarray, chunk_size: int = 10000, timeout: int = 10) -> None:
-        logger.info(f"Inserting vectors into collection '{COLLECTION_GLOVE}' in chunks of {chunk_size} vectors.")
-        for i in tqdm(range(0, len(vectors), chunk_size), desc="Inserting vectors"):
-            chunk_vectors = vectors[i:i+chunk_size]
-            chunk_ids = ids[i:i+chunk_size]
-            self.insert_vectors_chunk(chunk_vectors, chunk_ids, timeout)
-
     def insert_vectors_chunk(self, vectors: np.ndarray, ids: np.ndarray, timeout: int = 10) -> Dict[str, Any]:
         data = [
             {
@@ -231,6 +224,13 @@ class MilvusGlove:
             timeout=timeout
         )
         return res
+
+    def insert_vectors(self, vectors: np.ndarray, ids: np.ndarray, chunk_size: int = 10000, timeout: int = 10) -> None:
+        logger.info(f"Inserting vectors into collection '{COLLECTION_GLOVE}' in chunks of {chunk_size} vectors.")
+        for i in tqdm(range(0, len(vectors), chunk_size), desc="Inserting vectors"):
+            chunk_vectors = vectors[i:i+chunk_size]
+            chunk_ids = ids[i:i+chunk_size]
+            self.insert_vectors_chunk(chunk_vectors, chunk_ids, timeout)
 
     def search_vectors(self, query_vector: np.ndarray, filter: str = None, k: int = 1,
                        search_config: Optional[SearchConfig] = None) -> Dict[str, Any]:
