@@ -26,7 +26,8 @@ class MilvusGlove:
         )
         self.vector_dim = 100
         self.current_index_config: Optional[IndexConfig] = None
-
+        self.search_config: Optional[SearchConfig] = None
+    
     def create_collection(self, overwrite: bool = False):
         collection_exists = self.client.has_collection(collection_name=COLLECTION_GLOVE)
         if not overwrite and collection_exists:
@@ -118,42 +119,26 @@ class MilvusGlove:
             chunk_vectors = vectors[i:i+chunk_size]
             chunk_ids = ids[i:i+chunk_size]
             self.insert_vectors_chunk(chunk_vectors, chunk_ids, timeout)
+    
+    def set_search_config(self, search_config: Optional[SearchConfig] = None) -> None:
+        if search_config is None:
+            search_config = SearchConfig.get_default_search_params(self.current_index_config.index_type)
+            logger.info(f"No search config provided, using default search parameters for {self.current_index_config.index_type.name} index: {search_config.params}.")
+        else:
+            logger.info(f"Using provided search config: {search_config.params}.")
+        self.search_config = search_config
 
-    def search_vectors(self, query_vector: np.ndarray, filter: str = None, k: int = 1,
-                       search_config: Optional[SearchConfig] = None) -> Dict[str, Any]:
+    def search_vectors(self, query_vector: np.ndarray, filter: str = None, k: int = 1) -> Dict[str, Any]:
         """Search for similar vectors with optional optimization parameters."""
-        search_params = {}
-
-        # Set search parameters based on current index type
-        if self.current_index_config and search_config:
-            search_params = search_config.params
-        elif self.current_index_config:
-            # Use default search parameters for the current index type
-            search_params = self._get_default_search_params(self.current_index_config.index_type)
-
         res = self.client.search(
             collection_name=COLLECTION_GLOVE,
             data=query_vector,
             filter=filter,
             limit=k,
             output_fields=["id", "vector"],
-            search_params=search_params if search_params else None
+            search_params=self.search_config.params
         )
         return res
-
-    def _get_default_search_params(self, index_type: IndexType) -> Dict[str, Any]:
-        """Get default search parameters for each index type."""
-        default_search_params = {
-            IndexType.FLAT: {},
-            IndexType.IVF_FLAT: {"nprobe": 10},
-            IndexType.IVF_PQ: {"nprobe": 10},
-            IndexType.IVF_SQ8: {"nprobe": 10},
-            IndexType.HNSW: {"ef": 64},
-            IndexType.SCANN: {},
-            IndexType.GPU_IVF_FLAT: {"nprobe": 10},
-            IndexType.GPU_IVF_PQ: {"nprobe": 10},
-        }
-        return default_search_params.get(index_type, {})
 
     def query_vectors_by_ids(self, ids: Union[List[int], int]) -> Dict[str, Any]:
         res = self.client.query(
