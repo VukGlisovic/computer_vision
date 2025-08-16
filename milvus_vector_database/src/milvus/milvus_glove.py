@@ -131,10 +131,11 @@ class MilvusGlove:
         self.current_index_config: Optional[IndexConfig] = None
 
     def create_collection(self, overwrite: bool = False):
-        if not overwrite and self.client.has_collection(collection_name=COLLECTION_GLOVE):
+        collection_exists = self.client.has_collection(collection_name=COLLECTION_GLOVE)
+        if not overwrite and collection_exists:
             logger.info(f"Collection '{COLLECTION_GLOVE}' already exists, skipping creation.")
             return
-        if overwrite and self.client.has_collection(collection_name=COLLECTION_GLOVE):
+        elif overwrite and collection_exists:
             logger.info(f"Dropping existing collection '{COLLECTION_GLOVE}'.")
             self.client.drop_collection(collection_name=COLLECTION_GLOVE)
         logger.info(f"Creating new collection '{COLLECTION_GLOVE}'.")
