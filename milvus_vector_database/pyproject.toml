@@ -12,7 +12,8 @@ dependencies = [
     "pymilvus==2.6.0",
     "datasets>=4.0.0,<5",
     "numpy>=2.3.2,<3", 
-    "tqdm>=4.67.1,<5"
+    "tqdm>=4.67.1,<5",
+    "matplotlib>=3.10.5,<4"
 ]
 
 [tool.pixi.workspace]
