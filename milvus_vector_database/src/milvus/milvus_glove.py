@@ -56,6 +56,10 @@ class MilvusGlove:
     def create_vector_index(self, index_config: IndexConfig) -> None:
         logger.info(f"Creating {index_config.index_type.name} index with metric {index_config.metric_type}")
 
+        if index_config == self.current_index_config:
+            logger.info(f"Index {index_config.index_type.name} already exists with the same parameters, skipping creation.")
+            return
+
         field_name = 'vector'
 
         # In order to create a new index, we need to have the collection released from memory
@@ -65,8 +69,8 @@ class MilvusGlove:
             logger.info(f"Released collection '{COLLECTION_GLOVE}'.")
 
         # The vector field allows for only one index at a time
-        current_field_index = [idx for idx in self.client.list_indexes(COLLECTION_GLOVE) if field_name in idx]
-        for idx_name in current_field_index:
+        current_index_names = [idx_name for idx_name in self.client.list_indexes(COLLECTION_GLOVE) if field_name in idx_name]
+        for idx_name in current_index_names:
             self.drop_index(index_name=idx_name)
 
         # Prepare index parameters
