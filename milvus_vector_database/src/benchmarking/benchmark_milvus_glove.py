@@ -46,7 +46,7 @@ class BenchmarkResult:
         return np.mean(self.target_found) if self.target_found else 0.0
 
     def print_result(self) -> None:
-        logger.info(f"Results for {self.config_name}. Avg search time: {self.get_search_time_avg()*1000}ms. Accuracy: {self.get_accuracy()*100:.2f}%.")
+        logger.info(f"Results for {self.config_name}. Avg search time: {self.get_search_time_avg()*1000:.2f}ms. Accuracy: {self.get_accuracy()*100:.2f}%.")
 
 
 class MilvusGloveBenchmark:
@@ -69,7 +69,6 @@ class MilvusGloveBenchmark:
 
     def run_single_benchmark(self, index_config: IndexConfig, k: int) -> BenchmarkResult:
         """Benchmark a specific index configuration."""
-        logger.info(f"Starting benchmark for {index_config}...")
 
         result = BenchmarkResult(index_config, k)
 
@@ -77,7 +76,6 @@ class MilvusGloveBenchmark:
         self.warmup()
 
         # Benchmark search performance
-        logger.info("Running search benchmark...")
         for i in range(len(self.test_data)):
             # Query closest embeddings
             start_time = time.time()
@@ -92,7 +90,7 @@ class MilvusGloveBenchmark:
             result.add_search_time(search_time)
             result.add_accuracy_value(target in search_results)
 
-        logger.info(f"Completed benchmark for {index_config}.")
+        result.print_result()
         return result
 
     def benchmark_single_index(self, preset_name, k_values):
