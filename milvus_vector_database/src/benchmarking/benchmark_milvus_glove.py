@@ -26,7 +26,7 @@ class BenchmarkResult:
         self.index_config = index_config
         self.k = k
 
-        self.config_name = f"index={index_config.index_type.name}_k={k}"
+        self.config_name = f"index={index_config.index_type.name}__k={k}"
         self.search_times_seconds: List[float] = []
         self.target_found: List[bool] = []
 
