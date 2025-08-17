@@ -6,11 +6,14 @@ the best optimization strategy for your specific use case.
 """
 import time
 import logging
+import pickle
 from typing import Dict, List, Tuple
+from collections import defaultdict
 
 import numpy as np
 from datasets import Dataset
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 from milvus_vector_database.src.milvus.milvus_glove import MilvusGlove
 from milvus_vector_database.src.milvus.index_configuration import IndexConfig
@@ -54,6 +57,7 @@ class MilvusGloveBenchmark:
     def __init__(self):
         self.milvus_client = MilvusGlove()
         self.test_data, self.neighbors_data = self.load_test_data()
+        self.benchmark_results: Dict[str, List[BenchmarkResult]] = defaultdict(list)
 
     @staticmethod
     def load_test_data() -> Tuple[Dataset, Dataset]:
@@ -93,24 +97,55 @@ class MilvusGloveBenchmark:
         result.print_result()
         return result
 
-    def benchmark_single_index(self, preset_name, k_values):
+    def benchmark_single_index(self, preset_name: str, k_values: List[int]) -> None:
         self.milvus_client.create_vector_index_from_preset(preset_name)
-        results = []
         for k in k_values:
             result = self.run_single_benchmark(self.milvus_client.current_index_config, k)
-            results.append(result)
-        return results
+            self.benchmark_results[preset_name].append(result)
 
-    def benchmark_index_presets(self) -> Dict[str, BenchmarkResult]:
+    def benchmark_index_presets(self) -> None:
         """Run benchmark on all optimization presets."""
         presets = ["speed", "memory", "balanced", "accuracy", "scann", "gpu"]
-        k_values = [2**i for i in range(6)]
+        k_values = [2**i for i in range(5)]
 
-        results = []
         pbar = tqdm(presets, desc="Benchmarking presets")
         for preset_name in pbar:
             pbar.set_description(f"Benchmarking preset '{preset_name}'")
-            index_results = self.benchmark_single_index(preset_name, k_values)
-            results.append(index_results)
+            self.benchmark_single_index(preset_name, k_values)
+        
+        self.save_benchmark_results('benchmark_results.pkl')
+        self.plot_benchmark_results('benchmark_results.jpeg')
+    
+    def save_benchmark_results(self, output_path: str) -> None:
+        """Save the benchmark results to a pickle file."""
+        with open(output_path, 'wb') as f:
+            pickle.dump(self.benchmark_results, f)
+        logger.info(f"Benchmark results saved to {output_path}")
+    
+    def plot_benchmark_results(self, output_path: str) -> None:
+        """Plot the benchmark results."""
+        fig, [ax1, ax2] = plt.subplots(2, 1, figsize=(14, 6))
 
-        return results
+        for preset_name, preset_results in self.benchmark_results.items():
+            xs = [result.k for result in preset_results]
+            ys_time = [result.get_search_time_avg()*1000 for result in preset_results]
+            ys_acc = [result.get_accuracy()*100 for result in preset_results]
+            ax1.plot(xs, ys_time, label=preset_name)
+            ax2.plot(xs, ys_acc, label=preset_name)
+        
+        ax1.legend()
+        ax1.set_xlabel('k')
+        ax1.set_ylabel('search time (ms)')
+        ax1.set_title('Benchmark results (search time)')
+        ax1.grid(ls='--', lw=0.5, c='black', alpha=0.4)
+        ax1.set_xscale('log')
+
+        ax2.legend()
+        ax2.set_xlabel('k')
+        ax2.set_ylabel('accuracy (%)')
+        ax2.set_title('Benchmark results (accuracy)')
+        ax2.grid(ls='--', lw=0.5, c='black', alpha=0.4)
+        ax2.set_xscale('log')
+
+        plt.savefig(output_path)
+        plt.close()
