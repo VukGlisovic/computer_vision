@@ -26,7 +26,7 @@ class MilvusGlove:
         )
         self.vector_dim = 100
         self.current_index_config: Optional[IndexConfig] = None
-        self.search_config: Optional[SearchConfig] = None
+        self.search_config = SearchConfig()
     
     def create_collection(self, overwrite: bool = False):
         collection_exists = self.client.has_collection(collection_name=COLLECTION_GLOVE)
