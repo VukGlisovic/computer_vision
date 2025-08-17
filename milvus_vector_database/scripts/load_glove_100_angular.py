@@ -85,9 +85,7 @@ def main():
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler()  # This ensures output goes to stdout
-        ]
+        handlers=[logging.StreamHandler()]  # This ensures output goes to stdout
     )
     
     # Download the dataset
