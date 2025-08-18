@@ -31,11 +31,35 @@ client.optimize_with_preset("scann")  # or "speed", "memory", "balanced"
 results = client.search_vectors(query_vector, k=10)
 ```
 
-### Create a docker container for Milvus
-In order to use the remote version of Milvus (instead of the Lite) version, use the 
-`milvus_vector_database/docker/standalone_embed.sh` script to create a docker container with the Milvus vector database
-running inside the container. More info can be found on [milvus with docker](https://milvus.io/docs/install_standalone-docker.md).
-To access the WebUI, access http://127.0.0.1:9091/webui/.
-
-Note that the lite version of Milvus allows for only a small subset of vector indexes. So if you want to use more
+### Start a Milvus service with docker
+The lite version of Milvus allows for only a small subset of vector indexes. So if you want to use more
 advanced indexing procedures like Google's scann, you'll have to use the remote variant.
+
+#### Docker with CPU
+In order to use the remote version of Milvus (instead of the Lite) version, use the 
+`milvus_vector_database/docker/cpu/standalone_embed.sh` script to create a docker container with the Milvus vector database
+running inside the container. More info can be found on [milvus with CPU docker](https://milvus.io/docs/install_standalone-docker.md).
+Start the container with 
+```bash
+cd milvus_vector_database/docker/cpu/
+./standalone_embed.sh start
+```
+
+#### Docker with GPU
+Some [index types need GPU](https://milvus.io/api-reference/pymilvus/v2.6.x/MilvusClient/Collections/IndexType.md) to
+work. The standard standalone version doesn't support GPU. For this you will need to use the GPU version of the docker
+image. Detailed instructions can be found here: [milvus with GPU docker](https://milvus.io/docs/install_standalone-docker-compose-gpu.md).
+
+Also note that standard Docker cannot use GPUs. You will also need to install a special toolkit from NVIDIA that acts as 
+a bridge between Docker and your NVIDIA drivers. Follow the [NVIDIA Container Toolkit instructions](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+and restart the docker daemon in the end.
+
+Start the docker containers with
+```bash
+cd milvus_vector_database/docker/gpu/
+sudo docker compose up
+```
+
+#### WebUI
+Milvus also has a web user interface. To access the WebUI go to http://127.0.0.1:9091/webui/.
+
