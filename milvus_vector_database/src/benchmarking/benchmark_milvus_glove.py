@@ -106,7 +106,7 @@ class MilvusGloveBenchmark:
     def benchmark_index_presets(self) -> None:
         """Run benchmark on all optimization presets."""
         presets = ["speed", "memory", "balanced", "accuracy", "scann", "gpu"]
-        k_values = [2**i for i in range(5)]
+        k_values = [2**i for i in range(6)]
 
         pbar = tqdm(presets, desc="Benchmarking presets")
         for preset_name in pbar:
