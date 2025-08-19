@@ -19,9 +19,11 @@ def main():
         handlers=[logging.StreamHandler()]
     )
 
-    benchmark = MilvusGloveBenchmark()
+    presets = ["speed", "memory", "balanced", "accuracy", "scann", "gpu", "accuracy_gpu"]
+    k_values = [2 ** i for i in range(6)]
 
-    benchmark.benchmark_index_presets()
+    benchmark = MilvusGloveBenchmark()
+    benchmark.benchmark_index_presets(presets, k_values)
 
 
 if __name__ == "__main__":

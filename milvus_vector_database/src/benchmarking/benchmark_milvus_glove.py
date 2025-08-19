@@ -103,12 +103,10 @@ class MilvusGloveBenchmark:
             result = self.run_single_benchmark(self.milvus_client.current_index_config, k)
             self.benchmark_results[preset_name].append(result)
 
-    def benchmark_index_presets(self) -> None:
+    def benchmark_index_presets(self, preset_names: List[str], k_values: List[int]) -> None:
         """Run benchmark on all optimization presets."""
-        presets = ["speed", "memory", "balanced", "accuracy", "scann", "gpu"]
-        k_values = [2**i for i in range(6)]
 
-        pbar = tqdm(presets, desc="Benchmarking presets")
+        pbar = tqdm(preset_names, desc="Benchmarking presets")
         for preset_name in pbar:
             pbar.set_description(f"Benchmarking preset '{preset_name}'")
             self.benchmark_single_index(preset_name, k_values)
