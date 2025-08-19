@@ -132,12 +132,13 @@ class MilvusGloveBenchmark:
         fig, [ax1, ax2] = plt.subplots(2, 1, figsize=(14, 8))
         fig.tight_layout(h_pad=5)
 
+        line_kwargs = {'lw': 2, 'alpha': 0.7}
         for preset_name, preset_results in self.benchmark_results.items():
             xs = [result.k for result in preset_results]
             ys_time = [result.get_search_time_avg() * 1000 for result in preset_results]
             ys_acc = [result.get_accuracy() * 100 for result in preset_results]
-            ax1.plot(xs, ys_time, label=preset_name)
-            ax2.plot(xs, ys_acc, label=preset_name)
+            ax1.plot(xs, ys_time, label=preset_name, **line_kwargs)
+            ax2.plot(xs, ys_acc, label=preset_name, **line_kwargs)
 
         ax1.legend()
         ax1.set_xlabel('k')
@@ -146,6 +147,9 @@ class MilvusGloveBenchmark:
         ax1.set_title('Benchmark results (search time)')
         ax1.grid(ls='--', lw=0.5, c='black', alpha=0.4)
         ax1.set_xscale('log')
+        ax1.set_xticks(xs)
+        ax1.set_xticklabels([str(k) for k in xs])
+        ax1.set_xticks([], minor=True)  # Remove minor ticks
 
         ax2.legend()
         ax2.set_xlabel('k')
@@ -154,6 +158,9 @@ class MilvusGloveBenchmark:
         ax2.set_title('Benchmark results (accuracy)')
         ax2.grid(ls='--', lw=0.5, c='black', alpha=0.4)
         ax2.set_xscale('log')
+        ax2.set_xticks(xs)
+        ax2.set_xticklabels([str(k) for k in xs])
+        ax2.set_xticks([], minor=True)  # Remove minor ticks
 
         plt.savefig(output_path)
         plt.close()
