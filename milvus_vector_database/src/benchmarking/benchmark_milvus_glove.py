@@ -4,6 +4,7 @@ Benchmark script to compare performance of different Milvus optimization strateg
 This script tests various index types and quantization methods to help you choose
 the best optimization strategy for your specific use case.
 """
+import os
 import time
 import logging
 import pickle
@@ -15,6 +16,7 @@ from datasets import Dataset
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+from milvus_vector_database.constants import PROJECT_PATH
 from milvus_vector_database.src.milvus.milvus_glove import MilvusGlove
 from milvus_vector_database.src.milvus.index_configuration import IndexConfig
 from milvus_vector_database.scripts.load_glove_100_angular import load_glove_split
@@ -111,11 +113,13 @@ class MilvusGloveBenchmark:
             pbar.set_description(f"Benchmarking preset '{preset_name}'")
             self.benchmark_single_index(preset_name, k_values)
         
-        self.save_benchmark_results('benchmark_results.pkl')
-        self.plot_benchmark_results('benchmark_results.jpeg')
+        self.save_benchmark_results(os.path.join(PROJECT_PATH, 'data/benchmark_results.pkl'))
+        self.plot_benchmark_results(os.path.join(PROJECT_PATH, 'data/benchmark_results.jpeg'))
     
     def save_benchmark_results(self, output_path: str) -> None:
         """Save the benchmark results to a pickle file."""
+        if _dir := os.path.dirname(output_path):
+            os.makedirs(_dir, exist_ok=True)
         with open(output_path, 'wb') as f:
             pickle.dump(self.benchmark_results, f)
         logger.info(f"Benchmark results saved to {output_path}")
@@ -162,5 +166,7 @@ class MilvusGloveBenchmark:
         ax2.set_xticklabels([str(k) for k in xs])
         ax2.set_xticks([], minor=True)  # Remove minor ticks
 
+        if _dir := os.path.dirname(output_path):
+            os.makedirs(_dir, exist_ok=True)
         plt.savefig(output_path)
         plt.close()
