@@ -120,6 +120,13 @@ class MilvusGloveBenchmark:
             pickle.dump(self.benchmark_results, f)
         logger.info(f"Benchmark results saved to {output_path}")
     
+    @staticmethod
+    def load_benchmark_results(input_path: str) -> Dict[str, List[BenchmarkResult]]:
+        """Load benchmark results from a pickle file."""
+        with open(input_path, 'rb') as f:
+            benchmark_results = pickle.load(f)
+        return benchmark_results
+    
     def plot_benchmark_results(self, output_path: str) -> None:
         """Plot the benchmark results."""
         fig, [ax1, ax2] = plt.subplots(2, 1, figsize=(14, 6))
