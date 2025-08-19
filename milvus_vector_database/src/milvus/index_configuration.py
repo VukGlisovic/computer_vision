@@ -23,8 +23,9 @@ class IndexType(Enum):
     IVF_SQ8 = "IVF_SQ8"     # Inverted file with scalar quantization
     HNSW = "HNSW"           # Hierarchical navigable small world
     SCANN = "SCANN"         # Google's ScaNN algorithm
-    GPU_IVF_FLAT = "GPU_IVF_FLAT"   # GPU-accelerated IVF_FLAT
-    GPU_IVF_PQ = "GPU_IVF_PQ"       # GPU-accelerated IVF_PQ
+    GPU_BRUTE_FORCE = "GPU_BRUTE_FORCE"   # GPU-accelerated IVF_FLAT
+    GPU_IVF_FLAT = "GPU_IVF_FLAT"         # GPU-accelerated IVF_FLAT
+    GPU_IVF_PQ = "GPU_IVF_PQ"             # GPU-accelerated IVF_PQ
 
 
 @dataclass
@@ -47,6 +48,7 @@ class IndexConfig:
             IndexType.IVF_SQ8: {"nlist": 128},
             IndexType.HNSW: {"M": 16, "efConstruction": 200},
             IndexType.SCANN: {"with_raw_data": True},
+            IndexType.GPU_BRUTE_FORCE: {},
             IndexType.GPU_IVF_FLAT: {"nlist": 128},
             IndexType.GPU_IVF_PQ: {"nlist": 128, "m": 16, "nbits": 8},
         }
@@ -66,6 +68,7 @@ class IndexOptimizationPresets:
             "accuracy": cls.accuracy_first(),
             "scann": cls.scann_optimized(),
             "gpu": cls.gpu_accelerated(),
+            "accuracy_gpu": cls.accuracy_first_gpu(),
         }
 
         if preset_name not in presets:
@@ -168,6 +171,21 @@ class IndexOptimizationPresets:
             params={"nlist": 256}
         )
 
+    @staticmethod
+    def accuracy_first_gpu() -> IndexConfig:
+        """
+        Prioritizes accuracy over speed.
+
+        Basically the same as FLAT indexing, but then using GPU - performs exact brute-force
+        search by computing distances to all vectors in the collection. No approximation means
+        perfect accuracy. Relatively slow, but the GPU may compensate some speed.
+        """
+        return IndexConfig(
+            index_type=IndexType.GPU_BRUTE_FORCE,
+            metric_type="COSINE",
+            params={}
+        )
+
 
 @dataclass
 class SearchConfig:
@@ -188,6 +206,7 @@ class SearchConfig:
             IndexType.IVF_SQ8: {"nprobe": 10},
             IndexType.HNSW: {"ef": 64},
             IndexType.SCANN: {},
+            IndexType.GPU_BRUTE_FORCE: {},
             IndexType.GPU_IVF_FLAT: {"nprobe": 10},
             IndexType.GPU_IVF_PQ: {"nprobe": 10},
         }
