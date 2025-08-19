@@ -129,18 +129,20 @@ class MilvusGloveBenchmark:
     
     def plot_benchmark_results(self, output_path: str) -> None:
         """Plot the benchmark results."""
-        fig, [ax1, ax2] = plt.subplots(2, 1, figsize=(14, 6))
+        fig, [ax1, ax2] = plt.subplots(2, 1, figsize=(14, 8))
+        fig.tight_layout(h_pad=5)
 
         for preset_name, preset_results in self.benchmark_results.items():
             xs = [result.k for result in preset_results]
-            ys_time = [result.get_search_time_avg()*1000 for result in preset_results]
-            ys_acc = [result.get_accuracy()*100 for result in preset_results]
+            ys_time = [result.get_search_time_avg() * 1000 for result in preset_results]
+            ys_acc = [result.get_accuracy() * 100 for result in preset_results]
             ax1.plot(xs, ys_time, label=preset_name)
             ax2.plot(xs, ys_acc, label=preset_name)
-        
+
         ax1.legend()
         ax1.set_xlabel('k')
         ax1.set_ylabel('search time (ms)')
+        ax1.set_ylim(0)
         ax1.set_title('Benchmark results (search time)')
         ax1.grid(ls='--', lw=0.5, c='black', alpha=0.4)
         ax1.set_xscale('log')
@@ -148,6 +150,7 @@ class MilvusGloveBenchmark:
         ax2.legend()
         ax2.set_xlabel('k')
         ax2.set_ylabel('accuracy (%)')
+        ax2.set_ylim(0, 100)
         ax2.set_title('Benchmark results (accuracy)')
         ax2.grid(ls='--', lw=0.5, c='black', alpha=0.4)
         ax2.set_xscale('log')
