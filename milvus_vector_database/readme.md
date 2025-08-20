@@ -63,3 +63,25 @@ sudo docker compose up
 #### WebUI
 Milvus also has a web user interface. To access the WebUI go to http://127.0.0.1:9091/webui/.
 
+
+## Benchmark Results
+
+### Comparing different indexes
+As part of the project, I wanted to run some benchmarks on various indexes. There's many things you can monitor when
+benchmarking an index, like memory usage, CPU usage and more. But for this analysis, I only focused on speed and 
+accuracy. In this first benchmark, I focused on different indexes with some default hyperparameters. To get more
+info on which indexes the names in the plot refer to, I'd suggest to have a look at `milvus_vector_database/src/milvus/index_configuration.py`.
+
+![Benchmark multiple indexes](resources/benchmark-results-multiple-indexes.jpg)
+
+Some take-aways and notes from this plot:
+* `accuracy` and `gpu_accuracy` both have 100% accuracy (or recall). This is expected as we're basically brute-forcing it.
+* Note that `accuracy` takes more than 100ms per query (much more than the others), so I decided to crop it off of the plot.
+* Nice to see that `gpu_accuracy` is almost 2 orders of magnitude faster than `accuracy` (I used an H100 GPU with 24GB of memory).
+* Google's `scann` is the fastest of them all, however it does sacrifice quite some accuracy for low values of `k`.
+* You can optimize for both memory usage and speed. The `balanced` approach tries to make sure we still use memory and are not the fastest,
+  but as you can see it has some of the highest accuracies.
+
+### Comparing different configurations of an index
+I also wanted to just choose one index and play around with it. I decided to go with the `IVF_SQ8` index type because 
+it's quite intuitive to configure and fast to evaluate.
