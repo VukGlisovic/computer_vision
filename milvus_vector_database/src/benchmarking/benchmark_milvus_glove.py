@@ -146,7 +146,7 @@ class MilvusGloveBenchmark:
 
         ax1.legend()
         ax1.set_xlabel('k')
-        ax1.set_ylabel('search time (ms)')
+        ax1.set_ylabel('search time per query (ms)')
         ax1.set_ylim(0)
         ax1.set_title('Benchmark results (search time)')
         ax1.grid(ls='--', lw=0.5, c='black', alpha=0.4)
