@@ -97,11 +97,6 @@ class MilvusGlove:
         self.client.load_collection('glove')
         logger.info(f"Loaded collection '{COLLECTION_GLOVE}'.")
 
-    def create_vector_index_from_preset(self, preset_name: str) -> None:
-        # Use a preset to create an index
-        index_config = IndexOptimizationPresets.get_preset(preset_name)
-        self.create_vector_index(index_config)
-
     def insert_vectors_chunk(self, vectors: np.ndarray, ids: np.ndarray, timeout: int = 10) -> Dict[str, Any]:
         data = [
             {

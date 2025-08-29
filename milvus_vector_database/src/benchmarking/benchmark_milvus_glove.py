@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 from milvus_vector_database.constants import PROJECT_PATH
 from milvus_vector_database.src.milvus.milvus_glove import MilvusGlove
-from milvus_vector_database.src.milvus.index_configuration import IndexConfig
+from milvus_vector_database.src.milvus.index_configuration import IndexConfig, SearchConfig, IndexOptimizationPresets
 from milvus_vector_database.scripts.load_glove_100_angular import load_glove_split
 
 
@@ -27,11 +27,12 @@ logger = logging.getLogger(__name__)
 
 class BenchmarkResult:
 
-    def __init__(self, index_config: IndexConfig, k: int):
+    def __init__(self, index_config: IndexConfig, search_config: SearchConfig, k: int):
         self.index_config = index_config
+        self.search_config = search_config
         self.k = k
 
-        self.config_name = f"index={index_config.index_type.name}__k={k}"
+        self.config_name = f"{index_config}, {search_config}, k={k}"
         self.search_times_seconds: List[float] = []
         self.target_found: List[bool] = []
 
@@ -73,10 +74,12 @@ class MilvusGloveBenchmark:
         for i in range(n):
             self.milvus_client.search_vectors(query_vector=self.test_data[i: i+1]['emb'], k=1)
 
-    def run_single_benchmark(self, index_config: IndexConfig, k: int) -> BenchmarkResult:
+    def benchmark_config(self, index_config: IndexConfig, search_config: SearchConfig = None, k: int = 1) -> BenchmarkResult:
         """Benchmark a specific index configuration."""
 
-        result = BenchmarkResult(index_config, k)
+        result = BenchmarkResult(index_config, search_config, k)
+        self.milvus_client.create_vector_index(index_config)
+        self.milvus_client.set_search_config(search_config)
 
         # Warm up: run a few searches to stabilize performance
         self.warmup()
@@ -99,11 +102,13 @@ class MilvusGloveBenchmark:
         result.print_result()
         return result
 
-    def benchmark_single_index(self, preset_name: str, k_values: List[int]) -> None:
-        self.milvus_client.create_vector_index_from_preset(preset_name)
-        for k in k_values:
-            result = self.run_single_benchmark(self.milvus_client.current_index_config, k)
-            self.benchmark_results[preset_name].append(result)
+    def benchmark_configs(self, configs: List[Dict], k=1):
+        """configs should be a list of dicts containing 'index_config' and 'search_config'."""
+        for config in configs:
+            result = self.benchmark_config(index_config=config['index_config'], search_config=config['search_config'], k=k)
+            self.benchmark_results[config['index_config'].index_type.name].append(result)
+
+        self.save_benchmark_results(os.path.join(PROJECT_PATH, 'data/benchmark_results.pkl'))
 
     def benchmark_index_presets(self, preset_names: List[str], k_values: List[int]) -> None:
         """Run benchmark on all optimization presets."""
@@ -111,7 +116,10 @@ class MilvusGloveBenchmark:
         pbar = tqdm(preset_names, desc="Benchmarking presets")
         for preset_name in pbar:
             pbar.set_description(f"Benchmarking preset '{preset_name}'")
-            self.benchmark_single_index(preset_name, k_values)
+            index_config = IndexOptimizationPresets.get_preset(preset_name)
+            for k in k_values:
+                result = self.benchmark_config(index_config=index_config, k=k)
+                self.benchmark_results[preset_name].append(result)
         
         self.save_benchmark_results(os.path.join(PROJECT_PATH, 'data/benchmark_results.pkl'))
         self.plot_benchmark_results(os.path.join(PROJECT_PATH, 'data/benchmark_results.jpeg'))
