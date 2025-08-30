@@ -26,6 +26,9 @@ import argparse
 import logging
 from itertools import product
 
+import numpy as np
+import matplotlib.pyplot as plt
+
 from milvus_vector_database.src.milvus.index_configuration import IndexConfig, IndexType, SearchConfig
 from milvus_vector_database.src.benchmarking.benchmark_milvus_glove import MilvusGloveBenchmark
 from milvus_vector_database.constants import PROJECT_PATH
