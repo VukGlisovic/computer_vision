@@ -34,7 +34,7 @@ def main(output_filename: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Benchmark IVF_SQ8 index configurations")
-    parser.add_argument("output_filename", default='benchmark_result', help="Filename of the benchmark results without the extension. The extension will be added automatically.")
+    parser.add_argument("-o", "--output_filename", default='benchmark_result', help="Filename of the benchmark results without the extension. The extension will be added automatically.")
     args = parser.parse_args()
 
     main(args.output_filename)

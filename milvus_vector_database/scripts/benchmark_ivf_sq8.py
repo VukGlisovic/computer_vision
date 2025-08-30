@@ -54,12 +54,12 @@ def main(output_filename):
 
     benchmark = MilvusGloveBenchmark()
     benchmark.benchmark_configs(configs, k=10)
-    benchmark.save_benchmark_results(os.path.join(PROJECT_PATH, 'data', output_filename))
+    benchmark.save_benchmark_results(os.path.join(PROJECT_PATH, 'data', f'{output_filename}.pkl'))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Benchmark IVF_SQ8 index configurations")
-    parser.add_argument("output_filename", default='benchmark_result', help="Filename of the benchmark results without the extension. The extension will be added automatically.")
+    parser.add_argument("-o", "--output_filename", default='benchmark_result', help="Filename of the benchmark results without the extension. The extension will be added automatically.")
     args = parser.parse_args()
     
     main(args.output_filename)
