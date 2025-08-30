@@ -91,8 +91,8 @@ def main(output_filename):
         handlers=[logging.StreamHandler()]
     )
 
-    nlist = [128, 256, 512, 1024]
-    nprobe = [8, 16]
+    nlist = [128, 256, 512, 1024, 2048]
+    nprobe = [1, 2, 4, 8, 16, 32]
 
     configs = [
         {
