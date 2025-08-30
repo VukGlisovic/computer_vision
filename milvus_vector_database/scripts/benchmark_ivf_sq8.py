@@ -20,16 +20,20 @@ There's basically two types of parameters we can play around with:
    accurate the search, but also the slower the search.
 
 """
+import os
+import argparse
 import logging
 from itertools import product
 
 from milvus_vector_database.src.milvus.index_configuration import IndexConfig, IndexType, SearchConfig
 from milvus_vector_database.src.benchmarking.benchmark_milvus_glove import MilvusGloveBenchmark
+from milvus_vector_database.constants import PROJECT_PATH
+
 
 logger = logging.getLogger(__name__)
 
 
-def main():
+def main(output_filename):
     """Main function to run the benchmark."""
     logging.basicConfig(
         level=logging.INFO,
@@ -38,7 +42,7 @@ def main():
     )
 
     nlist = [128, 256, 512, 1024]
-    nprobe = [1, 2, 4, 8, 16]
+    nprobe = [8, 16]
 
     configs = [
         {
@@ -50,7 +54,12 @@ def main():
 
     benchmark = MilvusGloveBenchmark()
     benchmark.benchmark_configs(configs, k=10)
+    benchmark.save_benchmark_results(os.path.join(PROJECT_PATH, 'data', output_filename))
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Benchmark IVF_SQ8 index configurations")
+    parser.add_argument("output_filename", default='benchmark_result', help="Filename of the benchmark results without the extension. The extension will be added automatically.")
+    args = parser.parse_args()
+    
+    main(args.output_filename)

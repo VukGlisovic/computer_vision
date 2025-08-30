@@ -108,8 +108,6 @@ class MilvusGloveBenchmark:
             result = self.benchmark_config(index_config=config['index_config'], search_config=config['search_config'], k=k)
             self.benchmark_results[config['index_config'].index_type.name].append(result)
 
-        self.save_benchmark_results(os.path.join(PROJECT_PATH, 'data/benchmark_results.pkl'))
-
     def benchmark_index_presets(self, preset_names: List[str], k_values: List[int]) -> None:
         """Run benchmark on all optimization presets."""
 
@@ -120,9 +118,6 @@ class MilvusGloveBenchmark:
             for k in k_values:
                 result = self.benchmark_config(index_config=index_config, k=k)
                 self.benchmark_results[preset_name].append(result)
-        
-        self.save_benchmark_results(os.path.join(PROJECT_PATH, 'data/benchmark_results.pkl'))
-        self.plot_benchmark_results(os.path.join(PROJECT_PATH, 'data/benchmark_results.jpeg'))
     
     def save_benchmark_results(self, output_path: str) -> None:
         """Save the benchmark results to a pickle file."""
