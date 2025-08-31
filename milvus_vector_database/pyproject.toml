@@ -26,4 +26,5 @@ ipykernel = ">=6.30.1,<7"
 
 [tool.pixi.tasks]
 load_glove = { cmd = "python load_glove_100_angular.py", cwd = "scripts" }
-benchmark = { cmd = "python benchmark_index_configs.py", cwd = "scripts" }
+benchmark_presets = { cmd = "python benchmark_index_presets.py", cwd = "scripts" }
+benchmark_ivf_sq8 = { cmd = "python benchmark_ivf_sq8.py", cwd = "scripts" }
