@@ -41,7 +41,7 @@ def plot_ivf_sq8_results(benchmark_results: Dict[str, List], output_path: str):
     """Plot the IVF_SQ8 benchmark results.
 
     The x-axis will be based on the `nlist` parameter from the index config and the
-    different lines will be base don the `nprobe` from the search config.
+    different lines will be based on the `nprobe` from the search config.
     """
     fig, [ax1, ax2] = plt.subplots(2, 1, figsize=(14, 8))
     fig.tight_layout(h_pad=5)
@@ -52,7 +52,7 @@ def plot_ivf_sq8_results(benchmark_results: Dict[str, List], output_path: str):
     for nprobe in unique_nprobes:
 
         nprobe_results = [r for r in benchmark_results['IVF_SQ8'] if r.search_config.params['nprobe'] == nprobe]
-        xs = [r.index_config.params['nlist'] for r in nprobe_results]
+        xs = [r.index_config.params['nlist'] for r in nprobe_results]  # Only needed once, but for simplicity repeating it `nprobe` times
         ys_time = [r.get_search_time_avg() * 1000 for r in nprobe_results]
         ys_acc = [r.get_accuracy() * 100 for r in nprobe_results]
 
