@@ -37,7 +37,7 @@ from milvus_vector_database.constants import PROJECT_PATH
 logger = logging.getLogger(__name__)
 
 
-def plot_ivf_sq8_results(benchmark_results: Dict[str, List], output_path: str):
+def plot_ivf_sq8_results(benchmark_results: Dict[str, List], output_path: str) -> None:
     """Plot the IVF_SQ8 benchmark results.
 
     The x-axis will be based on the `nlist` parameter from the index config and the
@@ -52,7 +52,7 @@ def plot_ivf_sq8_results(benchmark_results: Dict[str, List], output_path: str):
     for nprobe in unique_nprobes:
 
         nprobe_results = [r for r in benchmark_results['IVF_SQ8'] if r.search_config.params['nprobe'] == nprobe]
-        xs = [r.index_config.params['nlist'] for r in nprobe_results]  # Only needed once, but for simplicity repeating it `nprobe` times
+        xs = [r.index_config.params['nlist'] for r in nprobe_results]
         ys_time = [r.get_search_time_avg() * 1000 for r in nprobe_results]
         ys_acc = [r.get_accuracy() * 100 for r in nprobe_results]
 
@@ -86,7 +86,7 @@ def plot_ivf_sq8_results(benchmark_results: Dict[str, List], output_path: str):
     plt.close()
 
 
-def main(output_filename):
+def main(output_filename: str) -> None:
     """Main function to run the benchmark."""
     logging.basicConfig(
         level=logging.INFO,

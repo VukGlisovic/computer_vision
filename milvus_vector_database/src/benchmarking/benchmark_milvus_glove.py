@@ -100,15 +100,15 @@ class MilvusGloveBenchmark:
         result.print_result()
         return result
 
-    def benchmark_configs(self, configs: List[Dict], k=1):
-        """configs should be a list of dicts containing 'index_config' and 'search_config'."""
-        for config in configs:
+    def benchmark_configs(self, configs: List[Dict], k=1) -> None:
+        """Run benchmark on a set of configurations.
+        `configs` should be a list of dicts containing 'index_config' and 'search_config'."""
+        for config in tqdm(configs, desc="Benchmarking configs"):
             result = self.benchmark_config(index_config=config['index_config'], search_config=config['search_config'], k=k)
             self.benchmark_results[config['index_config'].index_type.name].append(result)
 
     def benchmark_index_presets(self, preset_names: List[str], k_values: List[int]) -> None:
         """Run benchmark on all optimization presets."""
-
         pbar = tqdm(preset_names, desc="Benchmarking presets")
         for preset_name in pbar:
             pbar.set_description(f"Benchmarking preset '{preset_name}'")

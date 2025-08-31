@@ -17,7 +17,7 @@ from milvus_vector_database.constants import PROJECT_PATH
 logger = logging.getLogger(__name__)
 
 
-def plot_preset_results(benchmark_results: Dict[str, List], output_path: str):
+def plot_preset_results(benchmark_results: Dict[str, List], output_path: str) -> None:
     """Plot the benchmark results."""
     fig, [ax1, ax2] = plt.subplots(2, 1, figsize=(14, 8))
     fig.tight_layout(h_pad=5)
@@ -58,7 +58,7 @@ def plot_preset_results(benchmark_results: Dict[str, List], output_path: str):
     plt.close()
 
 
-def main(output_filename: str):
+def main(output_filename: str) -> None:
     """Main function to run the benchmark."""
     logging.basicConfig(
         level=logging.INFO,
