@@ -121,7 +121,8 @@ class MilvusGlove:
     
     def set_search_config(self, search_config: Optional[SearchConfig] = None) -> None:
         if search_config is None:
-            search_config = SearchConfig.get_default_search_params(self.current_index_config.index_type)
+            search_config = SearchConfig()
+            search_config.set_default_search_params(self.current_index_config.index_type)
             logger.info(f"No search config provided, using default search parameters for {self.current_index_config.index_type.name} index: {search_config.params}.")
         else:
             logger.info(f"Using provided search config: {search_config.params}.")

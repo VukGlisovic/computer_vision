@@ -4,6 +4,7 @@ Benchmark script to compare performance of different Milvus optimization strateg
 This script tests various index types and quantization methods to help you choose
 the best optimization strategy for your specific use case.
 """
+from typing import Dict, List
 import os
 import argparse
 import logging

@@ -196,8 +196,7 @@ class SearchConfig:
         if self.params is None:
             self.params = {}
 
-    @staticmethod
-    def get_default_search_params(index_type: IndexType) -> Dict[str, Any]:
+    def set_default_search_params(self, index_type: IndexType) -> None:
         """Get default search parameters for each index type."""
         default_search_params = {
             IndexType.FLAT: {},
@@ -210,4 +209,5 @@ class SearchConfig:
             IndexType.GPU_IVF_FLAT: {"nprobe": 10},
             IndexType.GPU_IVF_PQ: {"nprobe": 10},
         }
-        return default_search_params.get(index_type, {})
+        self.params = default_search_params.get(index_type, {})
+        logger.info(f"Set default search params for index_type {index_type}: {self.params}")
