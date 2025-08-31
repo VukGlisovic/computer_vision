@@ -62,7 +62,6 @@ def plot_ivf_sq8_results(benchmark_results: Dict[str, List], output_path: str) -
     ax1.legend()
     ax1.set_xlabel('nlist')
     ax1.set_ylabel('search time per query (ms)')
-    ax1.set_ylim(0)
     ax1.set_title('Benchmark results (search time)')
     ax1.grid(ls='--', lw=0.5, c='black', alpha=0.4)
     ax1.set_xscale('log')
