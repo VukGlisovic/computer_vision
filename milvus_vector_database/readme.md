@@ -72,7 +72,7 @@ benchmarking an index, like memory usage, CPU usage and more. But for this analy
 accuracy. In this first benchmark, I focused on different indexes with some default hyperparameters. To get more
 info on which indexes the names in the plot refer to, I'd suggest to have a look at `milvus_vector_database/src/milvus/index_configuration.py`.
 
-![Benchmark multiple indexes](resources/benchmark-results-multiple-indexes.jpg)
+![Benchmark multiple indexes](resources/benchmark-results-multiple-indexes.jpeg)
 
 Some take-aways and notes from this plot:
 * `accuracy` and `gpu_accuracy` both have 100% accuracy (or recall). This is expected as we're basically brute-forcing it.
@@ -82,6 +82,26 @@ Some take-aways and notes from this plot:
 * You can optimize for both memory usage and speed. The `balanced` approach tries to make sure we still use memory and are not the fastest,
   but as you can see it has some of the highest accuracies.
 
+Note that all these conclusions are based on some default settings for the index and for the search. For sure, we can
+optimize by tweaking both for all index types.
+
 ### Comparing different configurations of an index
 I also wanted to just choose one index and play around with it. I decided to go with the `IVF_SQ8` index type because 
-it's quite intuitive to configure and fast to evaluate.
+it's quite intuitive to configure and fast to evaluate. We will play around with the index configuration parameter
+`nlist` and the search configuration parameter `nprobe`.
+
+![Benchmark multiple indexes](resources/benchmark-results-ivf-sq8.jpeg)
+
+Some take-aways and notes from this plot:
+* The higher `nlist`, the faster the search. Each cluster has a smaller number of samples, thus fewer samples to search 
+  through and thus faster.
+* The higher `nprobe`, the more accurate the search. We will search through more clusters, thus increasing the 
+  probability of a closer match.
+* Diving in deeper, looking at the brown line in the first plot: `nlist=128` and `nprobe=32`. The search time is very 
+  slow; having 128 clusters and searching through 32 of them basically means we're searching through roughly 25% of 
+  the data. This of course depends on the cluster sizes.
+* Having a high `nlist` in combination with a high `nprobe` could be a good trade-off. With `nlist=2048` we see that 
+  all search times roughly converge with high `nprobe`. However, accuracy is much higher. For example, let's compare
+  `nlist=128` with `nprobe=4` (green line) and `nlist=2048` with `nprobe=32` (brown line). The latter has a lower time 
+  per query, but has an accuracy of ~88% whereas the former has an accuracy of ~82%. Some quick maths tell us that the 
+  former searches through twice as much data (2048/128 * 4/32 = 2) with a lower accuracy.
