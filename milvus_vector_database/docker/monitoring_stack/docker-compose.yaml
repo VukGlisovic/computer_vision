@@ -33,8 +33,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ../gpu/volumes:/milvus/gpu-volumes:ro  # Mount Milvus volumes
-      - ../cpu/volumes:/milvus/cpu-volumes:ro  # Mount CPU volumes if they exist
+      - ../milvus-gpu/volumes:/milvus/gpu-volumes:ro  # Mount Milvus volumes
+      - ../milvus-cpu/volumes:/milvus/cpu-volumes:ro  # Mount CPU volumes if they exist
     environment:
       - INTERVAL=5  # How often to check disk usage
       - PORT=8000
