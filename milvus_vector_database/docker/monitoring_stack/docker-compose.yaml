@@ -38,7 +38,7 @@ services:
     environment:
       - INTERVAL=5  # How often to check disk usage
       - PORT=8000
-      - FOLDERS_TO_MONITOR=/milvus/gpu-volumes
+      - FOLDERS_TO_MONITOR=/milvus/gpu-volumes  # Need to point to mounted volumes
     restart: unless-stopped
     depends_on:
       - prometheus
