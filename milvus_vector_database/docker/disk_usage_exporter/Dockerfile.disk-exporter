@@ -1,0 +1,19 @@
+FROM python:3.11-slim
+
+# Install required packages
+RUN pip install prometheus-client
+
+# Copy the exporter script and make it executable
+COPY disk_usage_exporter.py disk_usage_exporter.py
+RUN chmod +x disk_usage_exporter.py
+
+# Expose the metrics port
+EXPOSE 8000
+
+# Set default environment variables
+ENV INTERVAL=15
+ENV PORT=8000
+ENV FOLDERS_TO_MONITOR=/milvus/gpu-volumes
+
+# Run the exporter using environment variables
+CMD python disk_usage_exporter.py --port ${PORT} --interval ${INTERVAL} --folders-to-monitor ${FOLDERS_TO_MONITOR}
