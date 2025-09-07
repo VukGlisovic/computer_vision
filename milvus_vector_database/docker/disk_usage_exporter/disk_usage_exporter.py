@@ -16,13 +16,6 @@ class DiskUsageExporter:
     """Prometheus exporter for disk usage metrics."""
     
     def __init__(self, folders_to_monitor: List[str], port: int = 8000):
-        """
-        Initialize the disk usage exporter.
-        
-        Args:
-            folders_to_monitor:
-            port: Port to expose metrics on
-        """
         self.folders_to_monitor = folders_to_monitor
         self.port = port
         
@@ -65,11 +58,8 @@ class DiskUsageExporter:
 
     @staticmethod
     def get_folder_stats(folder_path: str) -> Tuple[int, int, int, Tuple[str, int]]:
-        """
-        Get comprehensive statistics for a folder.
-        
-        Returns:
-            Tuple of (total_size, file_count, dir_count, (largest_file_name, largest_file_size))
+        """Get comprehensive statistics for a folder.
+        Returns the following: (total_size, file_count, dir_count, (largest_file_name, largest_file_size))
         """
         total_size = 0
         file_count = 0
@@ -157,22 +147,20 @@ class DiskUsageExporter:
 
 def main():
     parser = argparse.ArgumentParser(description='Disk Usage Exporter')
-    parser.add_argument('--port', type=int, default=8000, help='Port to expose metrics on')
-    parser.add_argument('--interval', type=int, default=15, help='Update interval in seconds')
-    parser.add_argument('--folders-to-monitor', nargs='*', default=[],
-                       help='Configure which folders to monitor')
-    
+    parser.add_argument('--port', type=int, default=8000, help='Port to expose metrics on.')
+    parser.add_argument('--interval', type=int, default=15, help='Update interval in seconds.')
+    parser.add_argument('--folders-to-monitor', nargs='*', default=[], help='Configure which folders to monitor.')
     args = parser.parse_args()
 
-    logger.info(f"Checking the following folders for monitoring: {''.join(args.folders_to_monitor)}")
+    logger.info(f"Checking the following folders for monitoring:\n{'\n'.join(args.folders_to_monitor)}")
 
     # Add additional paths
     folders_to_monitor = []
-    for i, path in enumerate(args.folders_to_monitor):
-        if os.path.exists(path):
-            folders_to_monitor.append(path)
+    for _dir in args.folders_to_monitor:
+        if os.path.exists(_dir):
+            folders_to_monitor.append(_dir)
         else:
-            logger.warning(f"Folder '{path}' does not exist. It will not be included in the monitoring report.")
+            logger.warning(f"Folder '{_dir}' does not exist. It will not be included in the monitoring report.")
     
     if not folders_to_monitor:
         logger.error("No valid folders found to monitor!")
