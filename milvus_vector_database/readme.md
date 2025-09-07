@@ -63,6 +63,17 @@ sudo docker compose up
 #### WebUI
 Milvus also has a web user interface. To access the WebUI go to http://127.0.0.1:9091/webui/.
 
+### Optional: monitoring stack
+Additionally, you can also use prometheus with grafana and a custom disk usage exporter to monitor disk usage and
+memory usage. Both can be interesting since indexes use both of these.
+
+If all docker containers have been started (including the Milvus one), you can access the following links:
+* Grafana: http://localhost:3000 (admin/admin)
+* Prometheus: http://localhost:9090
+* Custom Disk Exporter metrics: http://localhost:8000
+* Milvus metrics: http://localhost:9091/metrics
+* Milvus WebUI: http://127.0.0.1:9091/webui/
+
 
 ## Benchmark Results
 
