@@ -74,6 +74,10 @@ If all docker containers have been started (including the Milvus one), you can a
 * Milvus metrics: http://localhost:9091/metrics
 * Milvus WebUI: http://127.0.0.1:9091/webui/
 
+Note that Milvus creates three folders. Two of them are important:
+* minio: stores all your data and index files. This part will have most of the disk usage.
+* etcd: stores all the metadata. This disk usage is usually very small but can also be important.
+
 
 ## Benchmark Results
 
