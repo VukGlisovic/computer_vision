@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus:/etc/prometheus/  # Mount our config file
+      - prometheus_data:/prometheus  # Persist data
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - "9090:9090"
+    # This setting is crucial for letting Prometheus use 'host.docker.internal'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: grafana
+    volumes:
+      - grafana_data:/var/lib/grafana  # Persist data/dashboards
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+  disk-usage-exporter:
+    build:
+      context: ../disk_usage_exporter
+      dockerfile: ../disk_usage_exporter/Dockerfile.disk-exporter
+    container_name: disk-usage-exporter
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../milvus-gpu/volumes:/milvus/gpu-volumes:ro
+      - ../milvus-cpu/volumes:/milvus/cpu-volumes:ro
+    environment:
+      - INTERVAL=5  # How often to check disk usage
+      - PORT=8000
+      - FOLDERS_TO_MONITOR=/milvus/gpu-volumes  # Need to point to mounted volumes
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus_data:
+  grafana_data:

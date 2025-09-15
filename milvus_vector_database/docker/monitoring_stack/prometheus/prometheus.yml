@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  # Job to scrape Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Job to scrape your Milvus container
+  - job_name: 'milvus'
+    static_configs:
+      # This special DNS name tells the Prometheus container to
+      # connect to the host machine (your "localhost").
+      # This assumes your Milvus container has port 9091
+      # mapped to your host's port 9091 (which is the default).
+      - targets: ['host.docker.internal:9091']
+
+  # Job to scrape custom disk usage exporter
+  - job_name: 'disk-usage-exporter'
+    static_configs:
+      - targets: ['disk-usage-exporter:8000']
