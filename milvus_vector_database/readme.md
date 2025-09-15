@@ -78,6 +78,10 @@ Note that Milvus creates three folders. Two of them are important:
 * minio: stores all your data and index files. This part will have most of the disk usage.
 * etcd: stores all the metadata. This disk usage is usually very small but can also be important.
 
+You can use the following two metrics to monitor memory usage and disk usage: `process_resident_memory_bytes` (memory 
+usage) and `folder_size_bytes` (disk usage). You can also directly create the dashboard with these two metrics by
+loading `milvus_vector_database/docker/monitoring_stack/grafana-dashboard.json` into grafana.
+
 
 ## Benchmark Results
 
