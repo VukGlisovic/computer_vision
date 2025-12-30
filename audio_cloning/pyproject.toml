@@ -1,0 +1,38 @@
+[project]
+name = "audio-cloning"
+version = "0.1.0"
+description = "Audio cloning."
+authors = [
+    {name = "Vuk Glisovic"}
+]
+requires-python = "==3.11.*"
+
+# PyPI dependencies
+dependencies = []
+
+[dependency-groups]
+tts = [
+    "TTS==0.22.0"
+]
+
+chatterbox = [
+    "TTS==0.22.0",
+    "chatterbox-tts==0.1.6"
+]
+
+whisper = [
+    "openai-whisper==20250625"
+]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+# conda dependencies
+[tool.pixi.dependencies]
+uv = "==0.7.11"
+
+[tool.pixi.environments]
+tts = {features = ["default", "tts"], solve-group = "tts"}
+chatterbox = {features = ["default", "chatterbox"], solve-group = "chatterbox"}
+whisper = {features = ["default", "whisper"], solve-group = "whisper"}
