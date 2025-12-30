@@ -16,7 +16,7 @@ tts = [
 ]
 
 chatterbox = [
-    "TTS==0.22.0",
+    "TTS==0.22.0",  # For some reason, this solved a problem with the chatterbox-tts package
     "chatterbox-tts==0.1.6"
 ]
 
