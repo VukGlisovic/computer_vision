@@ -16,12 +16,14 @@ from svtr.constants import EXPERIMENTS_DIR
 def main(architecture='tiny'):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Device: {device}")
-    # create train and test dataloaders
+
+    # Create train and test dataloaders
     dataset_train = ConcatenatedMNISTDataset(num_digits=5, train=True, device=device)
     dataset_test = ConcatenatedMNISTDataset(num_digits=5, train=False, device=device)
     dataloader_train = DataLoader(dataset=dataset_train, batch_size=32, shuffle=True)
     dataloader_test = DataLoader(dataset=dataset_test, batch_size=64, shuffle=False)
-    # create model and corresponding decoder
+
+    # Create model and corresponding decoder
     if architecture.lower() == 'crnn':
         print("Building CRNN model.")
         model = CRNN(img_shape=[1, 32, 160], vocab_size=dataset_train.vocab_size)
@@ -31,16 +33,19 @@ def main(architecture='tiny'):
     model = model.to(device)
     decoder = CTCDecoder(dataset_train.vocab)
     print_model_parameters(model)
-    # create optimizer and learning rate scheduler
+
+    # Create optimizer and learning rate scheduler
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     n_epochs = 8
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=(n_epochs // 3) + 1, gamma=0.1)
-    # create checkpoint directory
+
+    # Create checkpoint directory
     output_dir = os.path.join(EXPERIMENTS_DIR, f'model_{architecture}')
     checkpoints_dir = os.path.join(output_dir, 'checkpoints')
     checkpoint_path = os.path.join(checkpoints_dir, 'ckpt_ep{epoch:02d}.pth')
     os.makedirs(checkpoints_dir, exist_ok=True)
-    # execute main training function
+
+    # Execute main training function
     train(
         model,
         decoder,

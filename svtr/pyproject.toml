@@ -1,0 +1,30 @@
+[project]
+name = "svtr"
+version = "0.1.0"
+description = "Scene Text Recognition with a single Visual model"
+authors = [
+    {name = "Vuk Glisovic"}
+]
+requires-python = "==3.10.*"
+
+# PyPI dependencies
+dependencies = [
+    "flashlight-text==0.0.6",
+    "torch==2.2.1",
+    "torchaudio==2.2.1",
+    "torchvision==0.17.1",
+    "tqdm==4.66.2",
+]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+# Conda dependencies
+[tool.pixi.dependencies]
+ipykernel = ">=6.30.1,<7"
+matplotlib = "3.8.3.*"
+pandas = "2.2.1.*"
+
+[tool.pixi.tasks]
+train = { cmd = "python train_svtr.py", cwd = "scripts" }
