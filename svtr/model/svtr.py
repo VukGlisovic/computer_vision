@@ -72,7 +72,8 @@ class SVTR(nn.Module):
 
         self.patch_embedding = custom_blocks.PatchEmbedding(image_shape=self.img_shape, hdim1=self.config['embed_dim'][0] // 2, hdim2=self.config['embed_dim'][0])
         if use_pos_emb:
-            self.pos_embedding = custom_layers.PositionEmbedding(num_embeddings=self.patch_embedding.nr_patches, embedding_dim=self.patch_embedding.hdim2, in_hw=[self.patch_embedding.out_h, self.patch_embedding.out_w])
+            # self.pos_embedding = custom_layers.LearnablePositionEmbedding(embedding_dim=self.patch_embedding.hdim2, in_hw=[self.patch_embedding.out_h, self.patch_embedding.out_w])
+            self.pos_embedding = custom_layers.SinusoidalPositionEmbedding(embedding_dim=self.patch_embedding.hdim2)
 
         self.stage1 = custom_blocks.MixingBlocksMerging(
             embed_dim=self.config['embed_dim'][0],

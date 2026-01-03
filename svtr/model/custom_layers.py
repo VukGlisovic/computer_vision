@@ -33,21 +33,22 @@ class CBA(nn.Module):
         return x
 
 
-class PositionEmbedding(nn.Module):
+class LearnablePositionEmbedding(nn.Module):
 
-    def __init__(self, num_embeddings, embedding_dim, in_hw):
+    def __init__(self, embedding_dim, in_hw):
         super().__init__()
-        self.num_embeddings = num_embeddings
         self.embedding_dim = embedding_dim
         self.in_hw = in_hw
         self.h, self.w = in_hw
+        self.num_embeddings = self.h * self.w
 
-        self.emb_indices = torch.arange(0, num_embeddings, dtype=torch.int32)
+        self.emb_indices = torch.arange(0, self.num_embeddings, dtype=torch.int32)
         self.emb_indices = nn.Parameter(self.emb_indices, requires_grad=False)
-        self.pos_embedding = nn.Embedding(num_embeddings=num_embeddings, embedding_dim=embedding_dim)
+        self.pos_embedding = nn.Embedding(num_embeddings=self.num_embeddings, embedding_dim=embedding_dim)
         nn.init.uniform_(self.pos_embedding.weight, -0.1, 0.1)  # Small range for initialization
 
     def forward(self, x):
+        # Expected input shape: [bs, nr_patches, embedding_dim] (height and width should be flattened)
         if self.training:
             x = x + self.pos_embedding(self.emb_indices)
         else:
@@ -63,6 +64,43 @@ class PositionEmbedding(nn.Module):
             weight_interpolated = weight_interpolated.permute([0, 2, 3, 1]).reshape(self.h*w, self.embedding_dim)
             indices = torch.arange(0, self.h*w, dtype=torch.int32, device=weight_interpolated.device)
             x = x + nn.functional.embedding(indices, weight_interpolated)
+        return x
+
+
+class SinusoidalPositionEmbedding(nn.Module):
+    """Positional embedding based on sine and cosine waves.
+    
+    Uses fixed (non-learnable) sinusoidal encodings as described in
+    "Attention Is All You Need" (Vaswani et al., 2017).
+    """
+
+    def __init__(self, embedding_dim, max_positions=2000, base=10000):
+        super().__init__()
+        self.embedding_dim = embedding_dim
+        self.max_positions = max_positions
+        self.base = base
+
+        # Precompute the sinusoidal positional encodings for max_positions
+        pos_encoding = self._create_sinusoidal_encoding(max_positions, embedding_dim)
+        self.register_buffer('pos_encoding', pos_encoding)
+
+    def _create_sinusoidal_encoding(self, num_positions, dim):
+        """Generate sinusoidal positional encodings."""
+        position = torch.arange(num_positions, dtype=torch.float32).unsqueeze(1)  # shape (num_positions, 1)
+        div_term = torch.exp(
+            torch.arange(0, dim, 2, dtype=torch.float32) * (-np.log(self.base) / dim)
+        )  # shape (dim/2,)
+        angles = position * div_term  # shape (num_positions, dim/2)
+        encodings = torch.zeros(num_positions, dim)  # shape (num_positions, dim)
+        # Interleave sin and cos encodings
+        encodings[:, 0::2] = torch.sin(angles)
+        encodings[:, 1::2] = torch.cos(angles)
+        return encodings
+
+    def forward(self, x):
+        # Expected input shape: [bs, nr_patches, embedding_dim]
+        nr_patches = x.shape[1]
+        x = x + self.pos_encoding[:nr_patches]
         return x
 
 
