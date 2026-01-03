@@ -10,6 +10,7 @@ requires-python = "==3.10.*"
 # PyPI dependencies
 dependencies = [
     "flashlight-text==0.0.6",
+    "PyYAML==6.0.3",
     "torch==2.2.1",
     "torchaudio==2.2.1",
     "torchvision==0.17.1",
