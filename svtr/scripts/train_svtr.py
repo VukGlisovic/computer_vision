@@ -1,6 +1,7 @@
 import os
 import argparse
 
+import yaml
 import torch
 from torch.utils.data import DataLoader
 
@@ -13,7 +14,7 @@ from svtr.model.training import train
 from svtr.constants import EXPERIMENTS_DIR
 
 
-def main(architecture='tiny'):
+def main(config):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Device: {device}")
 
@@ -24,20 +25,29 @@ def main(architecture='tiny'):
     dataloader_test = DataLoader(dataset=dataset_test, batch_size=64, shuffle=False)
 
     # Create model and corresponding decoder
+    architecture = config['architecture']
     if architecture.lower() == 'crnn':
         print("Building CRNN model.")
-        model = CRNN(img_shape=[1, 32, 160], vocab_size=dataset_train.vocab_size)
+        model = CRNN(
+            img_shape=[1, 32, 160], 
+            vocab_size=dataset_train.vocab_size
+        )
     else:
         print(f"Building SVTR model variant: '{architecture}'.")
-        model = SVTR(architecture=architecture, img_shape=[1, 32, 160], vocab_size=dataset_train.vocab_size)
+        model = SVTR(
+            architecture=architecture, 
+            img_shape=[1, 32, 160], 
+            pos_emb_name=config['pos_emb_name'], 
+            vocab_size=dataset_train.vocab_size
+        )
     model = model.to(device)
     decoder = CTCDecoder(dataset_train.vocab)
     print_model_parameters(model)
 
     # Create optimizer and learning rate scheduler
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-    n_epochs = 8
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=(n_epochs // 3) + 1, gamma=0.1)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'])
+    n_epochs = config['n_epochs']
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=config['lr_schedule_step_size'], gamma=config['lr_schedule_gamma'])
 
     # Create checkpoint directory
     output_dir = os.path.join(EXPERIMENTS_DIR, f'model_{architecture}')
@@ -61,8 +71,8 @@ def main(architecture='tiny'):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-a', '--architecture', type=str, default='tiny',
-                        help="Choose the SVTR architecture size. Options are: 'tiny', 'small', 'base' and 'large'. Or "
-                             "train with the CRNN model by inputting 'crnn'.")
+    parser.add_argument('-c', '--config_path', type=str, default='config.yaml', help='Path to yaml file.')
     known_args, _ = parser.parse_known_args()
-    main(known_args.architecture)
+    with open(known_args.config_path, 'r') as f:
+        _config = yaml.safe_load(f)
+    main(_config)

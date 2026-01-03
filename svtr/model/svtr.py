@@ -54,7 +54,7 @@ class SVTR(nn.Module):
     def __init__(self,
                  architecture='tiny',
                  img_shape=[3, 32, 100],
-                 use_pos_emb=True,
+                 pos_emb_name='learnable',
                  mlp_ratio=4,
                  drop_rate=0.,
                  last_drop=0.1,
@@ -66,14 +66,20 @@ class SVTR(nn.Module):
         self.architecture = architecture
         self.config = eval(f'config_{architecture}')
         self.img_shape = img_shape
-        self.use_pos_emb = use_pos_emb
+        self.pos_emb_name = pos_emb_name
         self.out_channels = out_channels
         self.vocab_size = vocab_size
 
         self.patch_embedding = custom_blocks.PatchEmbedding(image_shape=self.img_shape, hdim1=self.config['embed_dim'][0] // 2, hdim2=self.config['embed_dim'][0])
-        if use_pos_emb:
-            # self.pos_embedding = custom_layers.LearnablePositionEmbedding(embedding_dim=self.patch_embedding.hdim2, in_hw=[self.patch_embedding.out_h, self.patch_embedding.out_w])
+        if pos_emb_name == 'learnable':
+            print("Using learnable positional embedding.")
+            self.pos_embedding = custom_layers.LearnablePositionEmbedding(embedding_dim=self.patch_embedding.hdim2, in_hw=[self.patch_embedding.out_h, self.patch_embedding.out_w])
+        elif pos_emb_name == 'sinusoidal':
+            print("Using sinusoidal positional embedding.")
             self.pos_embedding = custom_layers.SinusoidalPositionEmbedding(embedding_dim=self.patch_embedding.hdim2)
+        else:
+            print("No positional embedding used.")
+            self.pos_embedding = None
 
         self.stage1 = custom_blocks.MixingBlocksMerging(
             embed_dim=self.config['embed_dim'][0],
@@ -124,7 +130,7 @@ class SVTR(nn.Module):
         # embed image into patches with conv and batchnorm layers
         cc0 = self.patch_embedding(x)
         # add positional embedding
-        if self.use_pos_emb:
+        if self.pos_embedding is not None:
             cc0 = self.pos_embedding(cc0)
         # mixing and merging stage 1
         cc1 = self.stage1(cc0)
