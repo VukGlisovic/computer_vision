@@ -59,7 +59,6 @@ class SVTR(nn.Module):
                  drop_rate=0.,
                  last_drop=0.1,
                  attn_drop_rate=0.,
-                 out_channels=192,
                  vocab_size=11,
                  act=nn.GELU):
         super().__init__()
@@ -67,7 +66,6 @@ class SVTR(nn.Module):
         self.config = eval(f'config_{architecture}')
         self.img_shape = img_shape
         self.pos_emb_name = pos_emb_name
-        self.out_channels = out_channels
         self.vocab_size = vocab_size
 
         self.patch_embedding = custom_blocks.PatchEmbedding(image_shape=self.img_shape, hdim1=self.config['embed_dim'][0] // 2, hdim2=self.config['embed_dim'][0])
