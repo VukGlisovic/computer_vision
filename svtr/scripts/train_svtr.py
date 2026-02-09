@@ -19,8 +19,8 @@ def main(config):
     print(f"Device: {device}")
 
     # Create train and test dataloaders
-    dataset_train = ConcatenatedMNISTDataset(num_digits=5, train=True, device=device)
-    dataset_test = ConcatenatedMNISTDataset(num_digits=5, train=False, device=device)
+    dataset_train = ConcatenatedMNISTDataset(num_digits=[3, 7], train=True)
+    dataset_test = ConcatenatedMNISTDataset(num_digits=[3, 7], train=False)
     dataloader_train = DataLoader(dataset=dataset_train, batch_size=32, shuffle=True)
     dataloader_test = DataLoader(dataset=dataset_test, batch_size=64, shuffle=False)
 
