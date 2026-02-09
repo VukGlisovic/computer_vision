@@ -57,6 +57,7 @@ def main(config):
 
     # Execute main training function
     train(
+        device,
         model,
         decoder,
         optimizer,

@@ -33,11 +33,12 @@ def evaluate_metrics(model, dl, loss_fnc, normalized_edit_distance):
         normalized_edit_distance(pred, y)
 
 
-def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=None, ckpt_path=None, output_dir=None):
+def train(device, model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=None, ckpt_path=None, output_dir=None):
     """Trains a model on the training dataloader while also evaluating the model
     on the validation dataloader at the end of each epoch.
 
     Args:
+        device (str): CPU or CUDA device
         model (Model): pytorch model
         ctc_decoder (CTCDecoder):
         optimizer (Optimizer): pytorch optimizer
@@ -65,7 +66,10 @@ def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=N
         # set model in training mode
         model.train()
 
-        for x, y in (pbar := tqdm(dl_train)):
+        for x, y, input_lengths, target_lengths in (pbar := tqdm(dl_train)):
+            x = x.to(device)
+            y = y.to(device)
+
             # zero out gradients
             optimizer.zero_grad()
 
