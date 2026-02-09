@@ -25,19 +25,19 @@ def main(config):
     dataloader_test = DataLoader(dataset=dataset_test, batch_size=64, shuffle=False)
 
     # Create model and corresponding decoder
-    architecture = config['architecture']
-    if architecture.lower() == 'crnn':
+    model_size = config['model_size']
+    if model_size.lower() == 'crnn':
         print("Building CRNN model.")
         model = CRNN(
-            img_shape=[1, 32, 160], 
+            img_shape=[1, 32, 1024],
             vocab_size=dataset_train.vocab_size
         )
     else:
-        print(f"Building SVTR model variant: '{architecture}'.")
+        print(f"Building SVTR model variant: '{model_size}'.")
         model = SVTR(
-            architecture=architecture, 
-            img_shape=[1, 32, 160], 
-            pos_emb_name=config['pos_emb_name'], 
+            model_size=model_size,
+            image_shape=[1, 32, 1024],
+            positional_embedding=config['positional_embedding'],
             vocab_size=dataset_train.vocab_size
         )
     model = model.to(device)
@@ -50,7 +50,7 @@ def main(config):
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=config['lr_schedule_step_size'], gamma=config['lr_schedule_gamma'])
 
     # Create checkpoint directory
-    output_dir = os.path.join(EXPERIMENTS_DIR, f'model_{architecture}')
+    output_dir = os.path.join(EXPERIMENTS_DIR, f'model_{model_size}')
     checkpoints_dir = os.path.join(output_dir, 'checkpoints')
     checkpoint_path = os.path.join(checkpoints_dir, 'ckpt_ep{epoch:02d}.pth')
     os.makedirs(checkpoints_dir, exist_ok=True)

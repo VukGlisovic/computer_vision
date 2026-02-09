@@ -1,5 +1,5 @@
-architecture: tiny  # crnn or tiny, small, base, large, custom (for SVTR model)
-pos_emb_name: sinusoidal  # learnable or sinusoidal (or leave empty for no positional embedding)
+model_size: tiny  # crnn or tiny, small, base, large, custom (for SVTR model)
+positional_embedding: sinusoidal  # learnable or sinusoidal (or leave empty for no positional embedding)
 
 n_epochs: 8
 lr: 0.001
