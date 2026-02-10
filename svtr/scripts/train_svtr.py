@@ -25,23 +25,25 @@ def main(config):
     dataloader_test = DataLoader(dataset=dataset_test, batch_size=64, shuffle=False, collate_fn=ConcatenatedMNISTDataset.collate_fn)
 
     # Create model and corresponding decoder
-    model_size = config['model_size']
-    if model_size.lower() == 'crnn':
+    architecture = config['architecture'].lower()
+    if architecture == 'crnn':
         print("Building CRNN model.")
         model = CRNN(
-            img_shape=[1, 32, 1024],
+            image_shape=[1, 32, 1024],
             vocab_size=dataset_train.vocab_size
         )
-    else:
-        print(f"Building SVTR model variant: '{model_size}'.")
+    elif architecture == 'svtr':
+        print(f"Building SVTR model variant: {config['model_size']}.")
         model = SVTR(
-            model_size=model_size,
+            model_size=config['model_size'],
             image_shape=[1, 32, 1024],
             positional_embedding=config['positional_embedding'],
             vocab_size=dataset_train.vocab_size
         )
+    else:
+        raise ValueError(f"Unknown architecture: {architecture}")
     model = model.to(device)
-    decoder = CTCDecoder(dataset_train.vocab)
+    decoder = CTCDecoder(dataset_train.vocab, config['beam_size'])
     print_model_parameters(model)
 
     # Create optimizer and learning rate scheduler
@@ -50,7 +52,7 @@ def main(config):
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=config['lr_schedule_step_size'], gamma=config['lr_schedule_gamma'])
 
     # Create checkpoint directory
-    output_dir = os.path.join(EXPERIMENTS_DIR, f'model_{model_size}')
+    output_dir = os.path.join(EXPERIMENTS_DIR, f'model_{architecture}')
     checkpoints_dir = os.path.join(output_dir, 'checkpoints')
     checkpoint_path = os.path.join(checkpoints_dir, 'ckpt_ep{epoch:02d}.pth')
     os.makedirs(checkpoints_dir, exist_ok=True)
