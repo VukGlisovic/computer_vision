@@ -11,10 +11,11 @@ from svtr.model.ctc_decoder import CTCDecoder
 
 
 @torch.no_grad()
-def evaluate_metrics(model, dl, loss_fnc, normalized_edit_distance):
+def evaluate_metrics(device, model, dl, loss_fnc, normalized_edit_distance):
     """Evaluates the performance of the model on the provided dataloader.
 
     Args:
+        device (str):
         model (Model): pytorch model
         dl (Dataloader): pytorch dataloader
         loss_fnc (Callable):
@@ -26,11 +27,14 @@ def evaluate_metrics(model, dl, loss_fnc, normalized_edit_distance):
     # set the model to evaluation mode
     model.eval()
 
-    for x, y in tqdm(dl):
+    for x, y, input_lengths, target_lengths in tqdm(dl):
+        x = x.to(device)
+        y = y.to(device)
+        # Run inference
         pred = model(x)
-        # update state in loss/metric objects
-        loss_fnc(pred, y)
-        normalized_edit_distance(pred, y)
+        # Update state in loss/metric objects
+        loss_fnc(pred, y, input_lengths, target_lengths)
+        normalized_edit_distance(pred, y, input_lengths, target_lengths)
 
 
 def train(device, model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=None, ckpt_path=None, output_dir=None):
@@ -86,6 +90,7 @@ def train(device, model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, sch
             pbar.set_description(f"Ep {epoch + 1}/{n_epochs} "
                                  f"| Train loss {ctc_loss.compute():.4f} "
                                  f"| Train ned/acc {normalized_edit_distance.ned_result():.4f}/{normalized_edit_distance.acc_result()*100:.2f}")
+            break
 
         metrics['train_loss'].append(ctc_loss.compute())
         metrics['train_ned'].append(normalized_edit_distance.ned_result())
@@ -99,7 +104,7 @@ def train(device, model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, sch
             scheduler.step()
 
         # evaluate loss on the validation set
-        evaluate_metrics(model, dl_val, ctc_loss, normalized_edit_distance)
+        evaluate_metrics(device, model, dl_val, ctc_loss, normalized_edit_distance)
         metrics['val_loss'].append(ctc_loss.compute())
         metrics['val_ned'].append(normalized_edit_distance.ned_result())
         metrics['val_acc'].append(normalized_edit_distance.acc_result())
