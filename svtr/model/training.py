@@ -75,8 +75,8 @@ def train(device, model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, sch
 
             # forward pass through the model to calculate log_softmax output and loss
             logits = model(x)
-            loss = ctc_loss(logits, y)
-            normalized_edit_distance(logits, y)
+            loss = ctc_loss(logits, y, input_lengths, target_lengths)
+            normalized_edit_distance(logits, y, input_lengths, target_lengths)
 
             # backward pass and optimization step
             loss.backward()

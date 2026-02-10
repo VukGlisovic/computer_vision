@@ -15,23 +15,20 @@ class CTCLoss:
         self.avg_loss = -1
         self.n = 0
 
-    def __call__(self, y_pred, y_true, *args, **kwargs):
+    def __call__(self, y_pred, y_true, input_lengths, target_lengths, *args, **kwargs):
         """
         Args:
             y_pred (tensor):
             y_true (tensor):
-
+            input_lengths (tensor):
+            target_lengths (tensor):
+        
         Returns:
             tensor: a scalar representing the loss value.
         """
-        # y_pred shape: [bs, nr_patches, vocab_size] ([bs, time_steps, nr_classes])
-        bs, n_timesteps, n_classes = y_pred.shape
-        _, target_length = y_true.shape
         y_pred = y_pred.permute((1, 0, 2))  # CTC loss requires first dim to be timesteps dim
-        input_lengths = torch.full(size=(bs,), fill_value=n_timesteps, dtype=torch.long)
-        target_lengths = torch.full(size=(bs,), fill_value=target_length, dtype=torch.long)
         loss = self.ctc_loss(y_pred, y_true, input_lengths, target_lengths)
-        self.update(loss.item(), bs)
+        self.update(loss.item(), y_true.shape[0])
         return loss
 
     def update(self, loss, bs):
