@@ -20,10 +20,12 @@ class CTCDecoder:
         return result, batch_scores
 
     @staticmethod
-    def create_ctc_decoder(vocab, beam_size=50, blank_token='<BLK>'):
+    def create_ctc_decoder(vocab, beam_size=1, blank_token='<BLK>'):
         """
         Documentation:
         https://pytorch.org/audio/main/generated/torchaudio.models.decoder.ctc_decoder.html
+
+        Note that beam_size=1 is basically greedy decoding.
 
         Args:
             vocab (list[str]):
