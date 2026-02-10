@@ -1,5 +1,6 @@
-from typing import Tuple
+from typing import Tuple, List
 
+import numpy as np
 import torch
 import torchvision
 from torchvision import transforms
@@ -21,7 +22,7 @@ class ConcatenatedMNISTDataset(Dataset):
         shuffle=True
     )
 
-    for images, labels, input_lengths, label_lengths in train_loader:
+    for images, targets, input_lengths, target_lengths in train_loader:
         pass
     ```
     """
@@ -59,7 +60,7 @@ class ConcatenatedMNISTDataset(Dataset):
         np.random.seed(idx)
         num_digits = np.random.randint(self.num_digits[0], self.num_digits[1] + 1)
         indices = np.random.choice(len(self.mnist_dataset), size=num_digits)
-        # Load the images/labels and concatenate them
+        # Load the images/targets and concatenate them
         images = []
         targets = []
         for i in indices:
@@ -71,22 +72,22 @@ class ConcatenatedMNISTDataset(Dataset):
 
         img_w = concatenated_image.shape[2]
         input_length = int(np.ceil(img_w / 4))  # SVTR downsamples the width by a factor of 4
-        label_length = label.shape[0]
+        target_length = targets.shape[0]
 
-        return concatenated_image, targets, input_length, label_length
+        return concatenated_image, targets, input_length, target_length
 
     @staticmethod
     def collate_fn(batch: List[Tuple[torch.Tensor, torch.Tensor, int, int]]) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Pads images and labels to the same size within the batch. Returns label lengths for CTC.
+        """Pads images and targets to the same size within the batch. Returns target lengths for CTC.
 
         Args:
-            batch: List of (image [C, H, W], label [L], label_length).
+            batch: List of (image [C, H, W], target [L], target_length).
 
         Returns:
-            images: (B, C, H, W_max), labels: (B, L_max), input_lengths (B,) and label_lengths: (B,).
+            images: (B, C, H, W_max), targets: (B, L_max), input_lengths (B,) and target_lengths: (B,).
         """
         # Unpack the batch
-        images, labels, input_lengths, label_lengths = zip(*batch)
+        images, targets, input_lengths, target_lengths = zip(*batch)
 
         # Get batch size
         b = len(images)
@@ -94,17 +95,17 @@ class ConcatenatedMNISTDataset(Dataset):
         c = images[0].shape[0]
         max_h = max(img.shape[1] for img in images)  # Should be fixed height, but dynamically determining anyway
         max_w = max(img.shape[2] for img in images)
-        # Get the length of the longest label
-        max_l = max(lbl.shape[0] for lbl in labels)
+        # Get the length of the longest target
+        max_l = max(tgt.shape[0] for tgt in targets)
 
-        # Pad the images and labels so they can be stacked into a single tensor
+        # Pad the images and targets so they can be stacked into a single tensor
         images_padded = torch.full((b, c, max_h, max_w), 1.0, dtype=images[0].dtype)
-        labels_padded = torch.full((b, max_l), -1, dtype=labels[0].dtype)
+        targets_padded = torch.full((b, max_l), -1, dtype=targets[0].dtype)
         input_lengths = torch.tensor(input_lengths, dtype=torch.long)
-        label_lengths = torch.tensor(label_lengths, dtype=torch.long)
-        for i, (img, (lbl, _, _)) in enumerate(batch):
+        target_lengths = torch.tensor(target_lengths, dtype=torch.long)
+        for i, (img, tgt, _, _) in enumerate(batch):
             _, h, w = img.shape
             images_padded[i, :, :h, :w] = img
-            labels_padded[i, :lbl.shape[0]] = lbl
+            targets_padded[i, :tgt.shape[0]] = tgt
 
-        return images_padded, labels_padded, input_lengths, label_lengths
+        return images_padded, targets_padded, input_lengths, target_lengths
