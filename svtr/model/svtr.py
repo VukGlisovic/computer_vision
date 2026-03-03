@@ -74,20 +74,19 @@ class SVTR(nn.Module):
                  vocab_size=11):
         super().__init__()
         self.model_size = model_size
-        self.image_shape = image_shape
+        self.in_c, self.in_h, self.max_in_w = image_shape
         self.positional_embedding = positional_embedding
         self.vocab_size = vocab_size
 
         self.architecture_config: Dict[str, Any] = getattr(self, model_size.upper())
         ac = self.architecture_config  # Create acronym since we'll be using this config throughout the code below
 
-        self.patch_embedding = custom_blocks.PatchEmbedding(in_c=self.image_shape[0], in_h=self.image_shape[1], hdim1=ac['embed_dim'][0] // 2, hdim2=ac['embed_dim'][0])
+        self.patch_embedding = custom_blocks.PatchEmbedding(in_c=self.in_c, in_h=self.in_h, max_in_w=self.max_in_w, hdim1=ac['embed_dim'][0] // 2, hdim2=ac['embed_dim'][0])
 
         if positional_embedding == 'learnable':
-            raise NotImplementedError("Not properly implemented yet.")
-            self.pos_emb = custom_layers.LearnablePositionEmbedding(embedding_dim=self.patch_embedding.hdim2, in_hw=[self.patch_embedding.out_h, self.patch_embedding.out_w])
+            self.pos_emb = custom_layers.LearnablePositionEmbedding(in_h=self.patch_embedding.out_h, max_in_w=self.patch_embedding.max_out_w, embedding_dim=self.patch_embedding.hdim2)
         elif positional_embedding == 'sinusoidal':
-            self.pos_emb = custom_layers.SinusoidalPositionEmbedding(in_h=self.patch_embedding.out_h, embedding_dim=self.patch_embedding.hdim2)
+            self.pos_emb = custom_layers.SinusoidalPositionEmbedding(in_h=self.patch_embedding.out_h, max_in_w=self.patch_embedding.max_out_w, embedding_dim=self.patch_embedding.hdim2)
         else:
             self.pos_emb = None
 
