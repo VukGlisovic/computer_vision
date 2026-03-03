@@ -36,36 +36,26 @@ class CBA(nn.Module):
 
 
 class LearnablePositionEmbedding(nn.Module):
+    """
+    Learnable position embedding of the SVTR architecture. The full weight matrix is built for
+    in_h * max_in_w positions (maximum width). In forward, only the first nr_patches rows are
+    used so that variable-width inputs are supported.
+    """
 
-    def __init__(self, embedding_dim: int, in_hw: Tuple[int, int]):
+    def __init__(self, in_h: int, max_in_w: int, embedding_dim: int):
         super().__init__()
         self.embedding_dim = embedding_dim
-        self.in_hw = in_hw
-        self.h, self.w = in_hw
-        self.num_embeddings = self.h * self.w
+        self.in_h = in_h
+        self.max_in_w = max_in_w
+        self.num_embeddings = self.in_h * self.max_in_w
 
-        self.emb_indices = torch.arange(0, self.num_embeddings, dtype=torch.int32)
-        self.emb_indices = nn.Parameter(self.emb_indices, requires_grad=False)
         self.pos_embedding = nn.Embedding(num_embeddings=self.num_embeddings, embedding_dim=embedding_dim)
-        nn.init.uniform_(self.pos_embedding.weight, -0.1, 0.1)  # Small range for initialization
+        nn.init.trunc_normal_(self.pos_embedding.weight, std=0.02)  # Truncated normal as in ViT/BERT
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # Expected input shape: [bs, nr_patches, embedding_dim] (height and width should be flattened)
-        if self.training:
-            x = x + self.pos_embedding(self.emb_indices)
-        else:
-            # eval mode; the input image can be of different size
-            nr_patches = x.shape[1]
-            w = nr_patches // self.h
-            weight_interpolated = nn.functional.interpolate(
-                self.pos_embedding.weight.permute([1, 0]).reshape(1, self.embedding_dim, self.h, self.w),
-                size=[self.h, w],
-                mode='bicubic',
-                align_corners=True,
-            )
-            weight_interpolated = weight_interpolated.permute([0, 2, 3, 1]).reshape(self.h*w, self.embedding_dim)
-            indices = torch.arange(0, self.h*w, dtype=torch.int32, device=weight_interpolated.device)
-            x = x + nn.functional.embedding(indices, weight_interpolated)
+        # Expected input shape: [bs, nr_patches, embedding_dim] (height and width flattened)
+        nr_patches = x.shape[1]
+        x = x + self.pos_embedding.weight[:nr_patches]
         return x
 
 
@@ -89,16 +79,19 @@ class SinusoidalPositionEmbedding(nn.Module):
     incoming text recognition data.
     """
 
-    def __init__(self, in_h, embedding_dim: int, width_multiplier: int = 48, base: int = 10000):
+    def __init__(self, in_h: int, max_in_w: int, embedding_dim: int, base: int = 10000):
         super().__init__()
         self.in_h = in_h
+        self.max_in_w = max_in_w
         self.embedding_dim = embedding_dim
-        self.width_multiplier = width_multiplier
         self.base = base
 
+        # Precompute the scale for the positional encoding
+        # This is to make sure the sinusiodal encoding (ranging from -1 to 1) is not too large and will not overpower the features.
+        self.scale = embedding_dim ** 0.5
+
         # Precompute the sinusoidal positional encodings for max_positions
-        self.max_horizontal_positions = width_multiplier * in_h
-        self.max_total_positions = self.max_horizontal_positions * in_h
+        self.max_total_positions = self.max_in_w * in_h
         pos_encoding = self._create_sinusoidal_encoding(self.max_total_positions)
         self.register_buffer('pos_encoding', pos_encoding)
 
@@ -120,7 +113,7 @@ class SinusoidalPositionEmbedding(nn.Module):
         Expected input shape: [bs, nr_patches, embedding_dim]
         """
         nr_patches = x.shape[1]
-        x = x + self.pos_encoding[:nr_patches]
+        x = x * self.scale + self.pos_encoding[:nr_patches]
         return x
 
 
@@ -129,20 +122,21 @@ class WindowedMultiheadAttention(nn.Module):
     """
 
     def __init__(self,
-                 embed_dim: int = 128,
-                 num_heads: int = 8,
+                 embed_dim: int,
+                 num_heads: int,
                  mixing_type: str = 'global',
                  in_h: int = None,
                  window_shape: Tuple[int, int] = (7, 11),
                  attn_dropout: float = 0.,
                  linear_dropout: float = 0.):
         super().__init__()
-        # some checks to make sure calculations are feasible
+        # Some checks to make sure calculations are feasible
         assert embed_dim % num_heads == 0, "num_heads must be a divisor of embed_dim."
         assert mixing_type in ['local', 'global'], f"Unknown mixer '{mixing_type}'."
         assert in_h is not None, "You must provide an input height."
         assert (window_shape[0] % 2 == 1) and (window_shape[1] % 2 == 1), "Attention mask kernel must contain uneven numbers"
-        # save attributes
+
+        # Save attributes
         self.embed_dim = embed_dim
         self.num_heads = num_heads
         self.mixing_type = mixing_type
@@ -150,9 +144,10 @@ class WindowedMultiheadAttention(nn.Module):
         self.window_shape = window_shape  # used only for mixing_type='local'
         self.attn_dropout = attn_dropout
         self.linear_dropout = linear_dropout
-        # create new attributes based on input configuration
-        self.scale = embed_dim ** -0.5
+
+        # Create new attributes based on input configuration
         self.dim_one_head = embed_dim // num_heads
+        self.scale = self.dim_one_head ** -0.5
         self.qkv = nn.Linear(embed_dim, embed_dim * 3)  # create one big dense layer for query, key and value matrices for efficient computing
         self.attn_dropout = nn.Dropout(attn_dropout)
         self.proj = nn.Linear(embed_dim, embed_dim)
@@ -175,27 +170,28 @@ class WindowedMultiheadAttention(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Note that the expected input shape should be flattened in the spatial resolution. I.e. x.shape = [bs, nr_patches, embed_dim]
-        bs = x.shape[0]  # batch size
-        # get the Q, K and V matrices
+        bs, nr_patches, _ = x.shape
+        # Get the Q, K and V matrices
         QKV = self.qkv(x)
-        # reshape from [bs, nr_patches, 3*embed_dim] to [bs, nr_patches, QKV, nr_heads, dim_one_head]. Note embed_dim=nr_heads*dim_one_head and QKV=3
-        QKV = QKV.reshape((bs, -1, 3, self.num_heads, self.dim_one_head))
-        # after permutation: [QKV, bs, nr_heads, nr_patches, dim_one_head]
+        # Reshape from [bs, nr_patches, 3*embed_dim] to [bs, nr_patches, QKV, nr_heads, dim_one_head]. Note embed_dim=nr_heads*dim_one_head and QKV=3
+        QKV = QKV.reshape((bs, nr_patches, 3, self.num_heads, self.dim_one_head))
+        # After permutation: [QKV, bs, nr_heads, nr_patches, dim_one_head]
         QKV = QKV.permute((2, 0, 3, 1, 4))
         q, k, v = QKV[0] * self.scale, QKV[1], QKV[2]
-        # calculate attentions
-        attn = (q.matmul(k.permute((0, 1, 3, 2))))
+        # Calculate attentions
+        attn = q.matmul(k.permute((0, 1, 3, 2)))  # [bs, num_heads, nr_patches, nr_patches]
         if self.mixing_type == 'local':
             # When looking at a local region around a location, we want to remove all attention outside of that region
             # We also need to handle flexible input size, so we need to recalculate the attention mask
-            nr_patches = x.shape[1]
             w = nr_patches // self.in_h
             mask = self.create_local_attention_mask(self.in_h, w)
             attn += mask.to(attn.device)
         attn = torch.softmax(attn, dim=-1)
         attn = self.attn_dropout(attn)
-        # multiply the attentions with V (the value matrix)
-        x = (attn.matmul(v)).permute((0, 2, 1, 3)).reshape((bs, -1, self.embed_dim))
+        # Multiply the attentions with V (the value matrix)
+        # Shape attn.matmul(v): [bs, num_heads, nr_patches, dim_one_head]
+        # After permuting and reshaping, we basically concatenate back again the split up (across the heads) embedding vectors of each patch
+        x = attn.matmul(v).permute((0, 2, 1, 3)).reshape((bs, nr_patches, self.embed_dim))
         x = self.proj(x)
         x = self.linear_dropout(x)
         return x
