@@ -117,7 +117,9 @@ def train(device, model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, sch
         if ckpt_path:
             save_model(model, ckpt_path.format(epoch=epoch))
 
-    df_metrics = pd.DataFrame(metrics)
-    if output_dir:
-        df_metrics.to_csv(os.path.join(output_dir, 'metrics.csv'), index=False)
+        # Update metrics dataframe
+        df_metrics = pd.DataFrame(metrics)
+        if output_dir:
+            df_metrics.to_csv(os.path.join(output_dir, 'metrics.csv'), index=False)
+
     return df_metrics
