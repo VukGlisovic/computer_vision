@@ -1,14 +1,17 @@
+from typing import List, Tuple
+
+import torch
 from torchaudio.models.decoder import ctc_decoder
 
 
 class CTCDecoder:
 
-    def __init__(self, vocab, beam_size=1, blank_token='<BLK>'):
+    def __init__(self, vocab: List[str], beam_size: int = 1, blank_token: str = '<BLK>'):
         self.decoder = self.create_ctc_decoder(vocab, beam_size, blank_token)
 
-    def __call__(self, logits, lengths, to_text=True, *args, **kwargs):
+    def __call__(self, log_softmax: torch.Tensor, lengths: torch.Tensor, to_text: bool = True, *args, **kwargs) -> Tuple[List[List[int]], List[float]]:
         # Get decoding hypotheses
-        batch_hypotheses = self.decoder(logits.to('cpu'), lengths=lengths.to('cpu'))  # List[List[CTCHypothesis]]
+        batch_hypotheses = self.decoder(log_softmax.to('cpu'), lengths=lengths.to('cpu'))  # List[List[CTCHypothesis]]
         # Transcript for a lexicon free decoder, splitting by blank token
         batch_indices = [h[0].tokens for h in batch_hypotheses]
         batch_scores = [h[0].score for h in batch_hypotheses]
@@ -20,17 +23,12 @@ class CTCDecoder:
         return result, batch_scores
 
     @staticmethod
-    def create_ctc_decoder(vocab, beam_size=1, blank_token='<BLK>'):
+    def create_ctc_decoder(vocab: List[str], beam_size: int = 1, blank_token: str = '<BLK>'):
         """
         Documentation:
         https://pytorch.org/audio/main/generated/torchaudio.models.decoder.ctc_decoder.html
 
         Note that beam_size=1 is basically greedy decoding.
-
-        Args:
-            vocab (list[str]):
-            beam_size (int):
-            blank_token (str):
 
         Returns:
             ctc_decoder
