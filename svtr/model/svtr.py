@@ -9,6 +9,10 @@ from svtr.model import custom_layers
 
 class SVTR(nn.Module):
     """
+    SVTR implementation as described in the paper
+    "SVTR: Scene Text Recognition with a Single Visual Model"
+    Paper: https://arxiv.org/pdf/2205.00159
+
     Args:
         model_size: Select the model size from the following options: tiny, small, base, large
         image_shape:
@@ -26,40 +30,35 @@ class SVTR(nn.Module):
         'embed_dim': [64, 128, 256],
         'out_dim': 192,
         'stages': [['local'] * 3, ['local'] * 3 + ['global'] * 3, ['global'] * 3],
-        'num_heads': [2, 4, 8],
-        'window_shape': [[7, 11], [7, 11], [7, 11]]
+        'num_heads': [2, 4, 8]
     }
 
     SMALL = {
         'embed_dim': [96, 192, 256],
         'out_dim': 192,
         'stages': [['local'] * 3, ['local'] * 5 + ['global'], ['global'] * 6],
-        'num_heads': [3, 6, 8],
-        'window_shape': [[7, 11], [7, 11], [7, 11]]
+        'num_heads': [3, 6, 8]
     }
 
     BASE = {
         'embed_dim': [128, 256, 384],
         'out_dim': 256,
         'stages': [['local'] * 3, ['local'] * 5 + ['global'], ['global'] * 9],
-        'num_heads': [4, 8, 12],
-        'window_shape': [[7, 11], [7, 11], [7, 11]]
+        'num_heads': [4, 8, 12]
     }
 
     LARGE = {
         'embed_dim': [192, 256, 512],
         'out_dim': 384,
         'stages': [['local'] * 3, ['local'] * 7 + ['global'] * 2, ['global'] * 9],
-        'num_heads': [6, 8, 16],
-        'window_shape': [[7, 11], [7, 11], [7, 11]]
+        'num_heads': [6, 8, 16]
     }
 
     CUSTOM = {
         'embed_dim': [64, 128, 256],
         'out_dim': 192,
         'stages': [['global']*2, ['global']*2, ['global']*2],
-        'num_heads': [2, 4, 8],
-        'window_shape': [[7, 11], [7, 11], [7, 11]]
+        'num_heads': [2, 4, 8]
     }
 
     def __init__(self,
@@ -82,6 +81,7 @@ class SVTR(nn.Module):
         ac = self.architecture_config  # Create acronym since we'll be using this config throughout the code below
 
         self.patch_embedding = custom_blocks.PatchEmbedding(in_c=self.in_c, in_h=self.in_h, max_in_w=self.max_in_w, hdim1=ac['embed_dim'][0] // 2, hdim2=ac['embed_dim'][0])
+        self.window_shape = self._get_window_shape(self.patch_embedding.out_h)
 
         if positional_embedding == 'learnable':
             self.pos_emb = custom_layers.LearnablePositionEmbedding(in_h=self.patch_embedding.out_h, max_in_w=self.patch_embedding.max_out_w, embedding_dim=self.patch_embedding.hdim2)
@@ -95,7 +95,7 @@ class SVTR(nn.Module):
             out_dim=ac['embed_dim'][1],
             num_heads=ac['num_heads'][0],
             mixing_type_list=ac['stages'][0],
-            window_shape=ac['window_shape'][0],
+            window_shape=self.window_shape,
             in_h=self.patch_embedding.out_h,
             mlp_hidden_dim_factor=mlp_hidden_dim_factor,
             attn_dropout=attn_dropout,
@@ -108,7 +108,7 @@ class SVTR(nn.Module):
             out_dim=ac['embed_dim'][2],
             num_heads=ac['num_heads'][1],
             mixing_type_list=ac['stages'][1],
-            window_shape=ac['window_shape'][1],
+            window_shape=self.window_shape,
             in_h=self.stage1.out_h,
             mlp_hidden_dim_factor=mlp_hidden_dim_factor,
             attn_dropout=attn_dropout,
@@ -121,7 +121,7 @@ class SVTR(nn.Module):
             out_dim=ac['out_dim'],
             num_heads=ac['num_heads'][2],
             mixing_type_list=ac['stages'][2],
-            window_shape=ac['window_shape'][2],
+            window_shape=self.window_shape,
             in_h=self.stage2.out_h,
             mlp_hidden_dim_factor=mlp_hidden_dim_factor,
             attn_dropout=attn_dropout,
@@ -134,6 +134,29 @@ class SVTR(nn.Module):
             in_features=ac['out_dim'],
             out_features=vocab_size
         )
+
+    @staticmethod
+    def _get_window_shape(in_h: int) -> Tuple[int, int]:
+        """
+        Get the window shape for the local attention mask.
+
+        In the original SVTR paper, the window shape is [7, 11] (which will follow from in_h=8).
+        However, we want to make sure that bigger input heights will result in bigger window shapes.
+        The formula in this method results in the following window shapes:
+        img_height=32 -> in_h = 8 -> window_shape = [7, 11]
+        img_height=48 -> in_h = 12 -> window_shape = [11, 17]
+        img_height=64 -> in_h = 16 -> window_shape = [15, 23]
+        """
+        # Determine the window shape for the local attention mask
+        vertical_size = in_h
+        horizontal_size = round(1.5 * in_h)
+        # Make sure the window shape is odd as that is required for the windowed attention layer
+        if vertical_size % 2 == 0:
+            vertical_size -= 1
+        if horizontal_size % 2 == 0:
+            horizontal_size -= 1
+        window_shape = [vertical_size, horizontal_size]
+        return window_shape
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # embed image into patches with conv and batchnorm layers
