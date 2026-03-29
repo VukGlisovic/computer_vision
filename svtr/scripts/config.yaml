@@ -1,0 +1,9 @@
+architecture: svtr  # Options: svtr, crnn
+model_size: tiny  # tiny, small, base, large, custom (for SVTR model)
+positional_embedding: sinusoidal  # learnable or sinusoidal (or leave empty for no positional embedding)
+beam_size: 1  # Beam size for CTC decoder. beam_size=1 is equivalent to greedy decoding.
+
+n_epochs: 8
+lr: 0.001
+lr_schedule_step_size: 3  # Every lr_schedule_step_size epochs, the learning rate is multiplied by lr_schedule_gamma
+lr_schedule_gamma: 0.1

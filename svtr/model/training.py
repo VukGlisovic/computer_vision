@@ -11,10 +11,11 @@ from svtr.model.ctc_decoder import CTCDecoder
 
 
 @torch.no_grad()
-def evaluate_metrics(model, dl, loss_fnc, normalized_edit_distance):
+def evaluate_metrics(device, model, dl, loss_fnc, normalized_edit_distance):
     """Evaluates the performance of the model on the provided dataloader.
 
     Args:
+        device (str):
         model (Model): pytorch model
         dl (Dataloader): pytorch dataloader
         loss_fnc (Callable):
@@ -26,18 +27,22 @@ def evaluate_metrics(model, dl, loss_fnc, normalized_edit_distance):
     # set the model to evaluation mode
     model.eval()
 
-    for x, y in tqdm(dl):
+    for x, y, input_lengths, target_lengths in tqdm(dl):
+        x = x.to(device)
+        y = y.to(device)
+        # Run inference
         pred = model(x)
-        # update state in loss/metric objects
-        loss_fnc(pred, y)
-        normalized_edit_distance(pred, y)
+        # Update state in loss/metric objects
+        loss_fnc(pred, y, input_lengths, target_lengths)
+        normalized_edit_distance(pred, y, input_lengths, target_lengths)
 
 
-def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=None, ckpt_path=None, output_dir=None):
+def train(device, model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=None, ckpt_path=None, output_dir=None):
     """Trains a model on the training dataloader while also evaluating the model
     on the validation dataloader at the end of each epoch.
 
     Args:
+        device (str): CPU or CUDA device
         model (Model): pytorch model
         ctc_decoder (CTCDecoder):
         optimizer (Optimizer): pytorch optimizer
@@ -65,14 +70,17 @@ def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=N
         # set model in training mode
         model.train()
 
-        for x, y in (pbar := tqdm(dl_train)):
+        for x, y, input_lengths, target_lengths in (pbar := tqdm(dl_train)):
+            x = x.to(device)
+            y = y.to(device)
+
             # zero out gradients
             optimizer.zero_grad()
 
             # forward pass through the model to calculate log_softmax output and loss
             logits = model(x)
-            loss = ctc_loss(logits, y)
-            normalized_edit_distance(logits, y)
+            loss = ctc_loss(logits, y, input_lengths, target_lengths)
+            normalized_edit_distance(logits, y, input_lengths, target_lengths)
 
             # backward pass and optimization step
             loss.backward()
@@ -95,7 +103,7 @@ def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=N
             scheduler.step()
 
         # evaluate loss on the validation set
-        evaluate_metrics(model, dl_val, ctc_loss, normalized_edit_distance)
+        evaluate_metrics(device, model, dl_val, ctc_loss, normalized_edit_distance)
         metrics['val_loss'].append(ctc_loss.compute())
         metrics['val_ned'].append(normalized_edit_distance.ned_result())
         metrics['val_acc'].append(normalized_edit_distance.acc_result())
@@ -109,7 +117,9 @@ def train(model, ctc_decoder, optimizer, dl_train, dl_val, n_epochs, scheduler=N
         if ckpt_path:
             save_model(model, ckpt_path.format(epoch=epoch))
 
-    df_metrics = pd.DataFrame(metrics)
-    if output_dir:
-        df_metrics.to_csv(os.path.join(output_dir, 'metrics.csv'), index=False)
+        # Update metrics dataframe
+        df_metrics = pd.DataFrame(metrics)
+        if output_dir:
+            df_metrics.to_csv(os.path.join(output_dir, 'metrics.csv'), index=False)
+
     return df_metrics

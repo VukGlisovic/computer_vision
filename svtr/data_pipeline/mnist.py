@@ -1,3 +1,6 @@
+from typing import Tuple, List
+
+import numpy as np
 import torch
 import torchvision
 from torchvision import transforms
@@ -12,14 +15,14 @@ class ConcatenatedMNISTDataset(Dataset):
     ```
     from torch.utils.data import DataLoader
 
-    train_dataset = ConcatenatedMNISTDataset(num_digits=5, train=True)
+    train_dataset = ConcatenatedMNISTDataset(num_digits=(4, 6), train=True)
     train_loader = DataLoader(
         dataset=train_dataset,
         batch_size=32,
         shuffle=True
     )
 
-    for images, labels in train_loader:
+    for images, targets, input_lengths, target_lengths in train_loader:
         pass
     ```
     """
@@ -27,41 +30,82 @@ class ConcatenatedMNISTDataset(Dataset):
     vocab_size = len(vocab)
     indices = list(range(vocab_size))
 
-    def __init__(self, num_digits, train=True, root=DATA_DIR, device='cpu'):
+    def __init__(self, num_digits: Tuple[int, int], train: bool = True, root: str = DATA_DIR):
         self.num_digits = num_digits
         self.train = train
         self.root = root
-        self.device = device
-        # create MNIST transformation sequence (images will have dynamic range [0, 1])
+
+        # Create MNIST transformation sequence (images will have dynamic range [0, 1])
         mnist_transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Resize(size=[32, 32])
         ])
-        # load MNIST data
+        # Load MNIST data
         self.mnist_dataset = torchvision.datasets.MNIST(
             root=root, train=train, download=True, transform=mnist_transform
         )
-        # character to index mapping
+        # Character to index mapping
         self.char_to_idx = dict(zip(self.vocab, self.indices))
         self.idx_to_char = dict(zip(self.indices, self.vocab))
 
-    def __len__(self):
-        return len(self.mnist_dataset) // self.num_digits
+    def __len__(self) -> int:
+        return int(len(self.mnist_dataset) / (sum(self.num_digits) / 2))
 
-    def __getitem__(self, index):
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, int, int]:
+        """Generates concatenated mnist samples.
+        Output shape of image: [1, H, W] where W is variable because the number of samples
+        that will be concatenated is random.
         """
-        Output shape of image: [C, H, W]
-        Since the targets are all digits and already nicely aligned with their indices,
-        we don't have to apply a character to index mapping except for digit 0 since we
-        reserve 0 for the blank index.
-        """
+        # Determine the number of digits to concatenate
+        np.random.seed(idx)
+        num_digits = np.random.randint(self.num_digits[0], self.num_digits[1] + 1)
+        indices = np.random.choice(len(self.mnist_dataset), size=num_digits)
+        # Load the images/targets and concatenate them
         images = []
         targets = []
-        start = index * self.num_digits
-        for i in range(start, start+self.num_digits):
-            image, target = self.mnist_dataset[i]
+        for i in indices:
+            image, char = self.mnist_dataset[i]
             images.append(image)
-            targets.append(self.char_to_idx[str(target)])
+            targets.append(self.char_to_idx[str(char)])
         concatenated_image = torch.cat(images, dim=2)  # Concatenate along width dimension
         targets = torch.tensor(targets)
-        return concatenated_image.to(self.device), targets.to(self.device)
+
+        img_w = concatenated_image.shape[2]
+        input_length = int(np.ceil(img_w / 4))  # SVTR downsamples the width by a factor of 4
+        target_length = targets.shape[0]
+
+        return concatenated_image, targets, input_length, target_length
+
+    @staticmethod
+    def collate_fn(batch: List[Tuple[torch.Tensor, torch.Tensor, int, int]]) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Pads images and targets to the same size within the batch. Returns target lengths for CTC.
+
+        Args:
+            batch: List of (image [C, H, W], target [L], target_length).
+
+        Returns:
+            images: (B, C, H, W_max), targets: (B, L_max), input_lengths (B,) and target_lengths: (B,).
+        """
+        # Unpack the batch
+        images, targets, input_lengths, target_lengths = zip(*batch)
+
+        # Get batch size
+        b = len(images)
+        # Get image batch dimensions
+        c = images[0].shape[0]
+        max_h = max(img.shape[1] for img in images)  # Should be fixed height, but dynamically determining anyway
+        max_w = max(img.shape[2] for img in images)
+        # Get the length of the longest target
+        max_l = max(tgt.shape[0] for tgt in targets)
+
+        # Pad the images and targets so they can be stacked into a single tensor
+        images_padded = torch.full((b, c, max_h, max_w), 1.0, dtype=images[0].dtype)
+        targets_padded = torch.full((b, max_l), -1, dtype=targets[0].dtype)
+        input_lengths = torch.tensor(input_lengths, dtype=torch.long)
+        target_lengths = torch.tensor(target_lengths, dtype=torch.long)
+        for i, (img, tgt, _, _) in enumerate(batch):
+            _, h, w = img.shape
+            images_padded[i, :, :h, :w] = img
+            targets_padded[i, :tgt.shape[0]] = tgt
+
+        return images_padded, targets_padded, input_lengths, target_lengths

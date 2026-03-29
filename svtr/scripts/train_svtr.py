@@ -1,6 +1,7 @@
 import os
 import argparse
 
+import yaml
 import torch
 from torch.utils.data import DataLoader
 
@@ -13,35 +14,52 @@ from svtr.model.training import train
 from svtr.constants import EXPERIMENTS_DIR
 
 
-def main(architecture='tiny'):
+def main(config):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Device: {device}")
-    # create train and test dataloaders
-    dataset_train = ConcatenatedMNISTDataset(num_digits=5, train=True, device=device)
-    dataset_test = ConcatenatedMNISTDataset(num_digits=5, train=False, device=device)
-    dataloader_train = DataLoader(dataset=dataset_train, batch_size=32, shuffle=True)
-    dataloader_test = DataLoader(dataset=dataset_test, batch_size=64, shuffle=False)
-    # create model and corresponding decoder
-    if architecture.lower() == 'crnn':
+
+    # Create train and test dataloaders
+    dataset_train = ConcatenatedMNISTDataset(num_digits=(3, 7), train=True)
+    dataset_test = ConcatenatedMNISTDataset(num_digits=(3, 7), train=False)
+    dataloader_train = DataLoader(dataset=dataset_train, batch_size=32, shuffle=True, collate_fn=ConcatenatedMNISTDataset.collate_fn)
+    dataloader_test = DataLoader(dataset=dataset_test, batch_size=64, shuffle=False, collate_fn=ConcatenatedMNISTDataset.collate_fn)
+
+    # Create model and corresponding decoder
+    architecture = config['architecture'].lower()
+    if architecture == 'crnn':
         print("Building CRNN model.")
-        model = CRNN(img_shape=[1, 32, 160], vocab_size=dataset_train.vocab_size)
+        model = CRNN(
+            image_shape=[1, 32, 1024],
+            vocab_size=dataset_train.vocab_size
+        )
+    elif architecture == 'svtr':
+        print(f"Building SVTR model variant: {config['model_size']}.")
+        model = SVTR(
+            model_size=config['model_size'],
+            image_shape=[1, 32, 1024],
+            positional_embedding=config['positional_embedding'],
+            vocab_size=dataset_train.vocab_size
+        )
     else:
-        print(f"Building SVTR model variant: '{architecture}'.")
-        model = SVTR(architecture=architecture, img_shape=[1, 32, 160], vocab_size=dataset_train.vocab_size)
+        raise ValueError(f"Unknown architecture: {architecture}")
     model = model.to(device)
-    decoder = CTCDecoder(dataset_train.vocab)
+    decoder = CTCDecoder(dataset_train.vocab, config['beam_size'])
     print_model_parameters(model)
-    # create optimizer and learning rate scheduler
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-    n_epochs = 8
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=(n_epochs // 3) + 1, gamma=0.1)
-    # create checkpoint directory
+
+    # Create optimizer and learning rate scheduler
+    optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'])
+    n_epochs = config['n_epochs']
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=config['lr_schedule_step_size'], gamma=config['lr_schedule_gamma'])
+
+    # Create checkpoint directory
     output_dir = os.path.join(EXPERIMENTS_DIR, f'model_{architecture}')
     checkpoints_dir = os.path.join(output_dir, 'checkpoints')
     checkpoint_path = os.path.join(checkpoints_dir, 'ckpt_ep{epoch:02d}.pth')
     os.makedirs(checkpoints_dir, exist_ok=True)
-    # execute main training function
+
+    # Execute main training function
     train(
+        device,
         model,
         decoder,
         optimizer,
@@ -56,8 +74,8 @@ def main(architecture='tiny'):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-a', '--architecture', type=str, default='tiny',
-                        help="Choose the SVTR architecture size. Options are: 'tiny', 'small', 'base' and 'large'. Or "
-                             "train with the CRNN model by inputting 'crnn'.")
+    parser.add_argument('-c', '--config_path', type=str, default='config.yaml', help='Path to yaml file.')
     known_args, _ = parser.parse_known_args()
-    main(known_args.architecture)
+    with open(known_args.config_path, 'r') as f:
+        _config = yaml.safe_load(f)
+    main(_config)
