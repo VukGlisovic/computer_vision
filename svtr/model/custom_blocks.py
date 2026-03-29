@@ -1,5 +1,6 @@
 from typing import Callable, Tuple, List
 
+import numpy as np
 import torch
 from torch import nn
 
@@ -7,16 +8,26 @@ from svtr.model.custom_layers import CBA, WindowedMultiheadAttention
 
 
 class PatchEmbedding(nn.Module):
+    """
+    The first block of the SVTR architecture. It embeds the image into a sequence of patches.
+    """
 
-    def __init__(self, in_c: int, in_h: int, hdim1: int = 256, hdim2: int = 512):
+    def __init__(self,
+                 in_c: int,
+                 in_h: int,
+                 max_in_w: int,
+                 hdim1: int = 256,
+                 hdim2: int = 512):
         super().__init__()
         self.in_c = in_c
         self.in_h = in_h  # Height is deterministic, but the width is variable, so we don't store the width
+        self.max_in_w = max_in_w
         self.hdim1 = hdim1
         self.hdim2 = hdim2
 
         self.out_c: int = self.hdim2
         self.out_h: int = self.in_h // 4
+        self.max_out_w: int = int(np.ceil(self.max_in_w / 4))
 
         self.cba1 = CBA(
             in_channels=self.in_c,
@@ -44,6 +55,9 @@ class PatchEmbedding(nn.Module):
 
 
 class MLP(nn.Module):
+    """
+    Simple two-layer MLP block.
+    """
 
     def __init__(self, in_dim: int, hidden_dim_factor: int = 2, act: Callable = nn.GELU, dropout: float = 0.):
         super().__init__()
@@ -68,6 +82,9 @@ class MLP(nn.Module):
 
 
 class MixingBlock(nn.Module):
+    """
+    Mixing block of the SVTR architecture. It consists of a multi-head attention layer and a MLP layer.
+    """
 
     def __init__(self,
                  embed_dim: int,
@@ -102,6 +119,9 @@ class MixingBlock(nn.Module):
 
 
 class SequentialMixingBlocks(nn.Module):
+    """
+    Sequential mixing blocks of the SVTR architecture. It consists of a list of mixing blocks.
+    """
 
     def __init__(self,
                  embed_dim: int,
@@ -143,6 +163,10 @@ class SequentialMixingBlocks(nn.Module):
 
 
 class MixingBlocksMerging(SequentialMixingBlocks):
+    """
+    Mixing blocks merging of the SVTR architecture. It consists of a list of mixing blocks
+    followed by a merging convolution to subsample in the height dimension.
+    """
 
     def __init__(self,
                  embed_dim: int,
@@ -181,6 +205,10 @@ class MixingBlocksMerging(SequentialMixingBlocks):
 
 
 class MixingBlocksCombining(SequentialMixingBlocks):
+    """
+    Mixing blocks combining of the SVTR architecture. It consists of a list of mixing blocks
+    followed by a dense layer and a dropout layer.
+    """
 
     def __init__(self,
                  embed_dim: int,

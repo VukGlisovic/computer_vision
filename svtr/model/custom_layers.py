@@ -130,7 +130,7 @@ class WindowedMultiheadAttention(nn.Module):
                  attn_dropout: float = 0.,
                  linear_dropout: float = 0.):
         super().__init__()
-        # Some checks to make sure calculations are feasible
+        # Some checks to make sure calculations are possible
         assert embed_dim % num_heads == 0, "num_heads must be a divisor of embed_dim."
         assert mixing_type in ['local', 'global'], f"Unknown mixer '{mixing_type}'."
         assert in_h is not None, "You must provide an input height."
