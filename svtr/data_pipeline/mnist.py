@@ -15,7 +15,7 @@ class ConcatenatedMNISTDataset(Dataset):
     ```
     from torch.utils.data import DataLoader
 
-    train_dataset = ConcatenatedMNISTDataset(num_digits=5, train=True)
+    train_dataset = ConcatenatedMNISTDataset(num_digits=(4, 6), train=True)
     train_loader = DataLoader(
         dataset=train_dataset,
         batch_size=32,
