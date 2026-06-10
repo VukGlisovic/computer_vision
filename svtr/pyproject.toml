@@ -11,7 +11,7 @@ requires-python = "==3.10.*"
 dependencies = [
     "flashlight-text==0.0.6",
     "PyYAML==6.0.3",
-    "torch==2.2.1",
+    "torch==2.12.0",
     "torchaudio==2.2.1",
     "torchvision==0.17.1",
     "tqdm==4.66.3",
