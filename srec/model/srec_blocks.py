@@ -4,7 +4,7 @@ from typing import List, Tuple
 import torch
 from torch import nn
 
-from srec.model.srec_probability import non_shared_get_Kp
+from srec.model.srec_loss import non_shared_get_Kp
 
 
 def conv(in_ch: int,
