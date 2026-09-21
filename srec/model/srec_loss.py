@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -5,6 +7,11 @@ from torch.nn import functional as F
 # Number of distribution parameters predicted per channel. For RGB scale it's 4 parameters: 
 # (mu, sigma, pi, lambda). For grayscale scale it would be 3 parameters: (mu, sigma, pi).
 _NUM_PARAMS_RGB = 4
+
+# Upper bound on the number of elements of the intermediate NKHW * chunk_size tensor that
+# `symbol_pmf` builds, and therefore on its memory. Small pyramid levels fit the whole symbol
+# axis in a single pass under this budget, which is where most of their coding time goes.
+_PMF_ELEMENT_BUDGET = 1 << 24  # =2^24
 
 
 def non_shared_get_Kp(K: int, C: int, num_params: int) -> int:
@@ -176,6 +183,69 @@ class DiscretizedMixLogisticLoss(nn.Module):
             entropy = entropy - (log_marg_chunk.exp() * log_marg_chunk).sum(dim=-1)
 
         return entropy
+
+    def symbol_pmf(self, x: torch.Tensor, l: torch.Tensor, channel: int, chunk_size: Optional[int] = None) -> torch.Tensor:
+        """Probability of every symbol value for a single channel of the predicted mixture.
+
+        The mean of a channel depends on the values of the channels before it through the
+        lambda coupling, so `x` must carry the true values of the channels before `channel`.
+        The entries of `x` at and after `channel` are never read, which is what allows the
+        channels to be recovered one after the other from a bit stream.
+
+        Difference between this method and `expected_entropy`: 
+        `expected_entropy` builds the same marginal mixture for all channels at once and reduces it
+        over the symbol axis into one entropy value per pixel. This method covers a single channel
+        and keeps the symbol axis, which is the form an entropy coder needs.
+
+        Args:
+            x: conditioning values, NCHW float in [x_min, x_max].
+            l: predicted distribution parameters, N x Kp x H x W.
+            channel: index of the channel whose distribution is returned. The RGB channels are indexed as 0, 1, 2.
+            chunk_size: number of symbol values processed per iteration, bounding the peak
+                memory of the intermediate `NKHW * chunk_size` tensor. See `expected_entropy`
+                for the size of that tensor. Derived from `_PMF_ELEMENT_BUDGET` when not given.
+
+        Returns:
+            Probability mass over the symbol alphabet, shape N x H x W x n_symbols.
+        """
+        _, logit_pis, means, log_scales = self._extract_non_shared(x, l)
+
+        # Add a dimension for broadcasting later.
+        means = means[:, channel].unsqueeze(-1)                            # NKHW1
+        inv_stdv = torch.exp(-log_scales[:, channel]).unsqueeze(-1)        # NKHW1
+        log_w = F.log_softmax(logit_pis[:, channel], dim=1).unsqueeze(-1)  # NKHW1
+
+        if chunk_size is None:
+            chunk_size = _PMF_ELEMENT_BUDGET // max(1, means[..., 0].numel())
+        chunk = max(1, min(chunk_size, self.n_symbols))
+
+        # Internal bin edges in raw value space (self.n_symbols - 1 of them between consecutive symbols).
+        edges_all = self.x_min + self.bin_width * (
+            torch.arange(self.n_symbols - 1, device=means.device, dtype=means.dtype) + 0.5
+        )
+
+        pmf_chunks = []
+        for start in range(0, self.n_symbols, chunk):
+            end = min(start + chunk, self.n_symbols)
+            # Indices into edges_all for the edges bounding symbols [start, end);
+            # -1 and self.n_symbols - 1 are out of range and correspond to the open-ended boundaries.
+            edges_chunk = edges_all[max(0, start - 1):min(self.n_symbols - 1, end)]
+
+            cdf_chunk = self._cdf_at_centered_offsets(edges_chunk - means, inv_stdv)  # NKHW * chunk_size
+
+            # Open-ended boundary handling: P(X < x_min) = 0, P(X <= x_max) = 1.
+            pieces = []
+            if start == 0:
+                pieces.append(torch.zeros_like(cdf_chunk[..., :1]))
+            pieces.append(cdf_chunk)
+            if end == self.n_symbols:
+                pieces.append(torch.ones_like(cdf_chunk[..., :1]))
+            cdf_chunk = torch.cat(pieces, dim=-1) if len(pieces) > 1 else cdf_chunk
+
+            log_pmf_chunk = (cdf_chunk[..., 1:] - cdf_chunk[..., :-1]).clamp(min=1e-6).log()  # NKHW * n
+            pmf_chunks.append(torch.logsumexp(log_w + log_pmf_chunk, dim=1).exp())            # NHW * n
+
+        return torch.cat(pmf_chunks, dim=-1)
 
     def _extract_non_shared(self, x: torch.Tensor, l: torch.Tensor):
         """Split l into (logit_pi, mu, log_sigma, coeffs) per channel.
