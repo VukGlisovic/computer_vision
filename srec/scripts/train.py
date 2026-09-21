@@ -51,7 +51,7 @@ def main(config):
         gradient_clip_val=train_config['gradient_clip_val'],
         default_root_dir=train_config['output_dir'],
         callbacks=[
-            ModelCheckpoint(monitor='val/bpsp', mode='min', save_top_k=3, filename='ckpt_ep{epoch:02d}'),
+            ModelCheckpoint(monitor='val/bpsp', mode='min', save_top_k=3, filename='model_{epoch:02d}'),
             LearningRateMonitor(logging_interval='epoch'),
         ],
     )

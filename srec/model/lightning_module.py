@@ -11,7 +11,7 @@ from srec.model.srec_model import SReC
 class SrecLightningModule(L.LightningModule):
     """Trains a `SReC` model to minimize the bits-per-sub-pixel (bpsp) of its input.
 
-    The compressor returns a `Bits` accumulator rather than a tensor; the loss is the
+    The SReC model returns a `Bits` accumulator rather than a tensor; the loss is the
     total bpsp averaged over the batch. The per-code bpsp contributions (one uniform
     code for the coarsest scale, one rounding-residual code and three logistic-mixture
     codes per finer scale) are logged separately to show where the bit budget goes.
