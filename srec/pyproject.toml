@@ -1,0 +1,34 @@
+[project]
+name = "srec"
+version = "0.1.0"
+description = "Lossless image compression through super-resolution"
+authors = [
+    {name = "Vuk Glisovic"}
+]
+requires-python = "==3.12.*"
+
+# PyPI dependencies
+dependencies = [
+    "constriction==0.5.0",
+    "lightning==2.6.5",
+    "PyYAML==6.0.3",
+    "tensorboard==2.21.0",
+    "torch==2.13.0",
+    "torchvision==0.28.0",
+]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+# Conda dependencies
+[tool.pixi.dependencies]
+ipykernel = ">=6.30.1,<7"
+matplotlib = ">=3.10,<4"
+
+[tool.pixi.tasks]
+# The repository root is put on the path so that the `srec` package resolves from the scripts directory.
+# LD_LIBRARY_PATH is pinned to the environment so that torch does not pull a system libstdc++ that is too old for matplotlib.
+train = { cmd = "python train.py", cwd = "scripts", env = { PYTHONPATH = "../..", LD_LIBRARY_PATH = "$CONDA_PREFIX/lib" } }
+compress = { cmd = "python compress.py", cwd = "scripts", env = { PYTHONPATH = "../..", LD_LIBRARY_PATH = "$CONDA_PREFIX/lib" } }
+tensorboard = { cmd = "tensorboard --logdir ../experiments", cwd = "scripts", env = { PYTHONPATH = "../.." } }

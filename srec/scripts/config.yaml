@@ -1,0 +1,24 @@
+model:
+  n_downsamples: 3
+  n_feats: 64
+  resblocks: 3
+  K: 10
+  # Adds an entropy pass over all 256 symbol values per predicted pixel; leave off unless
+  # the run is meant to measure the coding gap rather than to train.
+  expected_entropy: false
+
+optimizer:
+  learning_rate: 0.0001
+  lr_patience: 3
+  lr_factor: 0.1
+
+data:
+  root: ../data
+  batch_size: 32
+  num_workers: 4
+  horizontal_flip: true
+
+train:
+  n_epochs: 100
+  gradient_clip_val: 0.5
+  output_dir: ../experiments
