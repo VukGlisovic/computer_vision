@@ -3,28 +3,19 @@
 
 ## Introduction
 I created this repo simply to play around and learn. I'm going over various topics all related to computer vision.
-Sometimes I use existing code or packages, but most of the time I write my own code because I want to understand
-how the models/methods work.
+Sometimes I use existing code or packages, but most of the time I write my own code because I want to understand how the models/methods work.
 
 
 ## How it works
-Every folder is basically a project. Every project has a readme that explains how to create the python environment
-for that particular project. If there is no explanation in the readme, just create the environment with 
-`conda env create -f environment.yaml`. If there is no readme, then I guess there's not much to say, just create the
-environment and run the code.
+Every folder is basically a project. Every project has a readme that explains how to create the python environment for that particular project. If there is no explanation in the readme, just create the environment with `conda env create -f environment.yaml`. If there is no readme, then I guess there's not much to say, just create the environment and run the code.
 
-A small disclaimer: in the earlier projects I tried to use one environment yaml for all the projects. I realized that
-was a bad idea and started creating an environment per project. This means that the environment yamls from some of the 
-earlier projects might not work out of the box.
+A small disclaimer: in the earlier projects I tried to use one environment yaml for all the projects. I realized that was a bad idea and started creating an environment per project. This means that the environment yamls from some of the earlier projects might not work out of the box.
 
-I am playing around a bit with environment yamls and requirements.txt files. Lately I've been switching to pixi though 
-so you'll find some pyproject.toml files as well for the later projects.
+I am playing around a bit with environment yamls and requirements.txt files. Lately I've been switching to pixi though so you'll find some pyproject.toml files as well for the later projects.
 
-In every project I either user tensorflow or pytorch. My earlier 
-projects mainly use tensorflow, but I started liking pytorch more and more.
+In every project I either user tensorflow or pytorch. My earlier projects mainly use tensorflow, but I started liking pytorch more and more.
 
-Some projects will have more elaborate coding where I spent more time while other projects I wanted to try out 
-something and spent less time to perfect the code.
+Some projects will have more elaborate coding where I spent more time while other projects I wanted to try out something and spent less time to perfect the code.
 
 
 ## Order in which projects were added
@@ -47,3 +38,4 @@ something and spent less time to perfect the code.
 17. normalizing_flows
 18. milvus_vector_database
 19. audio_cloning
+20. SReC (Super Resolution based Compression)
