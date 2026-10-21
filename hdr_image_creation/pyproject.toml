@@ -12,6 +12,7 @@ dependencies = [
     "numpy==2.5.3",
     "opencv-python==5.0.0.93",
     "Pillow==12.3.0",
+    "rawpy==0.27.1",
 ]
 
 [tool.pixi.workspace]
