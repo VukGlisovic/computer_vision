@@ -12,7 +12,8 @@ dependencies = [
     "numpy==2.5.3",
     "opencv-python==5.0.0.93",
     "Pillow==12.3.0",
-    "rawpy==0.27.1",
+    "rawpy==0.27.1", 
+    "streamlit>=1.66.1,<2",
 ]
 
 [tool.pixi.workspace]
@@ -21,3 +22,4 @@ platforms = ["linux-64"]
 
 [tool.pixi.tasks]
 combine-aeb-images = { cmd = "python combine-aeb-images.py", cwd = "scripts" }
+app = { cmd = "streamlit run app.py", cwd = "scripts" }
