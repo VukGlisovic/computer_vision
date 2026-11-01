@@ -51,7 +51,7 @@ def _render_page(
 ) -> HTMLResponse:
     return templates.TemplateResponse(
         request=request,
-        name="index.html",
+        name="index.html.j2",
         context={
             "modes": ("fusion", "hdr"),
             "calibrators": tuple(combine_aeb_images.CALIBRATORS),
