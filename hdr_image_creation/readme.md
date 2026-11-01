@@ -48,3 +48,13 @@ pixi run combine-aeb-images -i under.jpg normal.jpg over.jpg -m hdr -o combined.
 ```
 
 Further settings are in the script's help.
+
+
+## Start application
+As a bonus for myself, I want to be able to use this HDR image editing from my phone when I want to. For this I will setup a GCP VM instance.
+
+Command to ssh into the machine.
+```bash
+gcloud compute ssh --zone ${GCP_ZONE} ${GCP_INSTANCE_NAME} --project ${GCP_PROJECT} --ssh-flag="-o ServerAliveInterval=30" --ssh-flag="-o ServerAliveCountMax=3"
+```
+The additional ssh flags are to make sure the terminal session doesn't become unresponsive.
