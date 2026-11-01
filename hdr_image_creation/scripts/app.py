@@ -5,6 +5,7 @@ the chosen settings, and returns the image the script writes.
 """
 
 import importlib.util
+import logging
 import shutil
 import subprocess
 import sys
@@ -28,6 +29,7 @@ combine_aeb_images = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(combine_aeb_images)
 
 app = FastAPI(title="HDR Image Creation")
+logger = logging.getLogger("uvicorn.error")
 templates = Jinja2Templates(directory=str(SCRIPT_DIR))
 _last_result: dict[str, bytes | str] = {}
 _input_workdir = tempfile.TemporaryDirectory()
@@ -113,7 +115,16 @@ def combine(
         result = subprocess.run(command, capture_output=True, text=True)
 
         if result.returncode != 0:
-            error_text = result.stderr.strip() or "combine-aeb-images.py failed with no error output."
+            error_text = (
+                result.stderr.strip()
+                or result.stdout.strip()
+                or f"combine-aeb-images.py exited with code {result.returncode}."
+            )
+            logger.error(
+                "combine-aeb-images.py failed (exit %d): %s",
+                result.returncode,
+                error_text,
+            )
             return _render_page(request, mode, calibration, tonemap, gamma, align, error=error_text)
 
         written = list(output_dir.iterdir())
