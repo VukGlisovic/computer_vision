@@ -16,3 +16,10 @@ echo "Repository 'computer_vision' cloned"
 # Install python environment
 cd computer_vision/hdr_image_creation
 pixi install
+
+# Setup NordVPN meshnet (other options also possible like Tailscale)
+sh <(curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh)
+sudo usermod -aG nordvpn $USER
+nordvpn login --token ${NORDVPN_TOKEN}
+nordvpn set meshnet on
+nordvpn meshnet peer list
