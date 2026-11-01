@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HDR Image Creation</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 540px; margin: 1.5rem auto; padding: 0 1rem; }
+  label { display: block; margin-top: 1rem; font-weight: 600; }
+  select, input[type="number"], input[type="file"], button, .button {
+    width: 100%; box-sizing: border-box; margin-top: 0.35rem; padding: 0.65rem; font-size: 1rem;
+  }
+  .checkbox { display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; font-weight: 600; }
+  button, .button {
+    display: inline-block; text-align: center; text-decoration: none;
+    margin-top: 1.25rem; background: #1f6feb; color: #fff; border: 0; border-radius: 6px; cursor: pointer;
+  }
+  .error { background: #ffebe9; color: #a40e26; padding: 0.75rem; border-radius: 6px; }
+  .success { background: #dafbe1; color: #1a7f37; padding: 0.75rem; border-radius: 6px; }
+  .result img { width: 100%; height: auto; margin-top: 1rem; border-radius: 6px; }
+</style>
+</head>
+<body>
+<h1>HDR Image Creation</h1>
+{% if error %}
+  <p class="error">{{ error }}</p>
+{% elif message %}
+  <p class="success">{{ message }}</p>
+{% endif %}
+<form method="post" action="/combine" enctype="multipart/form-data">
+  <label>Mode
+    <select name="mode" onchange="document.getElementById('hdr-fields').style.display = this.value === 'hdr' ? 'block' : 'none'">
+      {% for m in modes %}
+        <option value="{{ m }}"{% if m == mode %} selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Bracket shots
+    <input type="file" name="uploads" accept="{{ accept }}" multiple required>
+  </label>
+  <div id="hdr-fields" style="display: {{ 'block' if mode == 'hdr' else 'none' }}">
+    <label>Calibration
+      <select name="calibration">
+        {% for c in calibrators %}
+          <option value="{{ c }}"{% if c == calibration %} selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Tonemap
+      <select name="tonemap">
+        {% for t in tonemappers %}
+          <option value="{{ t }}"{% if t == tonemap %} selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Gamma
+      <input type="number" name="gamma" value="{{ gamma }}" min="0.1" step="0.1">
+    </label>
+  </div>
+  <label class="checkbox">
+    <input type="checkbox" name="align" value="true"{% if align %} checked{% endif %}> Align shots
+  </label>
+  <button type="submit">Combine</button>
+</form>
+{% if has_image %}
+  <div class="result">
+    <a class="button" href="/result" download="{{ file_name }}">Download {{ file_name }}</a>
+    <img src="/result" alt="Combined image">
+  </div>
+{% endif %}
+</body>
+</html>

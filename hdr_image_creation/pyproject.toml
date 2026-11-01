@@ -15,7 +15,8 @@ dependencies = [
     "rawpy==0.27.1", 
     "fastapi>=0.162.0,<0.163", 
     "uvicorn>=0.54.0,<0.55", 
-    "python-multipart>=0.0.33,<0.0.34",
+    "python-multipart>=0.0.33,<0.0.34", 
+    "jinja2>=3.1.6,<4",
 ]
 
 [tool.pixi.workspace]
