@@ -36,8 +36,11 @@
     </select>
   </label>
   <label>Bracket shots
-    <input type="file" name="uploads" accept="{{ accept }}" multiple required>
+    <input type="file" name="uploads" accept="{{ accept }}" multiple{% if not uploaded_files %} required{% endif %}>
   </label>
+  {% if uploaded_files %}
+    <small>Current bracket:<br>{{ uploaded_files | join(", ") }}<br>(leave empty to reuse)</small>
+  {% endif %}
   <div id="hdr-fields" style="display: {{ 'block' if mode == 'hdr' else 'none' }}">
     <label>Calibration
       <select name="calibration">

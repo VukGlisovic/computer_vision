@@ -30,6 +30,12 @@ _spec.loader.exec_module(combine_aeb_images)
 app = FastAPI(title="HDR Image Creation")
 templates = Jinja2Templates(directory=str(SCRIPT_DIR))
 _last_result: dict[str, bytes | str] = {}
+_input_workdir = tempfile.TemporaryDirectory()
+_input_dir = Path(_input_workdir.name)
+
+
+def _uploaded_names() -> list[str]:
+    return sorted(p.name for p in _input_dir.iterdir() if p.is_file())
 
 
 def _render_page(
@@ -60,6 +66,7 @@ def _render_page(
             "error": error,
             "has_image": has_image,
             "file_name": str(_last_result.get("file_name", "combined.jpg")),
+            "uploaded_files": _uploaded_names(),
         },
     )
 
@@ -72,28 +79,29 @@ def index(request: Request) -> HTMLResponse:
 @app.post("/combine", response_class=HTMLResponse)
 def combine(
     request: Request,
-    uploads: list[UploadFile] = File(...),
+    uploads: list[UploadFile] = File(default=[]),
     mode: str = Form("fusion"),
     calibration: str = Form("debevec"),
     tonemap: str = Form("reinhard"),
     gamma: float = Form(2.2),
     align: bool = Form(False),
 ) -> HTMLResponse:
-    with tempfile.TemporaryDirectory() as workdir:
-        input_dir = Path(workdir) / "input"
-        output_dir = Path(workdir) / "output"
-        input_dir.mkdir()
-        output_dir.mkdir()
+    new_uploads = [u for u in uploads if u.filename]
+    if new_uploads:
+        for existing in _input_dir.iterdir():
+            existing.unlink()
+        for upload in new_uploads:
+            destination = _input_dir / Path(upload.filename).name
+            with destination.open("wb") as target:
+                shutil.copyfileobj(upload.file, target)
 
-        for upload in uploads:
-            if upload.filename:
-                destination = input_dir / Path(upload.filename).name
-                with destination.open("wb") as target:
-                    shutil.copyfileobj(upload.file, target)
+    with tempfile.TemporaryDirectory() as workdir:
+        output_dir = Path(workdir) / "output"
+        output_dir.mkdir()
 
         command = [
             sys.executable, str(SCRIPT_PATH),
-            "-i", str(input_dir),
+            "-i", str(_input_dir),
             "-o", str(output_dir / "combined.jpg"),
             "-m", mode,
         ]
