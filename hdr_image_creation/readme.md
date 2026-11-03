@@ -51,10 +51,34 @@ Further settings are in the script's help.
 
 
 ## Start application
-As a bonus for myself, I want to be able to use this HDR image editing from my phone when I want to. For this I will setup a GCP VM instance.
 
-Command to ssh into the machine.
+### Create GCP instance
+As a bonus for myself, I want to be able to use this HDR image editing from my phone when I want to. For this I will setup a GCP VM instance. You can use the script to create an instance:
 ```bash
-gcloud compute ssh --zone ${GCP_ZONE} ${GCP_INSTANCE_NAME} --project ${GCP_PROJECT} --ssh-flag="-o ServerAliveInterval=30" --ssh-flag="-o ServerAliveCountMax=3"
+cd create_machine
+./create_machine.sh
+```
+Note that you have to set some environment variables in a `.env` file in the same folder.
+
+### Setup instance
+Afterwards you can ssh into the machine:
+```bash
+gcloud compute ssh --zone ${ZONE} ${INSTANCE_NAME} --project ${PROJECT_ID} --ssh-flag="-o ServerAliveInterval=30" --ssh-flag="-o ServerAliveCountMax=3"
 ```
 The additional ssh flags are to make sure the terminal session doesn't become unresponsive.
+
+Finally, setup the machine with
+```bash
+sudo apt-get -y update
+sudo apt install -y git
+git clone https://github.com/VukGlisovic/computer_vision.git
+cd computer_vision/hdr_image_creation/
+./setup_machine.sh
+```
+After the setup script, the machine is ready; whenever you start the machine, the HDR image creation application is started automatically.
+
+Note that I'm using NordVPN meshnet functionality to create my personal network sothat I'm able to access the application in the instance. You could also use other things like Tailscale to achieve the same thing.
+
+### Reasoning behind architecture
+The reason I'm doing it this way, is because I want the application to cost nothing while I'm not using it. I know I'm the only one that will be using the application, so I only need the machine to be running when I want to use it. The instance will be shut down when not in use which makes me only need to pay for the persistent disk unless you stay in the free tier.
+Doing it like this prevents me from needing to pay for things like a load balancer permanently listening to my requests, no permanent IP addresses I need to pay for, etc.
