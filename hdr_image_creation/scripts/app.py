@@ -47,6 +47,7 @@ def _render_page(
     tonemap: str = "reinhard",
     gamma: float = 2.2,
     align: bool = True,
+    max_side: str = "",
     message: str = "",
     error: str = "",
     has_image: bool = False,
@@ -64,6 +65,7 @@ def _render_page(
             "tonemap": tonemap,
             "gamma": gamma,
             "align": align,
+            "max_side": max_side,
             "message": message,
             "error": error,
             "has_image": has_image,
@@ -87,7 +89,15 @@ def combine(
     tonemap: str = Form("reinhard"),
     gamma: float = Form(2.2),
     align: bool = Form(False),
+    max_side: str = Form(""),
 ) -> HTMLResponse:
+    limit = max_side.strip()
+    if limit and not limit.isdigit():
+        return _render_page(
+            request, mode, calibration, tonemap, gamma, align, max_side=max_side,
+            error="Max side length has to be a positive whole number of pixels.",
+        )
+
     new_uploads = [u for u in uploads if u.filename]
     if new_uploads:
         for existing in _input_dir.iterdir():
@@ -111,6 +121,8 @@ def combine(
             command += ["-c", calibration, "-t", tonemap, "-g", str(gamma)]
         if not align:
             command.append("--no-align")
+        if limit:
+            command += ["--max-side", limit]
 
         result = subprocess.run(command, capture_output=True, text=True)
 
@@ -125,7 +137,9 @@ def combine(
                 result.returncode,
                 error_text,
             )
-            return _render_page(request, mode, calibration, tonemap, gamma, align, error=error_text)
+            return _render_page(
+                request, mode, calibration, tonemap, gamma, align, max_side=max_side, error=error_text
+            )
 
         written = list(output_dir.iterdir())
         if written:
@@ -134,7 +148,7 @@ def combine(
 
         return _render_page(
             request,
-            mode, calibration, tonemap, gamma, align,
+            mode, calibration, tonemap, gamma, align, max_side,
             message=result.stdout.strip(),
             has_image=bool(_last_result),
         )

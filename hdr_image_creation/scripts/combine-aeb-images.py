@@ -224,6 +224,24 @@ def load_bracket(paths: list[Path]) -> tuple[list[np.ndarray], np.ndarray | None
     return images, times
 
 
+def downscale(images: list[np.ndarray], max_side: int | None) -> list[np.ndarray]:
+    """Shrinks the shots until their longer side stays within max_side, or hands them back.
+
+    Every step over a bracket costs with its pixel count, so a side limit trades resolution
+    for a run that finishes sooner on big shots. All of the shots are shrunk to the one size,
+    which keeps them on a common grid, and area averaging keeps what it folds together from
+    aliasing into noise.
+    """
+    if not max_side or max_side <= 0:
+        return images
+    height, width = images[0].shape[:2]
+    scale = max_side / max(height, width)
+    if scale >= 1.0:
+        return images
+    size = (round(width * scale), round(height * scale))
+    return [cv2.resize(image, size, interpolation=cv2.INTER_AREA) for image in images]
+
+
 def to_display(image: np.ndarray) -> np.ndarray:
     """Curves a linear image into the 8 bit range that the alignment and the fusion read.
 
@@ -363,6 +381,7 @@ def tag_path(path: Path, *settings: str) -> Path:
 def main(args: argparse.Namespace) -> None:
     paths = collect_image_paths(args.input)
     images, times = load_bracket(paths)
+    images = downscale(images, args.max_side)
     if not args.no_align:
         images = align(images)
 
@@ -414,4 +433,8 @@ if __name__ == "__main__":
                              "up the settings it was made with. For hdr mode.")
     parser.add_argument("--no-align", action="store_true",
                         help="Keep the shots as they are instead of aligning them onto a common grid.")
+    parser.add_argument("--max-side", type=int,
+                        help="Downscale the shots so their longer side stays under this many pixels, "
+                             "which speeds a run up by giving it less to work over. Left unset, or set to "
+                             "zero, the shots keep their full size.")
     main(parser.parse_args())

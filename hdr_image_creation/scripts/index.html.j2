@@ -10,6 +10,7 @@
   select, input[type="number"], input[type="file"], button, .button {
     width: 100%; box-sizing: border-box; margin-top: 0.35rem; padding: 0.65rem; font-size: 1rem;
   }
+  input[type="range"] { width: 100%; margin-top: 0.35rem; }
   .checkbox { display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; font-weight: 600; }
   button, .button {
     display: inline-block; text-align: center; text-decoration: none;
@@ -60,6 +61,12 @@
       <input type="number" name="gamma" value="{{ gamma }}" min="0.1" step="0.1">
     </label>
   </div>
+  <label>Max side length (px)
+    <input type="range" id="max-side-slider" min="256" max="8192" step="64" value="{{ max_side or 4096 }}"
+           oninput="document.getElementById('max-side').value = this.value">
+    <input type="number" id="max-side" name="max_side" value="{{ max_side }}" min="1"
+           placeholder="Full size" oninput="document.getElementById('max-side-slider').value = this.value">
+  </label>
   <label class="checkbox">
     <input type="checkbox" name="align" value="true"{% if align %} checked{% endif %}> Align shots
   </label>
