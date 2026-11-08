@@ -1,10 +1,9 @@
-"""Web front end for combine-aeb-images.py.
+"""Web front end for combining AEB brackets.
 
-Serves an HTML form that accepts a bracket of shots, runs the combine script against them with
-the chosen settings, and returns the image the script writes.
+Serves an HTML form that accepts a bracket of shots, runs the combine CLI against them with
+the chosen settings, and returns the image the CLI writes.
 """
 
-import importlib.util
 import logging
 import shutil
 import subprocess
@@ -16,21 +15,13 @@ from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
 
-SCRIPT_DIR = Path(__file__).parent
-SCRIPT_PATH = SCRIPT_DIR / "combine-aeb-images.py"
+import aeb
 
-# combine-aeb-images.py is loaded as a module, rather than imported by name, because its
-# hyphenated filename is not a valid module name. This keeps the choices offered below, and the
-# file extensions accepted by the uploader, drawn from the script that actually runs them instead
-# of a second list that could drift from it. The module's __main__ guard keeps this from parsing
-# command-line arguments.
-_spec = importlib.util.spec_from_file_location("combine_aeb_images", SCRIPT_PATH)
-combine_aeb_images = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(combine_aeb_images)
+APP_DIR = Path(__file__).parent
 
 app = FastAPI(title="HDR Image Creation")
 logger = logging.getLogger("uvicorn.error")
-templates = Jinja2Templates(directory=str(SCRIPT_DIR))
+templates = Jinja2Templates(directory=str(APP_DIR))
 _last_result: dict[str, bytes | str] = {}
 _input_workdir = tempfile.TemporaryDirectory()
 _input_dir = Path(_input_workdir.name)
@@ -57,9 +48,9 @@ def _render_page(
         name="index.html.j2",
         context={
             "modes": ("fusion", "hdr"),
-            "calibrators": tuple(combine_aeb_images.CALIBRATORS),
-            "tonemappers": tuple(combine_aeb_images.TONEMAPPERS),
-            "accept": ",".join(sorted(combine_aeb_images.IMAGE_SUFFIXES)),
+            "calibrators": tuple(aeb.CALIBRATORS),
+            "tonemappers": tuple(aeb.TONEMAPPERS),
+            "accept": ",".join(sorted(aeb.IMAGE_SUFFIXES)),
             "mode": mode,
             "calibration": calibration,
             "tonemap": tonemap,
@@ -112,7 +103,7 @@ def combine(
         output_dir.mkdir()
 
         command = [
-            sys.executable, str(SCRIPT_PATH),
+            sys.executable, "-m", "aeb",
             "-i", str(_input_dir),
             "-o", str(output_dir / "combined.jpg"),
             "-m", mode,
@@ -130,10 +121,10 @@ def combine(
             error_text = (
                 result.stderr.strip()
                 or result.stdout.strip()
-                or f"combine-aeb-images.py exited with code {result.returncode}."
+                or f"aeb exited with code {result.returncode}."
             )
             logger.error(
-                "combine-aeb-images.py failed (exit %d): %s",
+                "aeb failed (exit %d): %s",
                 result.returncode,
                 error_text,
             )

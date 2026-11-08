@@ -37,7 +37,7 @@ So in exposure bracketing, we capture multiple images of the same scene with dif
 
 ## Running code for creating an HDR image
 
-The task runs from `scripts/`, so paths are relative to that directory. The written file keeps the given path and adds the settings to its name.
+Paths are relative to the project root. The written file keeps the given path and adds the settings to its name.
 
 ```bash
 # Fusion, the default. Writes combined_fusion.jpg.
@@ -47,7 +47,7 @@ pixi run combine-aeb-images -i burst_dir/ -o combined.jpg
 pixi run combine-aeb-images -i under.jpg normal.jpg over.jpg -m hdr -o combined.jpg
 ```
 
-Further settings are in the script's help.
+Further settings are in `pixi run combine-aeb-images --help`.
 
 
 ## Start application
