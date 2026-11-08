@@ -63,7 +63,7 @@ Note that you have to set some environment variables in a `.env` file in the sam
 ### Setup instance
 Afterwards you can ssh into the machine:
 ```bash
-gcloud compute ssh --zone ${ZONE} ${INSTANCE_NAME} --project ${PROJECT_ID} --ssh-flag="-o ServerAliveInterval=30" --ssh-flag="-o ServerAliveCountMax=3"
+gcloud compute ssh --zone ${ZONE} "hdr-image-creation" --project ${PROJECT_ID} --ssh-flag="-o ServerAliveInterval=30" --ssh-flag="-o ServerAliveCountMax=3"
 ```
 The additional ssh flags are to make sure the terminal session doesn't become unresponsive.
 
