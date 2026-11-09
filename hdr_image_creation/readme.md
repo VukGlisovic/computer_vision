@@ -82,3 +82,64 @@ Note that I'm using NordVPN meshnet functionality to create my personal network 
 ### Reasoning behind architecture
 The reason I'm doing it this way, is because I want the application to cost nothing while I'm not using it. I know I'm the only one that will be using the application, so I only need the machine to be running when I want to use it. The instance will be shut down when not in use which makes me only need to pay for the persistent disk unless you stay in the free tier.
 Doing it like this prevents me from needing to pay for things like a load balancer permanently listening to my requests, no permanent IP addresses I need to pay for, etc.
+
+
+## Parallelism
+
+One thing that I wanted to know, is what machine type makes sense to use? Does it help if I add more cores? Are the algorithms parallelizable? Therefore I did a little benchmark below.
+
+The timings below were measured with `cv2.setNumThreads` on a synthetic bracket of three 12 MP shots (4000 x 3000 pixels), on a 16-thread WSL machine. Values are in seconds. A single run can vary by around 30%, so treat them as indicative.
+
+| Stage | Mode | 1 thread | 8 threads | 16 threads | Scales with threads |
+|---|---|---|---|---|---|
+| Alignment (MTB) | both | 1.4 | 1.4 | 1.4 | no |
+| Mertens fusion | fusion | 3.8 | 1.5 | 1.4 | yes |
+| Debevec calibration | hdr | 7.9 | 8.0 | 8.5 | no |
+| Debevec merge | hdr | 1.8 | 1.3 | 1.5 | no |
+| Reinhard tonemapping | hdr | 0.7 | 0.7 | 0.9 | no |
+| Durand tonemapping | hdr | 2.6 | 2.4 | 2.0 | slightly |
+| ACES tonemapping | hdr | 0.8 | 0.8 | 0.7 | no (NumPy) |
+| 8 bit conversion | both | 0.3 | 0.4 | 0.4 | no (NumPy) |
+| JPEG decode | both | 0.06 | 0.06 | 0.05 | negligible |
+
+End-to-end timings, from loading the shots to writing the output, on the same bracket:
+
+| Configuration | 1 thread | 8 threads | 16 threads |
+|---|---|---|---|
+| Fusion, aligned | 6.1 | 3.2 | 3.5 |
+| Fusion, no alignment | 4.5 | 2.1 | 2.1 |
+| HDR, Debevec, Reinhard | 13.6 | 12.0 | 13.4 |
+| HDR, Robertson, Reinhard | 54.9 | 39.4 | 41.2 |
+| HDR, Debevec, Mantiuk | 78.6 | 72.8 | 75.5 |
+| HDR, Debevec, Drago | 12.7 | 11.7 | 11.4 |
+| HDR, Debevec, Durand | 14.4 | 13.9 | 13.5 |
+| HDR, Debevec, ACES | 18.3 | 13.6 | 11.2 |
+
+Most important take-away: Beyond about 8 threads, most configurations gain little or nothing.
+
+The linear merge used for raw shots takes about 0.6 s at any thread count, on synthetic readings.
+
+Robertson calibration and Mantiuk tonemapping are much much slower than the other options. In hdr mode, Debevec calibration is the largest cost of the default path, and it does not speed up with more threads. Adding cores helps mainly fusion mode, and it helps Robertson calibration somewhat.
+
+
+## Processing paths
+
+The diagram shows which steps RAW and JPEG shots go through. The times are approximations taken from the benchmarks above.
+
+```mermaid
+flowchart TD
+    raw["RAW shots"] --> rawdev["Develop linearly<br/>exposure times from shutter speed"]
+    jpeg["JPEG shots"] --> decode["Decode<br/>exposure times from EXIF"]
+    rawdev --> align
+    decode --> align
+    align["Align, MTB, about 1.4s<br/>skipped with --no-align"] --> mode{"Mode"}
+    mode -->|"fusion"| mertens["Mertens fusion, about 1.5s"]
+    mode -->|"hdr"| kind{"File type"}
+    kind -->|"RAW"| linear["Linear merge, no response curve, about 0.6s"]
+    kind -->|"JPEG"| calib["Response curve<br/>Debevec about 8s, Robertson about 40s"]
+    calib --> merge["Radiance merge, Debevec about 1.5s"]
+    linear --> tonemap
+    merge --> tonemap["Tonemap<br/>Reinhard 0.7s, Durand 2.4s, ACES 0.8s, Mantiuk about 60s"]
+    mertens --> write
+    tonemap --> write["Write 8 bit output"]
+```
