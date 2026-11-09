@@ -7,7 +7,7 @@ source .env
 gcloud compute instances create "hdr-image-creation" \
     --project="${PROJECT_ID}" \
     --zone="${ZONE}" \
-    --machine-type="e2-small" \
+    --machine-type="e2-custom-8-16384" \
     --image-family="ubuntu-2404-lts-amd64" \
     --image-project="ubuntu-os-cloud" \
     --boot-disk-size="20GB" \
