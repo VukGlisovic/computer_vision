@@ -29,6 +29,7 @@ sudo nordvpn set meshnet on
 sudo nordvpn meshnet peer list
 
 # Register systemd service to start the web application on boot
+echo "Creating systemd service to start the web application on boot"
 sudo tee /etc/systemd/system/hdr-app.service > /dev/null <<EOF
 [Unit]
 Description=HDR Image Creation Web Application
@@ -47,6 +48,6 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
+echo "Reloading systemd and enabling the service"
 sudo systemctl daemon-reload
 sudo systemctl enable --now hdr-app.service
-
