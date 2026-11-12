@@ -4,7 +4,10 @@
 # sudo apt-get -y update
 # sudo apt install -y git
 # git clone https://github.com/VukGlisovic/computer_vision.git
-# cd computer_vision/hdr_image_creation
+# cd computer_vision/hdr_image_creation/create_machine/
+
+# Load the environment variables
+source .env
 
 # Install libraries required for OpenCV
 sudo apt-get install -y htop libxcb1 libgl1
