@@ -10,14 +10,16 @@
 sudo apt-get install -y htop libxcb1 libgl1
 
 # Install Pixi
-curl -LsSf https://raw.githubusercontent.com/Pixi-Lang/pixi/main/install.sh | bash
+curl -fsSL https://pixi.sh/install.sh | bash
+export PATH="${HOME}/.pixi/bin:${PATH}"
+command -v pixi > /dev/null || { echo "Pixi installation failed"; exit 1; }
 echo "Pixi installed with version: $(pixi --version)"
 
 # Install python environment
 pixi install
 
 # Setup NordVPN meshnet (other options also possible like Tailscale)
-sh <(curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh)
+sh <(curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh) -n
 sudo usermod -aG nordvpn ${USER}
 sudo nordvpn login --token ${NORDVPN_TOKEN}
 sudo nordvpn set meshnet on
