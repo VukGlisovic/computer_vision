@@ -4,6 +4,7 @@
 # sudo apt-get -y update
 # sudo apt install -y git
 # git clone https://github.com/VukGlisovic/computer_vision.git
+# cd computer_vision/hdr_image_creation
 
 # Install libraries required for OpenCV
 sudo apt-get install -y htop libxcb1 libgl1
@@ -13,7 +14,6 @@ curl -LsSf https://raw.githubusercontent.com/Pixi-Lang/pixi/main/install.sh | ba
 echo "Pixi installed with version: $(pixi --version)"
 
 # Install python environment
-cd computer_vision/hdr_image_creation
 pixi install
 
 # Setup NordVPN meshnet (other options also possible like Tailscale)
